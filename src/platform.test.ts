@@ -257,7 +257,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a Light (on/off) device from ha', async () => {
@@ -286,7 +286,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a Dimmer device from ha', async () => {
@@ -315,7 +315,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a Light (HS) device from ha', async () => {
@@ -344,7 +344,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a Light (XY) device from ha', async () => {
@@ -373,7 +373,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a Light (CT) device from ha', async () => {
@@ -402,7 +402,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a Light (XY, HS and CT) device from ha', async () => {
@@ -431,7 +431,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a Outlet device from ha', async () => {
@@ -460,7 +460,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a Lock device from ha', async () => {
@@ -489,7 +489,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a Fan device from ha', async () => {
@@ -518,7 +518,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${rs}${nf}`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
   });
 
   it('should register a switch device from ha', async () => {
