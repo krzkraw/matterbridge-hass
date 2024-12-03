@@ -420,7 +420,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const entity = this.hassEntities.find((entity) => entity.entity_id === state.entity_id);
         const deviceId = entity?.device_id;
         if (deviceId && this.bridgedHassDevices.has(deviceId)) {
-          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${nf} for device ${idn}${deviceId}${rs}${nf}` /* , state*/);
+          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${db} for device ${CYAN}${deviceId}${db}` /* , state*/);
           this.updateHandler(deviceId, state.entity_id, state, state);
         }
       });
