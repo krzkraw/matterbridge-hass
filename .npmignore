@@ -162,9 +162,10 @@ jest.config.js
 screenshot
 
 # other stuff
-matterbridge-homeassistant
+matterbridge-hass
 jest-shelly
 TODO.md
 yellow-button.png
 temp
 tsconfig.production.json
+jest
