@@ -48,7 +48,8 @@ bridge-devices.json
 bridge-groups.json
 
 # other stuff
-matterbridge-homeassistant
+matterbridge-matterbridge-hass
 jest-shelly
 TODO.md
 temp
+jest
