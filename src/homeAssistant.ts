@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-inferrable-types */
 /**
  * This file contains the class HomeAssistant.
  *
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @date 2024-09-14
- * @version 0.0.1
+ * @version 0.0.2
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -22,7 +23,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { AnsiLogger, LogLevel, TimestampFormat, CYAN, er, BLUE, db, debugStringify } from 'matterbridge/logger';
+import { AnsiLogger, LogLevel, TimestampFormat, CYAN, er, db, debugStringify } from 'matterbridge/logger';
 import WebSocket from 'ws';
 
 /**
@@ -199,8 +200,10 @@ export class HomeAssistant extends EventEmitter {
   hassStates: HassEntityState[] | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
   private pingTimeout: NodeJS.Timeout | null = null;
-  private readonly pingIntervalTime = 30000;
-  private readonly pingTimeoutTime = 35000;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private readonly pingIntervalTime: number = 30000;
+  private readonly pingTimeoutTime: number = 35000;
+  private readonly reconnectTimeoutTime: number = 0;
   private readonly configFetchId = 1;
   private readonly servicesFetchId = 2;
   private readonly devicesFetchId = 3;
@@ -208,6 +211,7 @@ export class HomeAssistant extends EventEmitter {
   private readonly statesFetchId = 5;
   private readonly eventsSubscribeId = 6;
   private asyncFetchId = 0;
+  private asyncCallServiceId = 0;
   private nextId = 7;
   connected = false;
   devicesReceived = false;
@@ -218,10 +222,26 @@ export class HomeAssistant extends EventEmitter {
   wsAccessToken: string;
   log: AnsiLogger;
 
+  /**
+   * Emits an event of the specified type with the provided arguments.
+   *
+   * @template K - The type of the event to emit.
+   * @param {K} eventName - The name of the event to emit.
+   * @param {...HomeAssistantEvent[K]} args - The arguments to pass to the event listeners.
+   * @returns {boolean} - Returns true if the event had listeners, false otherwise.
+   */
   override emit<K extends keyof HomeAssistantEvent>(eventName: K, ...args: HomeAssistantEvent[K]): boolean {
     return super.emit(eventName, ...args);
   }
 
+  /**
+   * Registers a listener for the specified event type.
+   *
+   * @template K - The type of the event to listen for.
+   * @param {K} eventName - The name of the event to listen for.
+   * @param {(...args: HomeAssistantEvent[K]) => void} listener - The callback function to invoke when the event is emitted.
+   * @returns {this} - Returns the instance of the HomeAssistant class for chaining.
+   */
   override on<K extends keyof HomeAssistantEvent>(eventName: K, listener: (...args: HomeAssistantEvent[K]) => void): this {
     return super.on(eventName, listener);
   }
@@ -231,11 +251,13 @@ export class HomeAssistant extends EventEmitter {
    *
    * @param {string} url - The WebSocket URL for connecting to Home Assistant.
    * @param {string} accessToken - The access token for authenticating with Home Assistant.
+   * @param {number} [reconnectTimeoutTime=0] - The timeout duration for reconnect attempts in seconds.
    */
-  constructor(url: string, accessToken: string) {
+  constructor(url: string, accessToken: string, reconnectTimeoutTime: number = 0) {
     super();
     this.wsUrl = url;
     this.wsAccessToken = accessToken;
+    this.reconnectTimeoutTime = reconnectTimeoutTime * 1000;
     this.log = new AnsiLogger({ logName: 'HomeAssistant', logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
   }
 
@@ -247,131 +269,140 @@ export class HomeAssistant extends EventEmitter {
       this.log.info('Already connected to Home Assistant');
       return;
     }
-    this.log.info(`'Connecting to Home Assistant on ${this.wsUrl} ...`);
-    this.ws = new WebSocket(this.wsUrl + '/api/websocket');
 
-    this.ws.onopen = () => {
-      this.log.debug('WebSocket connection established');
-    };
+    try {
+      this.log.info(`Connecting to Home Assistant on ${this.wsUrl} ...`);
+      this.ws = new WebSocket(this.wsUrl + '/api/websocket');
 
-    this.ws.onmessage = async (event: WebSocket.MessageEvent) => {
-      let data;
-      try {
-        data = JSON.parse(event.data.toString()) as HomeAssistantResponseEvent;
-      } catch (error) {
-        this.log.error('Error parsing WebSocket.MessageEvent:', error);
-        return;
-      }
-      if (data.type === 'auth_required') {
-        this.log.debug('Authentication required. Sending auth message...');
-        // Send authentication message
-        this.ws?.send(
-          JSON.stringify({
-            type: 'auth',
-            access_token: this.wsAccessToken,
-          }),
-        );
-      } else if (data.type === 'auth_ok') {
-        this.log.debug(`Authenticated successfully with Home Assistant v. ${data.ha_version}`);
-        this.connected = true;
-        this.emit('connected', data.ha_version);
+      this.ws.onopen = () => {
+        this.log.debug('WebSocket connection established');
+      };
 
-        // Fetch initial data and subscribe to events
-        this.fetch('get_config', this.configFetchId);
-        this.fetch('get_services', this.servicesFetchId);
-        this.fetch('config/device_registry/list', this.devicesFetchId);
-        this.fetch('config/entity_registry/list', this.entitiesFetchId);
-        this.fetch('get_states', this.statesFetchId);
-        this.fetch('subscribe_events', this.eventsSubscribeId);
-
-        // Start ping interval
-        this.startPing();
-      } else if (data.type === 'result' && data.success !== true) {
-        this.log.error('Error result received:', data);
-        this.emit('error', data.error);
-      } else if (data.type === 'result' && data.success) {
-        if (data.id === this.devicesFetchId && data.result) {
-          this.devicesReceived = true;
-          const devices = data.result as HassDevice[];
-          this.log.debug(`Received ${devices.length} devices.`);
-          this.emit('devices', devices);
-          devices.forEach((device) => {
-            this.hassDevices.set(device.id, device);
-            // console.log('Device:', device.id, device.name);
-          });
-        } else if (data.id === this.entitiesFetchId && data.result) {
-          this.entitiesReceived = true;
-          const entities = data.result as HassEntity[];
-          this.log.debug(`Received ${entities.length} entities.`);
-          this.emit('entities', entities);
-          entities.forEach((entity) => {
-            this.hassEntities.set(entity.entity_id, entity);
-            // console.log('Entity:', entity.entity_id, entity.name ?? entity.original_name);
-          });
-        } else if (data.id === this.eventsSubscribeId) {
-          this.subscribed = true;
-          this.emit('subscribed');
-          this.log.debug('Subscribed to events:', data);
-        } else if (data.id === this.configFetchId) {
-          // this.log.debug('Received config:', data);
-          this.hassConfig = data.result as HomeAssistantConfig;
-          this.emit('config', this.hassConfig);
-        } else if (data.id === this.statesFetchId) {
-          // this.log.debug('****Received states:', data);
-          this.hassStates = data.result as HassEntityState[];
-          this.emit('states', this.hassStates);
-        } else if (data.id === this.servicesFetchId) {
-          // this.log.debug('Received services:', data);
-          this.hassServices = data.result as HomeAssistantServices;
-          this.emit('services', this.hassServices);
-        } else if (data.id === this.asyncFetchId) {
-          this.log.debug(`Received async result id ${data.id}` /* , data*/);
-        } else {
-          this.log.debug(`Unknown result received id ${data.id}:` /* , data*/);
+      this.ws.onmessage = async (event: WebSocket.MessageEvent) => {
+        let data;
+        try {
+          data = JSON.parse(event.data.toString()) as HomeAssistantResponseEvent;
+        } catch (error) {
+          this.log.error('Error parsing WebSocket.MessageEvent:', error);
+          return;
         }
-      } else if (data.type === 'pong') {
-        this.log.debug(`Home Assistant pong received with id ${data.id}`);
+        if (data.type === 'auth_required') {
+          this.log.debug('Authentication required. Sending auth message...');
+          // Send authentication message
+          this.ws?.send(
+            JSON.stringify({
+              type: 'auth',
+              access_token: this.wsAccessToken,
+            }),
+          );
+        } else if (data.type === 'auth_ok') {
+          this.log.debug(`Authenticated successfully with Home Assistant v. ${data.ha_version}`);
+          this.connected = true;
+          this.emit('connected', data.ha_version);
+
+          // Fetch initial data and subscribe to events
+          this.fetch('get_config', this.configFetchId);
+          this.fetch('get_services', this.servicesFetchId);
+          this.fetch('config/device_registry/list', this.devicesFetchId);
+          this.fetch('config/entity_registry/list', this.entitiesFetchId);
+          this.fetch('get_states', this.statesFetchId);
+          this.fetch('subscribe_events', this.eventsSubscribeId);
+
+          // Start ping interval
+          this.startPing();
+        } else if (data.type === 'result' && data.success !== true) {
+          this.log.error('Error result received:', data);
+          this.emit('error', data.error);
+        } else if (data.type === 'result' && data.success) {
+          if (data.id === this.devicesFetchId && data.result) {
+            this.devicesReceived = true;
+            const devices = data.result as HassDevice[];
+            this.log.debug(`Received ${devices.length} devices.`);
+            this.emit('devices', devices);
+            devices.forEach((device) => {
+              this.hassDevices.set(device.id, device);
+              // console.log('Device:', device.id, device.name);
+            });
+          } else if (data.id === this.entitiesFetchId && data.result) {
+            this.entitiesReceived = true;
+            const entities = data.result as HassEntity[];
+            this.log.debug(`Received ${entities.length} entities.`);
+            this.emit('entities', entities);
+            entities.forEach((entity) => {
+              this.hassEntities.set(entity.entity_id, entity);
+              // console.log('Entity:', entity.entity_id, entity.name ?? entity.original_name);
+            });
+          } else if (data.id === this.eventsSubscribeId) {
+            this.subscribed = true;
+            this.emit('subscribed');
+            this.log.debug('Subscribed to events:', data);
+          } else if (data.id === this.configFetchId) {
+            // this.log.debug('Received config:', data);
+            this.hassConfig = data.result as HomeAssistantConfig;
+            this.emit('config', this.hassConfig);
+          } else if (data.id === this.statesFetchId) {
+            // this.log.debug('****Received states:', data);
+            this.hassStates = data.result as HassEntityState[];
+            this.emit('states', this.hassStates);
+          } else if (data.id === this.servicesFetchId) {
+            // this.log.debug('Received services:', data);
+            this.hassServices = data.result as HomeAssistantServices;
+            this.emit('services', this.hassServices);
+          } else if (data.id === this.asyncFetchId) {
+            this.log.debug(`Received fectch async result id ${data.id}` /* , data*/);
+          } else if (data.id === this.asyncCallServiceId) {
+            this.log.debug(`Received callService async result id ${data.id}` /* , data*/);
+          } else {
+            this.log.debug(`Unknown result received id ${data.id}:` /* , data*/);
+          }
+        } else if (data.type === 'pong') {
+          this.log.debug(`Home Assistant pong received with id ${data.id}`);
+          if (this.pingTimeout) clearTimeout(this.pingTimeout);
+          this.pingTimeout = null;
+        } else if (data.type === 'event') {
+          // this.log.debug(`Event received id ${data.id}:` /* , data.event*/);
+          const event = data.event as HassEvent;
+          if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'state_changed') {
+            const entity = this.hassEntities.get(event.data.entity_id);
+            if (!entity) {
+              this.log.error(`Entity ${CYAN}${event.data.entity_id}${er} not found processing event`);
+              return;
+            }
+            const device = this.hassDevices.get(entity.device_id);
+            if (!device) {
+              this.log.error('Device not found processing event:', entity.device_id);
+              return;
+            }
+            this.emit('event', device.id, event.data.entity_id, event.data.old_state, event.data.new_state);
+          } else if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'call_service') {
+            this.log.debug(`Event ${CYAN}${event?.event_type}${db} received id ${data.id}`);
+          } else {
+            this.log.debug(`*Unknown event type ${CYAN}${event?.event_type}${db} received id ${data.id}`);
+          }
+        }
+      };
+
+      this.ws.on('pong', () => {
+        this.log.debug('WebSocket pong received');
         if (this.pingTimeout) clearTimeout(this.pingTimeout);
         this.pingTimeout = null;
-      } else if (data.type === 'event') {
-        // this.log.debug(`Event received id ${data.id}:` /* , data.event*/);
-        const event = data.event as HassEvent;
-        if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'state_changed') {
-          const entity = this.hassEntities.get(event.data.entity_id);
-          if (!entity) {
-            this.log.error(`Entity ${CYAN}${event.data.entity_id}${er} not found processing event`);
-            return;
-          }
-          const device = this.hassDevices.get(entity.device_id);
-          if (!device) {
-            this.log.error('Device not found processing event:', entity.device_id);
-            return;
-          }
-          this.emit('event', device.id, event.data.entity_id, event.data.old_state, event.data.new_state);
-        } else if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'call_service') {
-          this.log.debug(`Event ${CYAN}${event?.event_type}${db} received id ${data.id}`);
-        } else {
-          this.log.debug(`*Unknown event type ${CYAN}${event?.event_type}${db} received id ${data.id}`);
-        }
-      }
-    };
+      });
 
-    this.ws.on('pong', () => {
-      this.log.debug('WebSocket pong received');
-      if (this.pingTimeout) clearTimeout(this.pingTimeout);
-      this.pingTimeout = null;
-    });
+      this.ws.onerror = (event: WebSocket.ErrorEvent) => {
+        this.log.error(`WebSocket error: ${event.message} type: ${event.type}`);
+        this.emit('error', event);
+      };
 
-    this.ws.onerror = (event: WebSocket.ErrorEvent) => {
-      this.log.error('WebSocket error:', event.message, 'Type:', event.type);
-      this.emit('error', event);
-    };
-
-    this.ws.onclose = (event: WebSocket.CloseEvent) => {
-      this.log.debug('WebSocket connection closed. Reason:', event.reason, 'Code:', event.code, 'Clean:', event.wasClean, 'Type:', event.type);
-      this.connected = false;
-      this.emit('disconnected', event);
-    };
+      this.ws.onclose = (event: WebSocket.CloseEvent) => {
+        this.log.debug('WebSocket connection closed. Reason:', event.reason, 'Code:', event.code, 'Clean:', event.wasClean, 'Type:', event.type);
+        this.connected = false;
+        this.stopPing();
+        this.emit('disconnected', event);
+        this.startReconnect();
+      };
+    } catch (error) {
+      this.log.error('WebSocket error connecting to Home Assistant:', error);
+    }
   }
 
   /**
@@ -402,8 +433,22 @@ export class HomeAssistant extends EventEmitter {
       this.pingTimeout = setTimeout(() => {
         this.log.error('Ping timeout. Closing connection...');
         this.close();
+        this.startReconnect();
       }, this.pingTimeoutTime);
     }, this.pingIntervalTime);
+  }
+
+  startReconnect() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (this.reconnectTimeoutTime) {
+      this.log.notice(`Reconnecting in ${this.reconnectTimeoutTime / 1000} seconds...`);
+      this.reconnectTimeout = setTimeout(() => {
+        this.connect();
+      }, this.reconnectTimeoutTime);
+    }
   }
 
   /**
@@ -428,6 +473,10 @@ export class HomeAssistant extends EventEmitter {
   close() {
     this.log.info('Closing Home Assistance connection...');
     this.stopPing();
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.close(0x1000, 'Normal closure');
     }
@@ -454,7 +503,7 @@ export class HomeAssistant extends EventEmitter {
       return;
     }
     if (!id) id = this.nextId++;
-    this.log.debug(`Fetching ${type} with id ${id}...`);
+    this.log.debug(`Fetching ${CYAN}${type}${db} id ${CYAN}${id}${db}...`);
     this.ws.send(JSON.stringify({ id, type }));
   }
 
@@ -475,27 +524,27 @@ export class HomeAssistant extends EventEmitter {
    *     console.error('Error:', error);
    *   });
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-inferrable-types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fetchAsync(type: string, timeout: number = 5000): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
-        this.log.error('Fetch error: not connected to Home Assistant');
-        reject('Fetch error: not connected to Home Assistant');
+        this.log.error('FetchAsync error: not connected to Home Assistant');
+        reject('FetchAsync error: not connected to Home Assistant');
         return;
       }
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-        this.log.error('Fetch error: WebSocket not open.');
-        reject('Fetch error: WebSocket not open.');
+        this.log.error('FetchAsync error: WebSocket not open.');
+        reject('FetchAsync error: WebSocket not open.');
         return;
       }
       this.asyncFetchId = this.nextId++;
-      this.log.debug(`Fetching async ${type} with id ${this.asyncFetchId}...`);
+      this.log.debug(`Fetching async ${CYAN}${type}${db} with id ${CYAN}${this.asyncFetchId}${db}...`);
 
       const message = JSON.stringify({ id: this.asyncFetchId, type });
       this.ws.send(message);
 
       const timer = setTimeout(() => {
-        reject('Fetch async did not complete before the timeout');
+        reject('FetchAsync did not complete before the timeout');
       }, timeout);
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
@@ -503,12 +552,12 @@ export class HomeAssistant extends EventEmitter {
         try {
           response = JSON.parse(event.data.toString()) as HomeAssistantResponseEvent;
         } catch (error) {
-          this.log.error('Error parsing WebSocket.MessageEvent:', error);
+          this.log.error('FetchAsync error parsing WebSocket.MessageEvent:', error);
         }
         if (!response) {
           clearTimeout(timer);
           this.ws?.removeEventListener('message', handleMessage);
-          reject('Error parsing WebSocket.MessageEvent');
+          reject('FetchAsync error parsing WebSocket.MessageEvent');
           return;
         }
         if (response.type === 'result' && response.id === this.asyncFetchId) {
@@ -538,11 +587,20 @@ export class HomeAssistant extends EventEmitter {
    * await this.callService('switch', 'toggle', 'switch.living_room');
    * await this.callService('light', 'turn_on', 'light.living_room', { brightness: 255 });
    */
-  callService(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}) {
-    this.log.debug(`Calling service ${BLUE}${domain}.${service}${db} for entity ${BLUE}${entityId}${db} with: ${debugStringify(serviceData)}`);
-    this.ws?.send(
+  callService(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}, id?: number) {
+    if (!this.connected) {
+      this.log.error('CallService error: not connected to Home Assistant');
+      return;
+    }
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.log.error('CallService error: WebSocket not open.');
+      return;
+    }
+    if (!id) id = this.nextId++;
+    this.log.debug(`Calling service ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} id ${CYAN}${id}${db}`);
+    this.ws.send(
       JSON.stringify({
-        id: this.nextId++, // Unique message ID
+        id, // Unique message ID
         type: 'call_service',
         domain, // Domain of the entity (e.g., light, switch, media_player, etc.)
         service, // The specific service to call (e.g., turn_on, turn_off)
@@ -552,5 +610,81 @@ export class HomeAssistant extends EventEmitter {
         },
       }),
     );
+  }
+
+  /**
+   * Sends async command to a specified Home Assistant service.
+   *
+   * @param {string} domain - The domain of the Home Assistant service.
+   * @param {string} service - The service to call on the Home Assistant domain.
+   * @param {string} entityId - The ID of the entity to target with the command.
+   * @param {Record<string, any>} [serviceData={}] - Additional data to send with the command.
+   * @param {number} [timeout=5000] - The timeout in milliseconds to wait for a response. Default is 5000ms.
+   * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
+   *
+   * @example <caption>Example usage of the callService method.</caption>
+   * await this.callService('switch', 'toggle', 'switch.living_room');
+   * await this.callService('light', 'turn_on', 'light.living_room', { brightness: 255 });
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  callServiceAsync(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}, timeout: number = 5000): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.connected) {
+        this.log.error('CallServiceAsync error: not connected to Home Assistant');
+        reject('CallServiceAsync error: not connected to Home Assistant');
+        return;
+      }
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        this.log.error('CallServiceAsync error: WebSocket not open.');
+        reject('CallServiceAsync error: WebSocket not open.');
+        return;
+      }
+      this.asyncCallServiceId = this.nextId++;
+      this.log.debug(
+        `Calling service async ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} id ${CYAN}${this.nextId}${db}`,
+      );
+      this.ws.send(
+        JSON.stringify({
+          id: this.asyncCallServiceId, // Unique message ID
+          type: 'call_service',
+          domain, // Domain of the entity (e.g., light, switch, media_player, etc.)
+          service, // The specific service to call (e.g., turn_on, turn_off)
+          service_data: {
+            entity_id: entityId, // The entity_id of the device (e.g., light.living_room)
+            ...serviceData, // Additional data to send with the command
+          },
+        }),
+      );
+
+      const timer = setTimeout(() => {
+        reject('CallServiceAsync did not complete before the timeout');
+      }, timeout);
+
+      const handleMessage = (event: WebSocket.MessageEvent) => {
+        let response;
+        try {
+          response = JSON.parse(event.data.toString()) as HomeAssistantResponseEvent;
+        } catch (error) {
+          this.log.error('CallServiceAsync error parsing WebSocket.MessageEvent:', error);
+        }
+        if (!response) {
+          clearTimeout(timer);
+          this.ws?.removeEventListener('message', handleMessage);
+          reject('CallServiceAsync error parsing WebSocket.MessageEvent');
+          return;
+        }
+        if (response.type === 'result' && response.id === this.asyncCallServiceId) {
+          clearTimeout(timer);
+          this.ws?.removeEventListener('message', handleMessage);
+          if (response.success) {
+            resolve(response.result);
+          } else {
+            reject(response.error);
+          }
+        }
+      };
+
+      this.ws.addEventListener('message', handleMessage);
+    });
   }
 }

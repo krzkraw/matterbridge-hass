@@ -5,7 +5,7 @@
  * @file src\platform.ts
  * @author Luca Liguori
  * @date 2024-09-13
- * @version 0.0.1
+ * @version 0.0.2
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -31,14 +31,15 @@ import {
   ColorControlCluster,
   colorTemperatureLight,
   DeviceTypeDefinition,
-  DeviceTypes,
   dimmableLight,
   DoorLock,
   DoorLockCluster,
+  doorLockDevice,
   Endpoint,
   EndpointOptions,
   FanControl,
   FanControlCluster,
+  fanDevice,
   LevelControlCluster,
   Matterbridge,
   MatterbridgeDevice,
@@ -46,7 +47,7 @@ import {
   MatterbridgeEndpoint,
   OnOffCluster,
   onOffLight,
-  onOffSwitch,
+  onOffOutlet,
   PlatformConfig,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
@@ -111,10 +112,10 @@ const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: C
 
 // Convert Home Assistant domains to Matterbridge device types and clusterIds
 const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
-  { domain: 'switch', deviceType: onOffSwitch, clusterId: OnOffCluster.id },
+  { domain: 'switch', deviceType: onOffOutlet, clusterId: OnOffCluster.id },
   { domain: 'light', deviceType: onOffLight, clusterId: OnOffCluster.id },
-  { domain: 'lock', deviceType: DeviceTypes.DOOR_LOCK, clusterId: DoorLockCluster.id },
-  { domain: 'fan', deviceType: DeviceTypes.FAN, clusterId: FanControlCluster.id },
+  { domain: 'lock', deviceType: doorLockDevice, clusterId: DoorLockCluster.id },
+  { domain: 'fan', deviceType: fanDevice, clusterId: FanControlCluster.id },
 ];
 
 // Convert Home Assistant domains attributes to Matterbridge device types and clusterIds
@@ -128,9 +129,9 @@ const hassDomainAttributeConverter: { domain: string; attribute: string; deviceT
 // Convert Home Assistant domains services to Matterbridge commands for device types
 // prettier-ignore
 const hassCommandConverter: { command: string; deviceType: DeviceTypeDefinition; domain: string; service: string; converter?: any }[] = [
-  { command: 'on', deviceType: onOffSwitch, domain: 'switch', service: 'turn_on' },
-  { command: 'off', deviceType: onOffSwitch, domain: 'switch', service: 'turn_off' },
-  { command: 'toggle', deviceType: onOffSwitch, domain: 'switch', service: 'toggle' },
+  { command: 'on', deviceType: onOffOutlet, domain: 'switch', service: 'turn_on' },
+  { command: 'off', deviceType: onOffOutlet, domain: 'switch', service: 'turn_off' },
+  { command: 'toggle', deviceType: onOffOutlet, domain: 'switch', service: 'toggle' },
 
   { command: 'on', deviceType: onOffLight, domain: 'light', service: 'turn_on' },
   { command: 'off', deviceType: onOffLight, domain: 'light', service: 'turn_off' },
@@ -143,8 +144,8 @@ const hassCommandConverter: { command: string; deviceType: DeviceTypeDefinition;
   { command: 'moveToSaturation', deviceType: onOffLight, domain: 'light', service: 'turn_on', converter: (request: any, attributes: any) => { return { hs_color: [Math.round(attributes.currentHue.value / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
   { command: 'moveToHueAndSaturation', deviceType: onOffLight, domain: 'light', service: 'turn_on', converter: (request: any) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
   
-  { command: 'lockDoor', deviceType: DeviceTypes.DOOR_LOCK, domain: 'lock', service: 'lock' },
-  { command: 'unlockDoor', deviceType: DeviceTypes.DOOR_LOCK, domain: 'lock', service: 'unlock' },
+  { command: 'lockDoor', deviceType: doorLockDevice, domain: 'lock', service: 'lock' },
+  { command: 'unlockDoor', deviceType: doorLockDevice, domain: 'lock', service: 'unlock' },
 ];
 
 // Convert Home Assistant domains services to Matterbridge commands for device types
@@ -204,7 +205,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       throw new Error('Host and token must be defined in the configuration');
     }
 
-    this.ha = new HomeAssistant(this.host, this.token);
+    this.ha = new HomeAssistant(this.host, this.token, 60);
 
     this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
@@ -309,7 +310,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       // Scan entities for supported domains and services and add them to the Matterbridge device
       for (const entity of this.hassEntities) {
-        // this.hassEntities.forEach(async (entity) => {
         if (entity.device_id !== device.id) continue;
 
         const domain = entity.entity_id.split('.')[0];
@@ -451,7 +451,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (hassCommand) {
       // console.log('Command:', command, 'Domain:', domain, 'HassCommand:', hassCommand, 'Request:', request, 'Attributes:', attributes);
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(request, attributes) : undefined;
-      this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
+      await this.ha.callServiceAsync(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
     } else {
       this.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
     }

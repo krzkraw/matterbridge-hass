@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
+## [0.0.1-dev.4] - 2024-12-03
+
+### Changed
+
+- [homeassistant] Change reconnect timeout to 60 seconds.
+- [homeassistant] Add callServiceAsync and reconnect timeout.
+
 ## [0.0.1-dev.2] - 2024-12-03
 
 First published release.
