@@ -18,7 +18,7 @@ Other device types will be added each new release.
 
 This plugin allows you to expose the Home Assistant devices to Matter.
 
-It is the ideal companion of the official Matterbridge Home Assistant Add-on https://github.com/Luligu/matterbridge-home-assistant-addon.
+It is the ideal companion of the official [Matterbridge Home Assistant Add-on](https://github.com/Luligu/matterbridge-home-assistant-addon/blob/main/README.md).
 
 Features:
 

@@ -376,6 +376,22 @@ export class HomeAssistant extends EventEmitter {
             this.emit('event', device.id, entity.entity_id, event.data.old_state, event.data.new_state);
           } else if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'call_service') {
             this.log.debug(`Event ${CYAN}${event?.event_type}${db} received id ${CYAN}${data.id}${db}`);
+          } else if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'device_registry_updated') {
+            this.log.debug(`Event ${CYAN}${event?.event_type}${db} received id ${CYAN}${data.id}${db}`);
+            const devices = (await this.fetchAsync('config/device_registry/list')) as HassDevice[];
+            this.log.debug(`Received ${devices.length} devices.`);
+            devices.forEach((device) => {
+              this.hassDevices.set(device.id, device);
+            });
+            this.emit('devices', devices);
+          } else if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'entity_registry_updated') {
+            this.log.debug(`Event ${CYAN}${event?.event_type}${db} received id ${CYAN}${data.id}${db}`);
+            const entities = (await this.fetchAsync('config/entity_registry/list')) as HassEntity[];
+            this.log.debug(`Received ${entities.length} entities.`);
+            entities.forEach((entity) => {
+              this.hassEntities.set(entity.entity_id, entity);
+            });
+            this.emit('entities', entities);
           } else {
             this.log.debug(`*Unknown event type ${CYAN}${event?.event_type}${db} received id ${CYAN}${data.id}${db}`);
           }
@@ -537,10 +553,10 @@ export class HomeAssistant extends EventEmitter {
         reject('FetchAsync error: WebSocket not open.');
         return;
       }
-      this.asyncFetchId = this.nextId++;
-      this.log.debug(`Fetching async ${CYAN}${type}${db} with id ${CYAN}${this.asyncFetchId}${db}...`);
+      const asyncFetchId = (this.asyncFetchId = this.nextId++);
+      this.log.debug(`Fetching async ${CYAN}${type}${db} with id ${CYAN}${asyncFetchId}${db} and timeout ${CYAN}${timeout}${db} ms ...`);
 
-      const message = JSON.stringify({ id: this.asyncFetchId, type });
+      const message = JSON.stringify({ id: asyncFetchId, type });
       this.ws.send(message);
 
       const timer = setTimeout(() => {
@@ -560,7 +576,7 @@ export class HomeAssistant extends EventEmitter {
           reject('FetchAsync error parsing WebSocket.MessageEvent');
           return;
         }
-        if (response.type === 'result' && response.id === this.asyncFetchId) {
+        if (response.type === 'result' && response.id === asyncFetchId) {
           clearTimeout(timer);
           this.ws?.removeEventListener('message', handleMessage);
           if (response.success) {
@@ -639,13 +655,13 @@ export class HomeAssistant extends EventEmitter {
         reject('CallServiceAsync error: WebSocket not open.');
         return;
       }
-      this.asyncCallServiceId = this.nextId++;
+      const asyncCallServiceId = (this.asyncCallServiceId = this.nextId++);
       this.log.debug(
-        `Calling service async ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} id ${CYAN}${this.nextId}${db}`,
+        `Calling service async ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} id ${CYAN}${asyncCallServiceId}${db} and timeout ${CYAN}${timeout}${db} ms ...`,
       );
       this.ws.send(
         JSON.stringify({
-          id: this.asyncCallServiceId, // Unique message ID
+          id: asyncCallServiceId, // Unique message ID
           type: 'call_service',
           domain, // Domain of the entity (e.g., light, switch, media_player, etc.)
           service, // The specific service to call (e.g., turn_on, turn_off)
@@ -673,7 +689,7 @@ export class HomeAssistant extends EventEmitter {
           reject('CallServiceAsync error parsing WebSocket.MessageEvent');
           return;
         }
-        if (response.type === 'result' && response.id === this.asyncCallServiceId) {
+        if (response.type === 'result' && response.id === asyncCallServiceId) {
           clearTimeout(timer);
           this.ws?.removeEventListener('message', handleMessage);
           if (response.success) {
