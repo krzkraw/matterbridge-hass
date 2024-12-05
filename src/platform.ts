@@ -30,6 +30,7 @@ import {
   ColorControl,
   ColorControlCluster,
   colorTemperatureLight,
+  coverDevice,
   DeviceTypeDefinition,
   dimmableLight,
   DoorLock,
@@ -49,6 +50,8 @@ import {
   onOffLight,
   onOffOutlet,
   PlatformConfig,
+  WindowCoveringCluster,
+  WindowCovering,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
 import { isValidArray, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
@@ -73,6 +76,11 @@ const hassUpdateStateConverter: { domain: string; state: string; clusterId: Clus
   
   { domain: 'fan', state: 'on', clusterId: FanControlCluster.id, attribute: 'fanMode', value: FanControl.FanMode.On },
   { domain: 'fan', state: 'off', clusterId: FanControlCluster.id, attribute: 'fanMode', value: FanControl.FanMode.Off },
+
+  { domain: 'cover', state: 'opening', clusterId: WindowCoveringCluster.id, attribute: 'operationalStatus', value: { global: WindowCovering.MovementStatus.Opening, lift: WindowCovering.MovementStatus.Opening, tilt: 0 } },
+  { domain: 'cover', state: 'open', clusterId: WindowCoveringCluster.id, attribute: 'operationalStatus', value: { global: WindowCovering.MovementStatus.Stopped, lift: WindowCovering.MovementStatus.Stopped, tilt: 0 } },
+  { domain: 'cover', state: 'close', clusterId: WindowCoveringCluster.id, attribute: 'operationalStatus', value: { global: WindowCovering.MovementStatus.Stopped, lift: WindowCovering.MovementStatus.Stopped, tilt: 0 } },
+  { domain: 'cover', state: 'closing', clusterId: WindowCoveringCluster.id, attribute: 'operationalStatus', value: { global: WindowCovering.MovementStatus.Closing, lift: WindowCovering.MovementStatus.Closing, tilt: 0 } },
 ];
 
 // Update Home Assistant attributes to Matterbridge device attributes
@@ -108,6 +116,10 @@ const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: C
       return null;
     }
   } },
+  // Matter WindowCovering: 0 = open 10000 = closed
+  { domain: 'cover', with: 'current_position', clusterId: WindowCoveringCluster.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
+  { domain: 'cover', with: 'current_position', clusterId: WindowCoveringCluster.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
+
 ];
 
 // Convert Home Assistant domains to Matterbridge device types and clusterIds
@@ -116,6 +128,7 @@ const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition; c
   { domain: 'light', deviceType: onOffLight, clusterId: OnOffCluster.id },
   { domain: 'lock', deviceType: doorLockDevice, clusterId: DoorLockCluster.id },
   { domain: 'fan', deviceType: fanDevice, clusterId: FanControlCluster.id },
+  { domain: 'cover', deviceType: coverDevice, clusterId: WindowCoveringCluster.id },
 ];
 
 // Convert Home Assistant domains attributes to Matterbridge device types and clusterIds
@@ -146,6 +159,11 @@ const hassCommandConverter: { command: string; deviceType: DeviceTypeDefinition;
   
   { command: 'lockDoor', deviceType: doorLockDevice, domain: 'lock', service: 'lock' },
   { command: 'unlockDoor', deviceType: doorLockDevice, domain: 'lock', service: 'unlock' },
+
+  { command: 'upOrOpen', deviceType: coverDevice, domain: 'cover', service: 'open_cover' },
+  { command: 'downOrClose', deviceType: coverDevice, domain: 'cover', service: 'close_cover' },
+  { command: 'stopMotion', deviceType: coverDevice, domain: 'cover', service: 'stop_cover' },
+  { command: 'goToLiftPercentage', deviceType: coverDevice, domain: 'cover', service: 'set_cover_position', converter: (request: any) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
 ];
 
 // Convert Home Assistant domains services to Matterbridge commands for device types
