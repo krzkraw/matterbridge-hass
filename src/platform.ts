@@ -52,6 +52,8 @@ import {
   PlatformConfig,
   WindowCoveringCluster,
   WindowCovering,
+  thermostatDevice,
+  ThermostatCluster,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, gn } from 'matterbridge/logger';
 import { isValidArray, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
@@ -105,6 +107,7 @@ const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: C
   { domain: 'light', with: 'xy_color', clusterId: ColorControlCluster.id, attribute: 'currentY', converter: (value: number[]) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) ? value[1] : null ) },
 
   { domain: 'fan', with: 'percentage', clusterId: FanControlCluster.id, attribute: 'percentCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
+  { domain: 'fan', with: 'percentage', clusterId: FanControlCluster.id, attribute: 'speedCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
   { domain: 'fan', with: 'preset_mode', clusterId: FanControlCluster.id, attribute: 'fanMode', converter: (value: string) => {
     if( isValidString(value, 3, 6) ) {
       if (value === 'low') return FanControl.FanMode.Low;
@@ -123,20 +126,23 @@ const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: C
 ];
 
 // Convert Home Assistant domains to Matterbridge device types and clusterIds
+// prettier-ignore
 const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
-  { domain: 'switch', deviceType: onOffOutlet, clusterId: OnOffCluster.id },
-  { domain: 'light', deviceType: onOffLight, clusterId: OnOffCluster.id },
-  { domain: 'lock', deviceType: doorLockDevice, clusterId: DoorLockCluster.id },
-  { domain: 'fan', deviceType: fanDevice, clusterId: FanControlCluster.id },
-  { domain: 'cover', deviceType: coverDevice, clusterId: WindowCoveringCluster.id },
+  { domain: 'switch',   deviceType: onOffOutlet,      clusterId: OnOffCluster.id },
+  { domain: 'light',    deviceType: onOffLight,       clusterId: OnOffCluster.id },
+  { domain: 'lock',     deviceType: doorLockDevice,   clusterId: DoorLockCluster.id },
+  { domain: 'fan',      deviceType: fanDevice,        clusterId: FanControlCluster.id },
+  { domain: 'cover',    deviceType: coverDevice,      clusterId: WindowCoveringCluster.id },
+  { domain: 'climate',  deviceType: thermostatDevice, clusterId: ThermostatCluster.id },
 ];
 
 // Convert Home Assistant domains attributes to Matterbridge device types and clusterIds
-const hassDomainAttributeConverter: { domain: string; attribute: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
-  { domain: 'light', attribute: 'brightness', deviceType: dimmableLight, clusterId: LevelControlCluster.id },
-  { domain: 'light', attribute: 'color_temp', deviceType: colorTemperatureLight, clusterId: ColorControlCluster.id },
-  { domain: 'light', attribute: 'hs_color', deviceType: colorTemperatureLight, clusterId: ColorControlCluster.id },
-  { domain: 'light', attribute: 'xy_color', deviceType: colorTemperatureLight, clusterId: ColorControlCluster.id },
+// prettier-ignore
+const hassDomainAttributeConverter: { domain: string; with: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
+  { domain: 'light',    with: 'brightness',  deviceType: dimmableLight,          clusterId: LevelControlCluster.id },
+  { domain: 'light',    with: 'color_temp',  deviceType: colorTemperatureLight,  clusterId: ColorControlCluster.id },
+  { domain: 'light',    with: 'hs_color',    deviceType: colorTemperatureLight,  clusterId: ColorControlCluster.id },
+  { domain: 'light',    with: 'xy_color',    deviceType: colorTemperatureLight,  clusterId: ColorControlCluster.id },
 ];
 
 // Convert Home Assistant domains services to Matterbridge commands for device types
@@ -166,11 +172,23 @@ const hassCommandConverter: { command: string; domain: string; service: string; 
   { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request: any) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
 ];
 
-// Convert Home Assistant domains services to Matterbridge commands for device types
+// Convert Home Assistant domains services and attributes to Matterbridge subscribed cluster / attributes.
+// Returning null will send turn_off service to Home Assistant instead of turn_on with attributes.
 // prettier-ignore
 const hassSubscribeConverter: { domain: string; with: string; clusterId: ClusterId; attribute: string; converter?: any }[] = [
-  { domain: 'fan', with: 'preset_mode', clusterId: FanControlCluster.id, attribute: 'fanMode' },
-  { domain: 'fan', with: 'percentage', clusterId: FanControlCluster.id, attribute: 'percentSetting' },
+  { domain: 'fan',    with: 'preset_mode',  clusterId: FanControlCluster.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode) => {
+    if( isValidNumber(value, FanControl.FanMode.Off, FanControl.FanMode.Smart) ) {
+      if (value === FanControl.FanMode.Low) return 'low';
+      else if (value === FanControl.FanMode.Medium) return 'medium';
+      else if (value === FanControl.FanMode.High) return 'high';
+      else if (value === FanControl.FanMode.Auto || value === FanControl.FanMode.Smart || value === FanControl.FanMode.On) return 'auto';
+      else return null;
+    } else {
+      return null;
+    }
+  }},
+  { domain: 'fan',    with: 'percentage',   clusterId: FanControlCluster.id,  attribute: 'percentSetting' },
+  { domain: 'fan',    with: 'percentage',   clusterId: FanControlCluster.id,  attribute: 'speedSetting' },
 ]
 
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
@@ -343,7 +361,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.log.debug(`- state ${debugStringify(hassState)}`);
           for (const [key, value] of Object.entries(hassState.attributes)) {
             this.log.debug(`- attribute ${CYAN}${key}${db} value ${typeof value === 'object' && value ? debugStringify(value) : value}`);
-            const hassDomainAttributes = hassDomainAttributeConverter.filter((d) => d.domain === domain && d.attribute === key);
+            const hassDomainAttributes = hassDomainAttributeConverter.filter((d) => d.domain === domain && d.with === key);
             hassDomainAttributes.forEach((hassDomainAttribute) => {
               deviceType = hassDomainAttribute.deviceType;
               clusterIds.set(hassDomainAttribute.clusterId, hassDomainAttribute.clusterId);
@@ -393,20 +411,27 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Subscribe to the Matter writable attributes
         const hassSubscribed = hassSubscribeConverter.filter((s) => s.domain === domain);
         if (hassSubscribed.length > 0) {
-          hassSubscribed.forEach((hassSubscribe) => {
+          for (const hassSubscribe of hassSubscribed) {
             this.log.debug(`- subscribe: ${CYAN}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${CYAN}${hassSubscribe.attribute}${db}`);
             mbDevice?.subscribeAttribute(
               hassSubscribe.clusterId,
               hassSubscribe.attribute,
               (newValue: any, oldValue: any) => {
                 mbDevice?.log.info(
-                  `${db}Endpoint ${or}${child?.name}${db}:${or}${child?.number}${db} subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} changed from ${YELLOW}${oldValue}${db} to ${YELLOW}${newValue}${db}`,
+                  `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${child?.name}${db}:${or}${child?.number}${db} ` +
+                    `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
+                );
+                const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
+                if (value !== null) this.ha.callServiceAsync(domain, 'turn_on', entity.entity_id, { [hassSubscribe.with]: value });
+                else this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
+                mbDevice?.log.debug(
+                  `*Converter(${hassSubscribe.converter !== undefined}): ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`,
                 );
               },
               mbDevice?.log,
               child,
             );
-          });
+          }
         }
       } // hassEntities
 
@@ -497,7 +522,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
-  validateDeviceWhiteBlackList(device: string) {
+  override validateDeviceWhiteBlackList(device: string) {
     if (isValidArray(this.config.whiteList, 1) && !this.config.whiteList.includes(device)) {
       this.log.warn(`Skipping device ${dn}${device}${wr} because not in whitelist`);
       return false;
@@ -509,7 +534,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     return true;
   }
 
-  validateEntityBlackList(device: string, entity: string) {
+  override validateEntityBlackList(device: string, entity: string) {
     if (isValidArray(this.config.entityBlackList, 1) && this.config.entityBlackList.find((e) => e === entity)) {
       this.log.warn(`Skipping entity ${gn}${entity}${wr} because in entityBlackList`);
       return false;
