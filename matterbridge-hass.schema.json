@@ -2,7 +2,10 @@
   "title": "Matterbridge Home Assistant plugin",
   "description": "matterbridge-hass v. 0.0.1 by https://github.com/Luligu",
   "type": "object",
-  "required": ["host", "token"],
+  "required": [
+    "host",
+    "token"
+  ],
   "properties": {
     "name": {
       "description": "Plugin name",
@@ -15,13 +18,18 @@
       "readOnly": true
     },
     "host": {
-      "description": "Home Assistant host (eg. http://homeassistant.local:8123 or http://<IP-ADDRESS>:8123)",
+      "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://<IP-ADDRESS>:8123)",
       "type": "string",
-      "default": "http://homeassistant.local:8123"
+      "default": "ws://homeassistant.local:8123"
     },
     "token": {
       "description": "Home Assistant Long-Lived Access Token",
       "type": "string"
+    },
+    "reconnectTimeout": {
+      "description": "Reconnect timeout in seconds",
+      "type": "number",
+      "default": 60
     },
     "blackList": {
       "description": "The devices in the list will not be exposed. Use the device name.",
@@ -38,7 +46,7 @@
       }
     },
     "entityBlackList": {
-      "description": "The entities in the list will not be exposed for all devices.  Use the entity name.",
+      "description": "The entities in the list will not be exposed for all devices. Use the entity name.",
       "type": "array",
       "items": {
         "type": "string"

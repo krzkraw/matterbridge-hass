@@ -18,7 +18,7 @@ Other device types will be added each new release.
 
 This plugin allows you to expose the Home Assistant devices to Matter.
 
-It is the ideal companion of the official Matterbridge Home Assistant Add-on https://github.com/Luligu/matterbridge-home-assistant-addon.
+It is the ideal companion of the official [Matterbridge Home Assistant Add-on](https://github.com/Luligu/matterbridge-home-assistant-addon/blob/main/README.md).
 
 Features:
 
@@ -32,6 +32,8 @@ Supported devices:
 - lock (with state locked/locking/unlocking/unlocked)
 - fan (with state on/off and attributes percentage/preset_mode)
 - cover (with state open/close/opening/closing and attribute current_position)
+
+> **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
