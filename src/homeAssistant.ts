@@ -509,7 +509,7 @@ export class HomeAssistant extends EventEmitter {
    * @param {string} type - The type of fetch request to send.
    * @param {number} [id] - The ID of the fetch request. If not provided, a new ID is generated.
    */
-  private fetch(type: string, id?: number) {
+  fetch(type: string, id?: number) {
     if (!this.connected) {
       this.log.error('Fetch error: not connected to Home Assistant');
       return;

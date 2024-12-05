@@ -49,6 +49,10 @@ describe('HassPlatform', () => {
     return Promise.resolve();
   });
 
+  jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation((type: string, id?: number) => {
+    console.log(`Mocked fetch: ${type}`);
+  });
+
   jest.spyOn(HomeAssistant.prototype, 'fetchAsync').mockImplementation((type: string, timeout = 5000) => {
     console.log(`Mocked fetchAsync: ${type}`);
     if (type === 'config/device_registry/list') {
@@ -64,6 +68,13 @@ describe('HassPlatform', () => {
   jest.spyOn(HomeAssistant.prototype, 'callService').mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}) => {
     console.log(`Mocked callService: domain ${domain} service ${service} entityId ${entityId}`);
   });
+
+  jest
+    .spyOn(HomeAssistant.prototype, 'callServiceAsync')
+    .mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}, id?: number) => {
+      console.log(`Mocked callServiceAsync: domain ${domain} service ${service} entityId ${entityId}`);
+      return Promise.resolve({});
+    });
 
   beforeAll(() => {
     // Creates the mocks for Matterbridge, AnsiLogger, and PlatformConfig
@@ -183,22 +194,54 @@ describe('HassPlatform', () => {
   });
 
   it('should validate with white and black list', () => {
-    (haPlatform as any).whiteList = ['whiteDevice'];
-    (haPlatform as any).blackList = ['blackDevice'];
-    expect((haPlatform as any).validateWhiteBlackList('whiteDevice')).toBe(true);
-    expect((haPlatform as any).validateWhiteBlackList('blackDevice')).toBe(false);
-    expect((haPlatform as any).validateWhiteBlackList('xDevice')).toBe(false);
-    expect((haPlatform as any).validateWhiteBlackList('')).toBe(false);
+    haPlatform.config.whiteList = ['whiteDevice'];
+    haPlatform.config.blackList = ['blackDevice'];
+    expect(haPlatform.validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('blackDevice')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(false);
 
-    (haPlatform as any).whiteList = [];
-    (haPlatform as any).blackList = ['blackDevice'];
-    expect((haPlatform as any).validateWhiteBlackList('whiteDevice')).toBe(true);
-    expect((haPlatform as any).validateWhiteBlackList('blackDevice')).toBe(false);
-    expect((haPlatform as any).validateWhiteBlackList('xDevice')).toBe(true);
-    expect((haPlatform as any).validateWhiteBlackList('')).toBe(true);
+    haPlatform.config.whiteList = [];
+    haPlatform.config.blackList = ['blackDevice'];
+    expect(haPlatform.validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('blackDevice')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(true);
 
-    (haPlatform as any).whiteList = [];
-    (haPlatform as any).blackList = [];
+    haPlatform.config.whiteList = [];
+    haPlatform.config.blackList = [];
+  });
+
+  it('should validate with entity black list', () => {
+    haPlatform.config.entityBlackList = ['blackEntity'];
+    haPlatform.config.deviceEntityBlackList = {};
+    expect(haPlatform.validateEntityBlackList('any', 'whiteEntity')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('any', 'blackEntity')).toBe(false);
+    expect(haPlatform.validateEntityBlackList('any', '')).toBe(true);
+
+    haPlatform.config.entityBlackList = [];
+    haPlatform.config.deviceEntityBlackList = {};
+  });
+
+  it('should validate with device entity black list and entity black list', () => {
+    haPlatform.config.entityBlackList = ['blackEntity'];
+    haPlatform.config.deviceEntityBlackList = { device1: ['blackEntityDevice1'] };
+    expect(haPlatform.validateEntityBlackList('any', 'whiteEntity')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('any', 'blackEntity')).toBe(false);
+    expect(haPlatform.validateEntityBlackList('any', 'blackEntityDevice1')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('any', '')).toBe(true);
+
+    expect(haPlatform.validateEntityBlackList('device1', 'whiteEntity')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('device1', 'blackEntity')).toBe(false);
+    expect(haPlatform.validateEntityBlackList('device1', 'blackEntityDevice1')).toBe(false);
+    expect(haPlatform.validateEntityBlackList('device1', '')).toBe(true);
+
+    haPlatform.config.entityBlackList = [];
+    haPlatform.config.deviceEntityBlackList = {};
+  });
+
+  it('should call commandHandler', () => {
+    expect(haPlatform).toBeDefined();
   });
 
   it('should call onStart with reason', async () => {

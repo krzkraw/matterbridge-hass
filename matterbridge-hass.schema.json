@@ -26,6 +26,11 @@
       "description": "Home Assistant Long-Lived Access Token",
       "type": "string"
     },
+    "reconnectTimeout": {
+      "description": "Reconnect timeout in seconds",
+      "type": "number",
+      "default": 60
+    },
     "blackList": {
       "description": "The devices in the list will not be exposed. Use the device name.",
       "type": "array",

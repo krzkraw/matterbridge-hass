@@ -178,12 +178,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   private nodeStorageManager?: NodeStorageManager;
   private nodeStorage?: NodeStorage;
 
-  // Config
-  private host: string;
-  private token: string;
-  private whiteList: string[];
-  private blackList: string[];
-
   // Home Assistant
   private ha: HomeAssistant;
   private hassDevices: HassDevice[] = [];
@@ -214,16 +208,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.log.info(`Initializing platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
 
-    this.host = (config.host as string) ?? '';
-    this.token = (config.token as string) ?? '';
-    this.whiteList = (config.whiteList as string[]) ?? [];
-    this.blackList = (config.blackList as string[]) ?? [];
-
-    if (this.host === '' || this.token === '') {
+    if (!isValidString(config.host, 1) || !isValidString(config.token, 1)) {
       throw new Error('Host and token must be defined in the configuration');
     }
 
-    this.ha = new HomeAssistant(this.host, this.token, 60);
+    this.ha = new HomeAssistant(config.host, config.token, (config.reconnectTimeout as number | undefined) ?? 60);
 
     this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
