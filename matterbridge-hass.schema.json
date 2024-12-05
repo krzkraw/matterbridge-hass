@@ -18,9 +18,9 @@
       "readOnly": true
     },
     "host": {
-      "description": "Home Assistant host (eg. http://homeassistant.local:8123 or http://<IP-ADDRESS>:8123)",
+      "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://<IP-ADDRESS>:8123)",
       "type": "string",
-      "default": "http://homeassistant.local:8123"
+      "default": "ws://homeassistant.local:8123"
     },
     "token": {
       "description": "Home Assistant Long-Lived Access Token",
