@@ -2,7 +2,10 @@
   "title": "Matterbridge Home Assistant plugin",
   "description": "matterbridge-hass v. 0.0.1 by https://github.com/Luligu",
   "type": "object",
-  "required": ["host", "token"],
+  "required": [
+    "host",
+    "token"
+  ],
   "properties": {
     "name": {
       "description": "Plugin name",
@@ -38,7 +41,7 @@
       }
     },
     "entityBlackList": {
-      "description": "The entities in the list will not be exposed for all devices.  Use the entity name.",
+      "description": "The entities in the list will not be exposed for all devices. Use the entity name.",
       "type": "array",
       "items": {
         "type": "string"
