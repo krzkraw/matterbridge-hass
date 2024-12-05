@@ -141,29 +141,29 @@ const hassDomainAttributeConverter: { domain: string; attribute: string; deviceT
 
 // Convert Home Assistant domains services to Matterbridge commands for device types
 // prettier-ignore
-const hassCommandConverter: { command: string; deviceType: DeviceTypeDefinition; domain: string; service: string; converter?: any }[] = [
-  { command: 'on', deviceType: onOffOutlet, domain: 'switch', service: 'turn_on' },
-  { command: 'off', deviceType: onOffOutlet, domain: 'switch', service: 'turn_off' },
-  { command: 'toggle', deviceType: onOffOutlet, domain: 'switch', service: 'toggle' },
+const hassCommandConverter: { command: string; domain: string; service: string; converter?: any }[] = [
+  { command: 'on',                      domain: 'switch', service: 'turn_on' },
+  { command: 'off',                     domain: 'switch', service: 'turn_off' },
+  { command: 'toggle',                  domain: 'switch', service: 'toggle' },
 
-  { command: 'on', deviceType: onOffLight, domain: 'light', service: 'turn_on' },
-  { command: 'off', deviceType: onOffLight, domain: 'light', service: 'turn_off' },
-  { command: 'toggle', deviceType: onOffLight, domain: 'light', service: 'toggle' },
-  { command: 'moveToLevel', deviceType: onOffLight, domain: 'light', service: 'turn_on', converter: (request: any) => { return { brightness: Math.round(request.level / 254 * 255) } } },
-  { command: 'moveToLevelWithOnOff', deviceType: onOffLight, domain: 'light', service: 'turn_on', converter: (request: any) => { return { brightness: Math.round(request.level / 254 * 255) } } },
-  { command: 'moveToColorTemperature', deviceType: onOffLight, domain: 'light', service: 'turn_on', converter: (request: any) => { return { color_temp: request.colorTemperatureMireds } } },
-  { command: 'moveToColor', deviceType: onOffLight, domain: 'light', service: 'turn_on', converter: (request: any) => { return { xy_color: [request.colorX, request.colorY] } } },
-  { command: 'moveToHue', deviceType: onOffLight, domain: 'light', service: 'turn_on', converter: (request: any, attributes: any) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(attributes.currentSaturation.value / 254 * 100)] } } },
-  { command: 'moveToSaturation', deviceType: onOffLight, domain: 'light', service: 'turn_on', converter: (request: any, attributes: any) => { return { hs_color: [Math.round(attributes.currentHue.value / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
-  { command: 'moveToHueAndSaturation', deviceType: onOffLight, domain: 'light', service: 'turn_on', converter: (request: any) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
+  { command: 'on',                      domain: 'light', service: 'turn_on' },
+  { command: 'off',                     domain: 'light', service: 'turn_off' },
+  { command: 'toggle',                  domain: 'light', service: 'toggle' },
+  { command: 'moveToLevel',             domain: 'light', service: 'turn_on', converter: (request: any) => { return { brightness: Math.round(request.level / 254 * 255) } } },
+  { command: 'moveToLevelWithOnOff',    domain: 'light', service: 'turn_on', converter: (request: any) => { return { brightness: Math.round(request.level / 254 * 255) } } },
+  { command: 'moveToColorTemperature',  domain: 'light', service: 'turn_on', converter: (request: any) => { return { color_temp: request.colorTemperatureMireds } } },
+  { command: 'moveToColor',             domain: 'light', service: 'turn_on', converter: (request: any) => { return { xy_color: [request.colorX, request.colorY] } } },
+  { command: 'moveToHue',               domain: 'light', service: 'turn_on', converter: (request: any, attributes: any) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(attributes.currentSaturation.value / 254 * 100)] } } },
+  { command: 'moveToSaturation',        domain: 'light', service: 'turn_on', converter: (request: any, attributes: any) => { return { hs_color: [Math.round(attributes.currentHue.value / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
+  { command: 'moveToHueAndSaturation',  domain: 'light', service: 'turn_on', converter: (request: any) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
   
-  { command: 'lockDoor', deviceType: doorLockDevice, domain: 'lock', service: 'lock' },
-  { command: 'unlockDoor', deviceType: doorLockDevice, domain: 'lock', service: 'unlock' },
+  { command: 'lockDoor',                domain: 'lock', service: 'lock' },
+  { command: 'unlockDoor',              domain: 'lock', service: 'unlock' },
 
-  { command: 'upOrOpen', deviceType: coverDevice, domain: 'cover', service: 'open_cover' },
-  { command: 'downOrClose', deviceType: coverDevice, domain: 'cover', service: 'close_cover' },
-  { command: 'stopMotion', deviceType: coverDevice, domain: 'cover', service: 'stop_cover' },
-  { command: 'goToLiftPercentage', deviceType: coverDevice, domain: 'cover', service: 'set_cover_position', converter: (request: any) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
+  { command: 'upOrOpen',                domain: 'cover', service: 'open_cover' },
+  { command: 'downOrClose',             domain: 'cover', service: 'close_cover' },
+  { command: 'stopMotion',              domain: 'cover', service: 'stop_cover' },
+  { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request: any) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
 ];
 
 // Convert Home Assistant domains services to Matterbridge commands for device types
