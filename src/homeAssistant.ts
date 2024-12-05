@@ -365,17 +365,17 @@ export class HomeAssistant extends EventEmitter {
           if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'state_changed') {
             const entity = this.hassEntities.get(event.data.entity_id);
             if (!entity) {
-              this.log.error(`Entity ${CYAN}${event.data.entity_id}${er} not found processing event`);
+              this.log.error(`Entity id ${CYAN}${event.data.entity_id}${er} not found processing event`);
               return;
             }
             const device = this.hassDevices.get(entity.device_id);
             if (!device) {
-              this.log.error('Device not found processing event:', entity.device_id);
+              this.log.error(`Device id ${CYAN}${entity.device_id}${er} not found processing event:`);
               return;
             }
-            this.emit('event', device.id, event.data.entity_id, event.data.old_state, event.data.new_state);
+            this.emit('event', device.id, entity.entity_id, event.data.old_state, event.data.new_state);
           } else if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'call_service') {
-            this.log.debug(`Event ${CYAN}${event?.event_type}${db} received id ${data.id}`);
+            this.log.debug(`Event ${CYAN}${event?.event_type}${db} received id ${CYAN}${data.id}${db}`);
           } else {
             this.log.debug(`*Unknown event type ${CYAN}${event?.event_type}${db} received id ${CYAN}${data.id}${db}`);
           }
