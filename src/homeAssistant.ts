@@ -377,7 +377,7 @@ export class HomeAssistant extends EventEmitter {
           } else if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'call_service') {
             this.log.debug(`Event ${CYAN}${event?.event_type}${db} received id ${data.id}`);
           } else {
-            this.log.debug(`*Unknown event type ${CYAN}${event?.event_type}${db} received id ${data.id}`);
+            this.log.debug(`*Unknown event type ${CYAN}${event?.event_type}${db} received id ${CYAN}${data.id}${db}`);
           }
         }
       };

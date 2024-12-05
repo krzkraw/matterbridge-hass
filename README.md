@@ -27,6 +27,7 @@ Supported devices:
 - light (with state on/off and attributes brightness/color_mode/color_temp/hs_color/xy_color)
 - lock (with state locked/locking/unlocking/unlocked)
 - fan (with state on/off and attributes percentage/preset_mode)
+- cover (with state open/close/opening/closing and attribute current_position)
 
 ## Prerequisites
 
