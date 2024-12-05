@@ -53,8 +53,8 @@ import {
   WindowCoveringCluster,
   WindowCovering,
 } from 'matterbridge';
-import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
-import { isValidArray, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
+import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, gn } from 'matterbridge/logger';
+import { isValidArray, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 import path from 'path';
 import { promises as fs } from 'fs';
@@ -307,7 +307,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Scan devices and entities and create Matterbridge devices
     for (const device of this.hassDevices) {
       const name = device.name_by_user ?? device.name ?? 'Unknown';
-      if (!isValidString(device.name) || !this.validateWhiteBlackList(device.name)) continue;
+      if (!isValidString(device.name) || !this.validateDeviceWhiteBlackList(device.name)) continue;
 
       let mbDevice: MatterbridgeDevice | undefined;
 
@@ -465,7 +465,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const entityId = endpoint.number ? mbDevice.getChildEndpoint(endpoint.number)?.uniqueStorageKey : undefined;
     if (!entityId) return;
     const domain = entityId.split('.')[0];
-    const hassCommand = hassCommandConverter.find((update) => update.command === command && update.domain === domain);
+    const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
       // console.log('Command:', command, 'Domain:', domain, 'HassCommand:', hassCommand, 'Request:', request, 'Attributes:', attributes);
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(request, attributes) : undefined;
@@ -508,13 +508,29 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
-  validateWhiteBlackList(entityName: string) {
-    if (this.whiteList.length > 0 && !this.whiteList.find((name) => name === entityName)) {
-      this.log.warn(`Skipping ${dn}${entityName}${wr} because not in whitelist`);
+  validateDeviceWhiteBlackList(device: string) {
+    if (isValidArray(this.config.whiteList, 1) && !this.config.whiteList.includes(device)) {
+      this.log.warn(`Skipping device ${dn}${device}${wr} because not in whitelist`);
       return false;
     }
-    if (this.blackList.length > 0 && this.blackList.find((name) => name === entityName)) {
-      this.log.warn(`Skipping ${dn}${entityName}${wr} because in blacklist`);
+    if (isValidArray(this.config.blackList, 1) && this.config.blackList.includes(device)) {
+      this.log.warn(`Skipping device ${dn}${device}${wr} because in blacklist`);
+      return false;
+    }
+    return true;
+  }
+
+  validateEntityBlackList(device: string, entity: string) {
+    if (isValidArray(this.config.entityBlackList, 1) && this.config.entityBlackList.find((e) => e === entity)) {
+      this.log.warn(`Skipping entity ${gn}${entity}${wr} because in entityBlackList`);
+      return false;
+    }
+    if (
+      isValidObject(this.config.deviceEntityBlackList, 1) &&
+      device in this.config.deviceEntityBlackList &&
+      (this.config.deviceEntityBlackList as Record<string, string[]>)[device].includes(entity)
+    ) {
+      this.log.warn(`Skipping entity ${gn}${entity}${wr} for device ${dn}${device}${wr} because in deviceEntityBlackList`);
       return false;
     }
     return true;
