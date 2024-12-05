@@ -316,8 +316,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       };
 
       // Scan entities for supported domains and services and add them to the Matterbridge device
-      for (const entity of this.hassEntities) {
-        if (entity.device_id !== device.id) continue;
+      for (const entity of this.hassEntities.filter((e) => e.device_id === device.id)) {
+        if (!this.validateEntityBlackList(name, entity.entity_id)) continue;
 
         const domain = entity.entity_id.split('.')[0];
         let deviceType: DeviceTypeDefinition | undefined;
