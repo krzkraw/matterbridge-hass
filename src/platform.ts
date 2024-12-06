@@ -409,7 +409,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               hassState.attributes['supported_color_modes'].includes('color_temp')
             ) {
               child.createCtColorControlClusterServer(
-                undefined,
+                hassState.attributes['max_mireds'] as number | undefined,
                 hassState.attributes['min_mireds'] as number | undefined,
                 hassState.attributes['max_mireds'] as number | undefined,
               );
@@ -419,7 +419,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                 undefined,
                 undefined,
                 undefined,
-                undefined,
+                hassState.attributes['max_mireds'] as number | undefined,
                 hassState.attributes['min_mireds'] as number | undefined,
                 hassState.attributes['max_mireds'] as number | undefined,
               );
