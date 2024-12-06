@@ -329,7 +329,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       });
 
     // Scan devices and entities and create Matterbridge devices
-    for (const device of this.ha.hassDevices.values()) {
+    for (const device of Array.from(this.ha.hassDevices.values())) {
       const name = device.name_by_user ?? device.name ?? 'Unknown';
       if (!isValidString(device.name) || !this._validateDeviceWhiteBlackList(device.name)) continue;
 
@@ -352,7 +352,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       };
 
       // Scan entities for supported domains and services and add them to the Matterbridge device
-      for (const entity of this.ha.hassEntities.values().filter((e) => e.device_id === device.id)) {
+      for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         if (!this._validateEntityBlackList(name, entity.entity_id)) continue;
 
         const domain = entity.entity_id.split('.')[0];
