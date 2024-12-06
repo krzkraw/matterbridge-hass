@@ -196,17 +196,17 @@ describe('HassPlatform', () => {
   it('should validate with white and black list', () => {
     haPlatform.config.whiteList = ['whiteDevice'];
     haPlatform.config.blackList = ['blackDevice'];
-    expect(haPlatform.validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('blackDevice')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList('blackDevice')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(false);
 
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = ['blackDevice'];
-    expect(haPlatform.validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('blackDevice')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList('blackDevice')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(true);
 
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = [];
@@ -215,9 +215,9 @@ describe('HassPlatform', () => {
   it('should validate with entity black list', () => {
     haPlatform.config.entityBlackList = ['blackEntity'];
     haPlatform.config.deviceEntityBlackList = {};
-    expect(haPlatform.validateEntityBlackList('any', 'whiteEntity')).toBe(true);
-    expect(haPlatform.validateEntityBlackList('any', 'blackEntity')).toBe(false);
-    expect(haPlatform.validateEntityBlackList('any', '')).toBe(true);
+    expect(haPlatform._validateEntityBlackList('any', 'whiteEntity')).toBe(true);
+    expect(haPlatform._validateEntityBlackList('any', 'blackEntity')).toBe(false);
+    expect(haPlatform._validateEntityBlackList('any', '')).toBe(true);
 
     haPlatform.config.entityBlackList = [];
     haPlatform.config.deviceEntityBlackList = {};
@@ -226,15 +226,15 @@ describe('HassPlatform', () => {
   it('should validate with device entity black list and entity black list', () => {
     haPlatform.config.entityBlackList = ['blackEntity'];
     haPlatform.config.deviceEntityBlackList = { device1: ['blackEntityDevice1'] };
-    expect(haPlatform.validateEntityBlackList('any', 'whiteEntity')).toBe(true);
-    expect(haPlatform.validateEntityBlackList('any', 'blackEntity')).toBe(false);
-    expect(haPlatform.validateEntityBlackList('any', 'blackEntityDevice1')).toBe(true);
-    expect(haPlatform.validateEntityBlackList('any', '')).toBe(true);
+    expect(haPlatform._validateEntityBlackList('any', 'whiteEntity')).toBe(true);
+    expect(haPlatform._validateEntityBlackList('any', 'blackEntity')).toBe(false);
+    expect(haPlatform._validateEntityBlackList('any', 'blackEntityDevice1')).toBe(true);
+    expect(haPlatform._validateEntityBlackList('any', '')).toBe(true);
 
-    expect(haPlatform.validateEntityBlackList('device1', 'whiteEntity')).toBe(true);
-    expect(haPlatform.validateEntityBlackList('device1', 'blackEntity')).toBe(false);
-    expect(haPlatform.validateEntityBlackList('device1', 'blackEntityDevice1')).toBe(false);
-    expect(haPlatform.validateEntityBlackList('device1', '')).toBe(true);
+    expect(haPlatform._validateEntityBlackList('device1', 'whiteEntity')).toBe(true);
+    expect(haPlatform._validateEntityBlackList('device1', 'blackEntity')).toBe(false);
+    expect(haPlatform._validateEntityBlackList('device1', 'blackEntityDevice1')).toBe(false);
+    expect(haPlatform._validateEntityBlackList('device1', '')).toBe(true);
 
     haPlatform.config.entityBlackList = [];
     haPlatform.config.deviceEntityBlackList = {};
@@ -624,6 +624,68 @@ describe('HassPlatform', () => {
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
       if (d.name === 'Fan') device = d;
+    });
+    expect(device).toBeDefined();
+    if (!device) return;
+    haPlatform.ha.hassDevices.set(device.id, device);
+    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}FanControl${db}:${CYAN}fanMode${db} check ${CYAN}true${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
+
+    await haPlatform.onConfigure();
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+  });
+
+  it('should register a Thermostat device from ha', async () => {
+    expect(haPlatform).toBeDefined();
+    (haPlatform as any).ha.connected = true;
+    (haPlatform as any).ha.devicesReceived = true;
+    (haPlatform as any).ha.entitiesReceived = true;
+    (haPlatform as any).ha.statesReceived = true;
+    (haPlatform as any).ha.subscribed = true;
+
+    let device: HassDevice | undefined;
+    (mockData.devices as HassDevice[]).forEach((d) => {
+      if (d.name === 'Thermostat') device = d;
+    });
+    expect(device).toBeDefined();
+    if (!device) return;
+    haPlatform.ha.hassDevices.set(device.id, device);
+    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}Thermostat${db}:${CYAN}systemMode${db} check ${CYAN}true${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
+
+    await haPlatform.onConfigure();
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+  });
+
+  it('should register a Cover device from ha', async () => {
+    expect(haPlatform).toBeDefined();
+    (haPlatform as any).ha.connected = true;
+    (haPlatform as any).ha.devicesReceived = true;
+    (haPlatform as any).ha.entitiesReceived = true;
+    (haPlatform as any).ha.statesReceived = true;
+    (haPlatform as any).ha.subscribed = true;
+
+    let device: HassDevice | undefined;
+    (mockData.devices as HassDevice[]).forEach((d) => {
+      if (d.name === 'Cover') device = d;
     });
     expect(device).toBeDefined();
     if (!device) return;

@@ -394,7 +394,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         let child: MatterbridgeDevice;
         if (deviceType) {
           child = mbDevice.addChildDeviceType(entity.entity_id, [deviceType], undefined, this.config.debug as boolean);
-          child.log.logName = entity.entity_id.split('.')[1];
+          child.log.logName = entity.entity_id;
           // Special case for light domain: configure the color control cluster
           if (domain === 'light' && deviceType === colorTemperatureLight) {
             if (
