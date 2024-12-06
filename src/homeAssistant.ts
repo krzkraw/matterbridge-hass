@@ -375,12 +375,12 @@ export class HomeAssistant extends EventEmitter {
           if (response.id === this.eventsSubscribeId && response.event && response.event.event_type === 'state_changed') {
             const entity = this.hassEntities.get(response.event.data.entity_id);
             if (!entity) {
-              this.log.error(`Entity id ${CYAN}${response.event.data.entity_id}${er} not found processing event`);
+              this.log.debug(`Entity id ${CYAN}${response.event.data.entity_id}${db} not found processing event`);
               return;
             }
             const device = this.hassDevices.get(entity.device_id);
             if (!device) {
-              this.log.error(`Device id ${CYAN}${entity.device_id}${er} not found processing event:`);
+              this.log.debug(`Device id ${CYAN}${entity.device_id}${db} not found processing event:`);
               return;
             }
             this.hassStates.set(response.event.data.new_state.entity_id, response.event.data.new_state);
