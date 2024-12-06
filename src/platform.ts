@@ -77,7 +77,7 @@ const hassUpdateStateConverter: { domain: string; state: string; clusterId: Clus
   { domain: 'lock', state: 'unlocking', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.NotFullyLocked },
   { domain: 'lock', state: 'unlocked', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.Unlocked },
   
-  { domain: 'fan', state: 'on', clusterId: FanControlCluster.id, attribute: 'fanMode', value: FanControl.FanMode.On },
+  { domain: 'fan', state: 'on', clusterId: FanControlCluster.id, attribute: 'fanMode', value: FanControl.FanMode.Auto },
   { domain: 'fan', state: 'off', clusterId: FanControlCluster.id, attribute: 'fanMode', value: FanControl.FanMode.Off },
 
   { domain: 'cover', state: 'opening', clusterId: WindowCoveringCluster.id, attribute: 'operationalStatus', value: { global: WindowCovering.MovementStatus.Opening, lift: WindowCovering.MovementStatus.Opening, tilt: 0 } },
@@ -105,11 +105,11 @@ const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: C
       }
     } 
   },
-  { domain: 'light', with: 'color_temp', clusterId: ColorControlCluster.id, attribute: 'colorTemperatureMireds', converter: (value: number) => ( isValidNumber(value, 0, 65279) ? value : null ) },
-  { domain: 'light', with: 'hs_color', clusterId: ColorControlCluster.id, attribute: 'currentHue', converter: (value: number[]) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 360) ? Math.round(value[0] / 360 * 254) : null ) },
-  { domain: 'light', with: 'hs_color', clusterId: ColorControlCluster.id, attribute: 'currentSaturation', converter: (value: number[]) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 100) ? Math.round(value[1] / 100 * 254) : null ) },
-  { domain: 'light', with: 'xy_color', clusterId: ColorControlCluster.id, attribute: 'currentX', converter: (value: number[]) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 1) ? value[0] : null ) },
-  { domain: 'light', with: 'xy_color', clusterId: ColorControlCluster.id, attribute: 'currentY', converter: (value: number[]) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) ? value[1] : null ) },
+  { domain: 'light', with: 'color_temp', clusterId: ColorControlCluster.id, attribute: 'colorTemperatureMireds', converter: (value: number, state: HassState) => ( isValidNumber(value, 0, 65279) && state.attributes['color_mode'] === 'color_temp' ? value : null ) },
+  { domain: 'light', with: 'hs_color', clusterId: ColorControlCluster.id, attribute: 'currentHue', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 360) && state.attributes['color_mode'] === 'hs' ? Math.round(value[0] / 360 * 254) : null ) },
+  { domain: 'light', with: 'hs_color', clusterId: ColorControlCluster.id, attribute: 'currentSaturation', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 100) && state.attributes['color_mode'] === 'hs' ? Math.round(value[1] / 100 * 254) : null ) },
+  { domain: 'light', with: 'xy_color', clusterId: ColorControlCluster.id, attribute: 'currentX', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 1) && state.attributes['color_mode'] === 'xy' ? value[0] : null ) },
+  { domain: 'light', with: 'xy_color', clusterId: ColorControlCluster.id, attribute: 'currentY', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) && state.attributes['color_mode'] === 'xy' ? value[1] : null ) },
 
   { domain: 'fan', with: 'percentage', clusterId: FanControlCluster.id, attribute: 'percentCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
   { domain: 'fan', with: 'percentage', clusterId: FanControlCluster.id, attribute: 'speedCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
@@ -405,7 +405,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               child.createHsColorControlClusterServer();
             } else if (
               isValidArray(hassState.attributes['supported_color_modes']) &&
-              (!hassState.attributes['supported_color_modes'].includes('hs') || !hassState.attributes['supported_color_modes'].includes('rgb')) &&
+              !hassState.attributes['supported_color_modes'].includes('hs') &&
+              !hassState.attributes['supported_color_modes'].includes('rgb') &&
               hassState.attributes['supported_color_modes'].includes('color_temp')
             ) {
               child.createCtColorControlClusterServer(
@@ -513,14 +514,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   override async onConfigure() {
     this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}`);
     try {
-      this.ha.hassStates.forEach((state) => {
+      for (const state of Array.from(this.ha.hassStates.values())) {
         const entity = this.ha.hassEntities.get(state.entity_id);
         const deviceId = entity?.device_id;
         if (deviceId && this.bridgedHassDevices.has(deviceId)) {
           this.log.debug(`Configuring state ${CYAN}${state.entity_id}${db} for device ${CYAN}${deviceId}${db}` /* , state*/);
           this.updateHandler(deviceId, state.entity_id, state, state);
         }
-      });
+      }
     } catch (error) {
       this.log.error(`Error configuring platform: ${error}`);
     }
@@ -576,7 +577,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // this.hassEntityStates.set(entityId, new_state);
     const mbDevice = this.matterbridgeDevices.get(deviceId);
     if (!mbDevice) return;
-    const endpoint = mbDevice.getChildEndpointByName(entityId);
+    const endpoint = mbDevice.getChildEndpointByName(entityId) || mbDevice.getChildEndpointByName(entityId.replaceAll('.', ''));
     if (!endpoint) return;
     mbDevice.log.info(
       `${db}Received update event from Home Assistant device ${idn}${mbDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
