@@ -331,7 +331,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Scan devices and entities and create Matterbridge devices
     for (const device of this.ha.hassDevices.values()) {
       const name = device.name_by_user ?? device.name ?? 'Unknown';
-      if (!isValidString(device.name) || !this.validateDeviceWhiteBlackList(device.name)) continue;
+      if (!isValidString(device.name) || !this._validateDeviceWhiteBlackList(device.name)) continue;
 
       let mbDevice: MatterbridgeDevice | undefined;
 
@@ -353,7 +353,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       // Scan entities for supported domains and services and add them to the Matterbridge device
       for (const entity of this.ha.hassEntities.values().filter((e) => e.device_id === device.id)) {
-        if (!this.validateEntityBlackList(name, entity.entity_id)) continue;
+        if (!this._validateEntityBlackList(name, entity.entity_id)) continue;
 
         const domain = entity.entity_id.split('.')[0];
         let deviceType: DeviceTypeDefinition | undefined;
@@ -606,7 +606,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
-  override validateDeviceWhiteBlackList(device: string) {
+  _validateDeviceWhiteBlackList(device: string) {
     if (isValidArray(this.config.whiteList, 1) && !this.config.whiteList.includes(device)) {
       this.log.warn(`Skipping device ${dn}${device}${wr} because not in whitelist`);
       return false;
@@ -618,7 +618,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     return true;
   }
 
-  override validateEntityBlackList(device: string, entity: string) {
+  _validateEntityBlackList(device: string, entity: string) {
     if (isValidArray(this.config.entityBlackList, 1) && this.config.entityBlackList.find((e) => e === entity)) {
       this.log.warn(`Skipping entity ${gn}${entity}${wr} because in entityBlackList`);
       return false;
