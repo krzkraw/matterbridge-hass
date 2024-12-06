@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
+## [0.0.3] - 2024-12-06
+
+### Added
+
+### Changed
+
+- [homeassistant]: Changed to debug the log of processing event.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+</a>
+
 ## [0.0.2] - 2024-12-06
 
 ### Added
