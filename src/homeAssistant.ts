@@ -23,7 +23,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { AnsiLogger, LogLevel, TimestampFormat, CYAN, er, db, debugStringify } from 'matterbridge/logger';
+import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify } from 'matterbridge/logger';
 import WebSocket from 'ws';
 
 /**
