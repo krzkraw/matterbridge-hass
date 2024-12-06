@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
+## [0.0.2] - 2024-12-06
+
+### Added
+
+- [climate]: Add domain climate.
+
+### Changed
+
+- [fan]: Update domain fan.
+- [command]: Jest on hassCommandConverter.
+- [command]: Refactor hassCommandConverter.
+- [homeassistant]: Refactor HomeAssistant.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+</a>
+
 ## [0.0.1-dev.6] - 2024-12-05
 
 ### Added

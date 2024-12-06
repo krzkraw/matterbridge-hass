@@ -32,6 +32,7 @@ Supported devices:
 - lock (with state locked/locking/unlocking/unlocked)
 - fan (with state on/off and attributes percentage/preset_mode)
 - cover (with state open/close/opening/closing and attribute current_position)
+- climate (with state off/heat/cool and attribute temperature/current_temperature)
 
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 
