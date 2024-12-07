@@ -88,6 +88,7 @@ const hassUpdateStateConverter: { domain: string; state: string; clusterId: Clus
   { domain: 'climate', state: 'off', clusterId: ThermostatCluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Off },
   { domain: 'climate', state: 'heat', clusterId: ThermostatCluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Heat },
   { domain: 'climate', state: 'cool', clusterId: ThermostatCluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Cool },
+  { domain: 'climate', state: 'heat_cool', clusterId: ThermostatCluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Auto },
 ];
 
 // Update Home Assistant attributes to Matterbridge device attributes
@@ -128,8 +129,10 @@ const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: C
   { domain: 'cover', with: 'current_position', clusterId: WindowCoveringCluster.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
   { domain: 'cover', with: 'current_position', clusterId: WindowCoveringCluster.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
 
-  { domain: 'climate', with: 'temperature', clusterId: ThermostatCluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat' ? value * 100 : null) },
-  { domain: 'climate', with: 'temperature', clusterId: ThermostatCluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'cool' ? value * 100 : null) },
+  { domain: 'climate', with: 'temperature',         clusterId: ThermostatCluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat' ? value * 100 : null) },
+  { domain: 'climate', with: 'temperature',         clusterId: ThermostatCluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'cool' ? value * 100 : null) },
+  { domain: 'climate', with: 'target_temp_high',    clusterId: ThermostatCluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? value * 100 : null) },
+  { domain: 'climate', with: 'target_temp_low',     clusterId: ThermostatCluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? value * 100 : null) },
   { domain: 'climate', with: 'current_temperature', clusterId: ThermostatCluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? value * 100 : null) },
 ];
 
@@ -428,7 +431,22 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
           // Special case for climate domain: configure the thermostat cluster
           if (domain === 'climate') {
-            if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat') && !hassState.attributes['hvac_modes'].includes('cool'))
+            if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat_cool'))
+              child.createDefaultThermostatClusterServer(
+                hassState?.attributes['current_temperature'] as number | undefined,
+                hassState?.attributes['target_temp_low'] as number | undefined,
+                hassState?.attributes['target_temp_high'] as number | undefined,
+                0,
+                hassState?.attributes['min_temp'] as number | undefined,
+                hassState?.attributes['max_temp'] as number | undefined,
+                hassState?.attributes['min_temp'] as number | undefined,
+                hassState?.attributes['max_temp'] as number | undefined,
+              );
+            else if (
+              isValidArray(hassState?.attributes['hvac_modes']) &&
+              hassState.attributes['hvac_modes'].includes('heat') &&
+              !hassState.attributes['hvac_modes'].includes('cool')
+            )
               child.createDefaultHeatingThermostatClusterServer(
                 hassState?.attributes['current_temperature'] as number | undefined,
                 hassState?.attributes['temperature'] as number | undefined,
@@ -534,6 +552,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   override async onShutdown(reason?: string) {
     this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
+    this.ha.close();
+
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
   }
 
@@ -589,7 +609,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (hassUpdateState) {
       await mbDevice.setAttribute(hassUpdateState.clusterId, hassUpdateState.attribute, hassUpdateState.value, mbDevice.log, endpoint);
     } else {
-      mbDevice.log.warn(`Update ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
+      mbDevice.log.warn(`Update state ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
     }
     // Update attributes of the device
     const hassUpdateAttributes = hassUpdateAttributeConverter.filter((updateAttribute) => updateAttribute.domain === domain);
