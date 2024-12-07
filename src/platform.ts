@@ -627,6 +627,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
+  // TODO: remove when matterbridge 1.6.6 is published
   _validateDeviceWhiteBlackList(device: string) {
     if (isValidArray(this.config.whiteList, 1) && !this.config.whiteList.includes(device)) {
       this.log.warn(`Skipping device ${dn}${device}${wr} because not in whitelist`);
@@ -639,6 +640,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     return true;
   }
 
+  // TODO: remove when matterbridge 1.6.6 is published
   _validateEntityBlackList(device: string, entity: string) {
     if (isValidArray(this.config.entityBlackList, 1) && this.config.entityBlackList.find((e) => e === entity)) {
       this.log.warn(`Skipping entity ${gn}${entity}${wr} because in entityBlackList`);

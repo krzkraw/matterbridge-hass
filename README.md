@@ -96,7 +96,7 @@ If any device creates issues put it in the blackList.
 
 ### host
 
-Your Home Assistance address (eg. http://homeassistant.local:8123 or http://IP-ADDRESS:8123). It is better to use the IP if it is stable.
+Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). It is better to use the IP if it is stable.
 
 ### token
 
