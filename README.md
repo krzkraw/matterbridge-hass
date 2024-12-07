@@ -110,6 +110,14 @@ If the whiteList is defined only the devices included are exposed to Matter.
 
 If the blackList is defined the devices included will not be exposed to Matter.
 
+### entityBlackList
+
+The entities in the list will not be exposed for all devices. Use the entity name.
+
+### deviceEntityBlackList
+
+List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
+
 ### debug
 
 Should be enabled only if you want to debug some issue using the log.
