@@ -7,7 +7,7 @@ import { wait } from 'matterbridge/utils';
 import { AnsiLogger, BLUE, db, dn, hk, idn, LogLevel, nf, or, rs, YELLOW, CYAN, ign, wr } from 'matterbridge/logger';
 import { HomeAssistantPlatform } from './platform';
 import { jest } from '@jest/globals';
-import { HassDevice, HassEntity, HassState, HomeAssistant } from './homeAssistant';
+import { HassConfig, HassDevice, HassEntity, HassState, HomeAssistant } from './homeAssistant';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -194,22 +194,46 @@ describe('HassPlatform', () => {
   });
 
   it('should validate with white and black list', () => {
-    haPlatform.config.whiteList = ['whiteDevice'];
-    haPlatform.config.blackList = ['blackDevice'];
-    expect(haPlatform._validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('blackDevice')).toBe(false);
+    haPlatform.config.whiteList = ['white1', 'white2', 'white3'];
+    haPlatform.config.blackList = ['black1', 'black2', 'black3'];
+    expect(haPlatform._validateDeviceWhiteBlackList('white1')).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList('black2')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList(['white1', 'black2'])).toBe(false);
     expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(false);
     expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(false);
+  });
 
+  it('should validate with white list', () => {
+    haPlatform.config.whiteList = ['white1', 'white2', 'white3'];
+    haPlatform.config.blackList = [];
+    expect(haPlatform._validateDeviceWhiteBlackList('white1')).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList('black2')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList(['white1', 'black2'])).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(false);
+  });
+
+  it('should validate with black list', () => {
     haPlatform.config.whiteList = [];
-    haPlatform.config.blackList = ['blackDevice'];
+    haPlatform.config.blackList = ['black1', 'black2', 'black3'];
     expect(haPlatform._validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('blackDevice')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList('black1')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList('black2')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList('black3')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList(['x', 'y', 'z'])).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList(['x', 'y', 'z', 'black3'])).toBe(false);
     expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(true);
     expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(true);
+  });
 
+  it('should validate with no white and black list', () => {
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = [];
+    expect(haPlatform._validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList(['whiteDevice', '123456'])).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList('blackDevice')).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList(['blackDevice', '123456'])).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(true);
   });
 
   it('should validate with entity black list', () => {
@@ -315,41 +339,41 @@ describe('HassPlatform', () => {
 
   it('should call onStart with reason', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.subscribed = true;
     await haPlatform.onStart('Test reason');
 
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
   });
 
   it('should receive events from ha', () => {
-    (haPlatform as any).ha.emit('connected', '2024.09.1');
+    haPlatform.ha.emit('connected', '2024.09.1');
     expect(mockLog.notice).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
-    (haPlatform as any).ha.emit('disconnected');
+    haPlatform.ha.emit('disconnected');
     expect(mockLog.warn).toHaveBeenCalledWith(`Disconnected from Home Assistant`);
-    (haPlatform as any).ha.emit('subscribed');
+    haPlatform.ha.emit('subscribed');
     expect(mockLog.info).toHaveBeenCalledWith(`Subscribed to Home Assistant events`);
-    (haPlatform as any).ha.emit('config');
+    haPlatform.ha.emit('config', {} as unknown as HassConfig);
     expect(mockLog.info).toHaveBeenCalledWith(`Configuration received from Home Assistant`);
-    (haPlatform as any).ha.emit('states');
+    haPlatform.ha.emit('states', []);
     expect(mockLog.info).toHaveBeenCalledWith(`States received from Home Assistant`);
-    (haPlatform as any).ha.emit('services');
+    haPlatform.ha.emit('services', {});
     expect(mockLog.info).toHaveBeenCalledWith(`Services received from Home Assistant`);
-    (haPlatform as any).ha.emit('devices');
+    haPlatform.ha.emit('devices', []);
     expect(mockLog.info).toHaveBeenCalledWith(`Devices received from Home Assistant`);
-    (haPlatform as any).ha.emit('entities');
+    haPlatform.ha.emit('entities', []);
     expect(mockLog.info).toHaveBeenCalledWith(`Entities received from Home Assistant`);
   });
 
   it('should register a Switch device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -358,8 +382,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -371,15 +395,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Light (on/off) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -388,8 +418,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -401,15 +431,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Dimmer device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -418,8 +454,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -431,15 +467,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Light (HS) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -448,8 +490,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -461,15 +503,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Light (XY) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -478,8 +526,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -491,15 +539,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Light (CT) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -508,8 +562,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -521,15 +575,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Light (XY, HS and CT) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -538,8 +598,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -551,15 +611,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Outlet device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -568,8 +634,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -581,15 +647,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Lock device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -598,8 +670,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -611,15 +683,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Fan device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -628,8 +706,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -642,15 +720,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
-  it('should register a Thermostat device from ha', async () => {
+  it('should register a Thermostat heat_cool device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -659,8 +743,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -673,15 +757,58 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
+  });
+
+  it('should register a Thermostat heat device from ha', async () => {
+    expect(haPlatform).toBeDefined();
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
+
+    let device: HassDevice | undefined;
+    (mockData.devices as HassDevice[]).forEach((d) => {
+      if (d.name === 'Thermostat') device = d;
+    });
+    expect(device).toBeDefined();
+    if (!device) return;
+    haPlatform.ha.hassDevices.set(device.id, device);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}Thermostat${db}:${CYAN}systemMode${db} check ${CYAN}true${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
+
+    await haPlatform.onConfigure();
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a Cover device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -690,8 +817,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     haPlatform.ha.hassDevices.set(device.id, device);
-    for (const entity of mockData.entities) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
-    for (const state of mockData.states) haPlatform.ha.hassStates.set(state.entity_id, state);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -703,15 +830,21 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
+
+    for (const state of mockData.states) {
+      if (haPlatform.ha.hassEntities.has(state.entity_id)) {
+        haPlatform.updateHandler(device.id, state.entity_id, state, state);
+      }
+    }
   });
 
   it('should register a switch device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    (haPlatform as any).ha.connected = true;
-    (haPlatform as any).ha.devicesReceived = true;
-    (haPlatform as any).ha.entitiesReceived = true;
-    (haPlatform as any).ha.statesReceived = true;
-    (haPlatform as any).ha.subscribed = true;
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
 
     haPlatform.ha.hassDevices.set(switchDevice.id, switchDevice as unknown as HassDevice);
     haPlatform.ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity as unknown as HassEntity);
@@ -722,6 +855,46 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${switchDevice.name}${rs}${nf} id ${CYAN}${switchDevice.id}${nf}`);
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${switchDevice.name}${db}...`);
+    expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
+  });
+
+  it('should register a thermo heat device from ha', async () => {
+    expect(haPlatform).toBeDefined();
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
+
+    haPlatform.ha.hassDevices.set(heatDevice.id, heatDevice as unknown as HassDevice);
+    haPlatform.ha.hassEntities.set(heatDeviceEntity.entity_id, heatDeviceEntity as unknown as HassEntity);
+    haPlatform.ha.hassStates.set(heatDeviceEntityState.entity_id, heatDeviceEntityState as unknown as HassState);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${heatDevice.name}${rs}${nf} id ${CYAN}${heatDevice.id}${nf}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${heatDevice.name}${db}...`);
+    expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
+  });
+
+  it('should register a thermo cool device from ha', async () => {
+    expect(haPlatform).toBeDefined();
+    haPlatform.ha.connected = true;
+    haPlatform.ha.devicesReceived = true;
+    haPlatform.ha.entitiesReceived = true;
+    haPlatform.ha.statesReceived = true;
+    haPlatform.ha.subscribed = true;
+
+    haPlatform.ha.hassDevices.set(coolDevice.id, coolDevice as unknown as HassDevice);
+    haPlatform.ha.hassEntities.set(coolDeviceEntity.entity_id, coolDeviceEntity as unknown as HassEntity);
+    haPlatform.ha.hassStates.set(coolDeviceEntityState.entity_id, coolDeviceEntityState as unknown as HassState);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${coolDevice.name}${rs}${nf} id ${CYAN}${coolDevice.id}${nf}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${coolDevice.name}${db}...`);
     expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
   });
 
@@ -821,4 +994,74 @@ const switchDeviceEntityState = {
   last_reported: '2024-09-18T18:09:20.344470+00:00',
   last_updated: '2024-09-18T18:09:20.344470+00:00',
   context: { id: '01J83564ER52RJF78N4S96YHG8', parent_id: null, user_id: null },
+};
+
+const heatDevice = {
+  area_id: null,
+  id: 'd80898f83188759ed7329e97df00ee6a',
+  labels: [],
+  manufacturer: 'Luligu',
+  model: 'Matterbridge Switch',
+  model_id: null,
+  name_by_user: null,
+  name: 'Thermo',
+  serial_number: '0x23452164',
+};
+
+const heatDeviceEntity = {
+  area_id: null,
+  device_id: 'd80898f83188759ed7329e97df00ee6a',
+  entity_id: 'climate.thermo',
+  id: '0b25a337cb83edefb1d310450ad2b0aa',
+  name: null,
+};
+
+const heatDeviceEntityState = {
+  entity_id: 'climate.thermo',
+  state: 'heat',
+  attributes: {
+    hvac_modes: ['off', 'heat'],
+    min_temp: 7,
+    max_temp: 50,
+    current_temperature: 19,
+    temperature: 20,
+    target_temp_high: null,
+    target_temp_low: null,
+    friendly_name: 'Thermostat',
+  },
+};
+
+const coolDevice = {
+  area_id: null,
+  id: 'd80898f83188759ed7329e97df00ee6a',
+  labels: [],
+  manufacturer: 'Luligu',
+  model: 'Matterbridge Switch',
+  model_id: null,
+  name_by_user: null,
+  name: 'Thermo',
+  serial_number: '0x23452164',
+};
+
+const coolDeviceEntity = {
+  area_id: null,
+  device_id: 'd80898f83188759ed7329e97df00ee6a',
+  entity_id: 'climate.thermo',
+  id: '0b25a337cb83edefb1d310450ad2b0aa',
+  name: null,
+};
+
+const coolDeviceEntityState = {
+  entity_id: 'climate.thermo',
+  state: 'cool',
+  attributes: {
+    hvac_modes: ['off', 'cool'],
+    min_temp: 7,
+    max_temp: 50,
+    current_temperature: 19,
+    temperature: 20,
+    target_temp_high: null,
+    target_temp_low: null,
+    friendly_name: 'Thermostat',
+  },
 };
