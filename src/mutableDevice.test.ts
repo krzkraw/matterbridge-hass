@@ -86,7 +86,7 @@ describe('MutableDevice', () => {
   it('should initialize with an empty mutableDevice', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     expect(mutableDevice).toBeInstanceOf(MutableDevice);
-    expect(mutableDevice.matterbridge).toBe(mockMatterbridge);
+    expect((mutableDevice as any).matterbridge).toBe(mockMatterbridge);
     expect(mutableDevice.deviceName).toBe('Test Device');
     expect(mutableDevice.composedType).toBeUndefined();
   });
@@ -95,7 +95,7 @@ describe('MutableDevice', () => {
     mockMatterbridge.edge = false;
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     expect(mutableDevice).toBeInstanceOf(MutableDevice);
-    expect(mutableDevice.matterbridge).toBe(mockMatterbridge);
+    expect((mutableDevice as any).matterbridge).toBe(mockMatterbridge);
     expect(mutableDevice.deviceName).toBe('Test Device');
     expect(mutableDevice.composedType).toBeUndefined();
 
@@ -110,7 +110,7 @@ describe('MutableDevice', () => {
     mockMatterbridge.edge = true;
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     expect(mutableDevice).toBeInstanceOf(MutableDevice);
-    expect(mutableDevice.matterbridge).toBe(mockMatterbridge);
+    expect((mutableDevice as any).matterbridge).toBe(mockMatterbridge);
     expect(mutableDevice.deviceName).toBe('Test Device');
     expect(mutableDevice.composedType).toBeUndefined();
 
@@ -119,6 +119,14 @@ describe('MutableDevice', () => {
     expect(device).toBeDefined();
     expect(device).toBeInstanceOf(MatterbridgeEndpoint);
     mockMatterbridge.edge = false;
+  });
+
+  it('should add a BridgedDeviceBasicInformationCluster', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addBridgedDeviceBasicInformationClusterServer();
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().tagList).toHaveLength(0);
   });
 
   it('should add a tagList', () => {
@@ -195,7 +203,9 @@ describe('MutableDevice', () => {
   });
 
   it('should create a MatterbridgeDevice with child endpoint', async () => {
-    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device', 'Switch');
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+
+    mutableDevice.composedType = 'Switch';
     expect(mutableDevice.composedType).toBe('Switch');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
 

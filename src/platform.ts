@@ -55,6 +55,12 @@ import {
   thermostatDevice,
   ThermostatCluster,
   Thermostat,
+  lightSensor,
+  IlluminanceMeasurementCluster,
+  temperatureSensor,
+  humiditySensor,
+  TemperatureMeasurementCluster,
+  RelativeHumidityMeasurementCluster,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, gn } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
@@ -138,13 +144,14 @@ const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: C
 
 // Convert Home Assistant domains to Matterbridge device types and clusterIds
 // prettier-ignore
-const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
+const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
   { domain: 'switch',   deviceType: onOffOutlet,      clusterId: OnOffCluster.id },
   { domain: 'light',    deviceType: onOffLight,       clusterId: OnOffCluster.id },
   { domain: 'lock',     deviceType: doorLockDevice,   clusterId: DoorLockCluster.id },
   { domain: 'fan',      deviceType: fanDevice,        clusterId: FanControlCluster.id },
   { domain: 'cover',    deviceType: coverDevice,      clusterId: WindowCoveringCluster.id },
   { domain: 'climate',  deviceType: thermostatDevice, clusterId: ThermostatCluster.id },
+  { domain: 'sensor',   deviceType: null,             clusterId: null },
 ];
 
 // Convert Home Assistant domains attributes to Matterbridge device types and clusterIds
@@ -154,6 +161,14 @@ const hassDomainAttributeConverter: { domain: string; with: string; deviceType: 
   { domain: 'light',    with: 'color_temp',  deviceType: colorTemperatureLight,  clusterId: ColorControlCluster.id },
   { domain: 'light',    with: 'hs_color',    deviceType: colorTemperatureLight,  clusterId: ColorControlCluster.id },
   { domain: 'light',    with: 'xy_color',    deviceType: colorTemperatureLight,  clusterId: ColorControlCluster.id },
+];
+
+// Convert Home Assistant domains attributes to Matterbridge device types and clusterIds
+// prettier-ignore
+const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
+  { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',   deviceType: temperatureSensor,  clusterId: TemperatureMeasurementCluster.id },
+  { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',      deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurementCluster.id },
+  { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'illuminance',   deviceType: lightSensor,        clusterId: IlluminanceMeasurementCluster.id },
 ];
 
 // Convert Home Assistant domains services to Matterbridge commands for device types
@@ -367,8 +382,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         if (hassDomains.length > 0) {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}`);
           hassDomains.forEach((hassDomain) => {
-            deviceType = hassDomain.deviceType;
-            clusterIds.set(hassDomain.clusterId, hassDomain.clusterId);
+            if (hassDomain.deviceType) deviceType = hassDomain.deviceType;
+            if (hassDomain.clusterId) clusterIds.set(hassDomain.clusterId, hassDomain.clusterId);
           });
         } else {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}: domain not found`);
@@ -379,6 +394,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const hassState = this.ha.hassStates.get(entity.entity_id);
         if (hassState) {
           this.log.debug(`- state ${debugStringify(hassState)}`);
+
+          // Look for supported attributes of the current entity state
           for (const [key, value] of Object.entries(hassState.attributes)) {
             this.log.debug(`- attribute ${CYAN}${key}${db} value ${typeof value === 'object' && value ? debugStringify(value) : value}`);
             const hassDomainAttributes = hassDomainAttributeConverter.filter((d) => d.domain === domain && d.with === key);
@@ -387,6 +404,16 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               clusterIds.set(hassDomainAttribute.clusterId, hassDomainAttribute.clusterId);
             });
           }
+
+          // Look for supported sensors of the current entity state
+          const hassDomainSensors = hassDomainSensorsConverter.filter((d) => d.domain === domain);
+          hassDomainSensors.forEach((hassDomainSensor) => {
+            if (hassState.attributes['state_class'] === hassDomainSensor.withStateClass && hassState.attributes['device_class'] === hassDomainSensor.withDeviceClass) {
+              this.log.debug(`- sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
+              // deviceType = hassDomainSensor.deviceType;
+              // clusterIds.set(hassDomainSensor.clusterId, hassDomainSensor.clusterId);
+            }
+          });
         } else {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}: state not found`);
           continue;
