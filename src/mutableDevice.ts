@@ -1,7 +1,10 @@
+import { createHash, randomBytes } from 'crypto';
 import {
   AtLeastOne,
+  BridgedDeviceBasicInformationCluster,
   ClusterClientObj,
   ClusterId,
+  ClusterServer,
   ClusterServerObj,
   colorTemperatureLight,
   colorTemperatureSwitch,
@@ -17,6 +20,7 @@ import {
   onOffOutlet,
   onOffSwitch,
   Semtag,
+  VendorId,
 } from 'matterbridge';
 import { db, debugStringify, idn, ign, nf, rs } from 'matterbridge/logger';
 
@@ -31,26 +35,43 @@ interface MutableDeviceInterface {
 
 export class MutableDevice {
   protected readonly mutableDevice = new Map<string, MutableDeviceInterface>();
+  protected readonly matterbridge: Matterbridge;
+
+  deviceName: string;
+  serialNumber: string;
+  vendorId: VendorId;
+  vendorName: string;
+  productName: string;
+  softwareVersion: number;
+  softwareVersionString: string;
+  hardwareVersion: number;
+  hardwareVersionString: string;
+
+  composedType: string | undefined = undefined;
 
   constructor(
-    protected readonly _matterbridge: Matterbridge,
-    protected readonly _deviceName: string,
-    protected readonly _composedType: string | undefined = undefined,
+    matterbridge: Matterbridge,
+    deviceName: string,
+    serialNumber?: string,
+    vendorId = 0xfff1,
+    vendorName = 'Matterbridge',
+    productName = 'Matterbridge Device',
+    softwareVersion = 1,
+    softwareVersionString = '1.0.0',
+    hardwareVersion = 1,
+    hardwareVersionString = '1.0.0',
   ) {
+    this.matterbridge = matterbridge;
+    this.deviceName = deviceName;
+    this.serialNumber = serialNumber ?? '0x' + randomBytes(8).toString('hex');
+    this.vendorId = VendorId(vendorId);
+    this.vendorName = vendorName;
+    this.productName = productName;
+    this.softwareVersion = softwareVersion;
+    this.softwareVersionString = softwareVersionString;
+    this.hardwareVersion = hardwareVersion;
+    this.hardwareVersionString = hardwareVersionString;
     this.initializeEndpoint('');
-  }
-
-  // Getters
-  get matterbridge(): Matterbridge {
-    return this._matterbridge;
-  }
-
-  get deviceName(): string {
-    return this._deviceName;
-  }
-
-  get composedType(): string | undefined {
-    return this._composedType;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-inferrable-types
@@ -103,6 +124,42 @@ export class MutableDevice {
     device.clusterServersObjs.push(...clusterServerObj);
   }
 
+  private createUniqueId(param1: string, param2: string, param3: string, param4: string) {
+    const hash = createHash('md5');
+    hash.update(param1 + param2 + param3 + param4);
+    return hash.digest('hex');
+  }
+
+  addBridgedDeviceBasicInformationClusterServer() {
+    this.addClusterServerObjs(
+      '',
+      ClusterServer(
+        BridgedDeviceBasicInformationCluster,
+        {
+          vendorId: this.vendorId,
+          vendorName: this.vendorName.slice(0, 32),
+          productName: this.productName.slice(0, 32),
+          productLabel: this.deviceName.slice(0, 64),
+          nodeLabel: this.deviceName.slice(0, 32),
+          serialNumber: this.serialNumber.slice(0, 32),
+          uniqueId: this.createUniqueId(this.deviceName, this.serialNumber, this.vendorName, this.productName),
+          softwareVersion: this.softwareVersion,
+          softwareVersionString: this.softwareVersionString.slice(0, 64),
+          hardwareVersion: this.hardwareVersion,
+          hardwareVersionString: this.hardwareVersionString.slice(0, 64),
+          reachable: true,
+        },
+        {},
+        {
+          startUp: true,
+          shutDown: true,
+          leave: true,
+          reachableChanged: true,
+        },
+      ) as unknown as ClusterServerObj,
+    );
+  }
+
   async create() {
     // Remove duplicates and superset device types on all endpoints
     for (const device of this.mutableDevice.values()) {
@@ -148,15 +205,15 @@ export class MutableDevice {
       device.clusterClientsObjs = Array.from(deviceClusterClientsObjMap.values());
       */
 
-      this._matterbridge.log.debug(
-        `Device ${idn}${this._deviceName}${rs}${db} endpoint: ${ign}${endpoint === '' ? 'main' : endpoint}${rs}${db} => ` +
+      this.matterbridge.log.debug(
+        `Device ${idn}${this.deviceName}${rs}${db} endpoint: ${ign}${endpoint === '' ? 'main' : endpoint}${rs}${db} => ` +
           `${nf}tagList: ${debugStringify(device.tagList)} deviceTypes: ${debugStringify(device.deviceTypes)} clusterServersIds: ${debugStringify(device.clusterServersIds)}`,
       );
     }
 
     // Create the mutable device for the main endpoint
     const mainEndpoint = this.mutableDevice.get('') as MutableDeviceInterface;
-    const matterbridgeDevice = await this.createMutableDevice(mainEndpoint.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { uniqueStorageKey: this._deviceName }, true);
+    const matterbridgeDevice = await this.createMutableDevice(mainEndpoint.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { uniqueStorageKey: this.deviceName }, true);
 
     // Add the cluster objects to the main endpoint
     mainEndpoint.clusterServersObjs.forEach((clusterServerObj) => {
