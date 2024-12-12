@@ -187,7 +187,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
-      // matterbridgeDevice.log.logName = name;
 
       // Scan entities for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
@@ -246,17 +245,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Create a child endpoint for the entity if we found supported domains and attributes
         if (!mutableDevice.has(entity.entity_id)) continue;
         const child = await mutableDevice.createChildEndpoint(entity.entity_id);
-        // child.log.logName = entity.entity_id;
+
         // Special case for light domain: configure the color control cluster
         if (domain === 'light' && mutableDevice.get(entity.entity_id).deviceTypes[0] === colorTemperatureLight) {
           if (
             isValidArray(hassState.attributes['supported_color_modes']) &&
-            (hassState.attributes['supported_color_modes'].includes('hs') || hassState.attributes['supported_color_modes'].includes('rgb')) &&
-            !hassState.attributes['supported_color_modes'].includes('color_temp')
-          ) {
-            mutableDevice.addClusterServerObjs(entity.entity_id, child.getHsColorControlClusterServer() as unknown as ClusterServerObj);
-          } else if (
-            isValidArray(hassState.attributes['supported_color_modes']) &&
+            !hassState.attributes['supported_color_modes'].includes('xy') &&
             !hassState.attributes['supported_color_modes'].includes('hs') &&
             !hassState.attributes['supported_color_modes'].includes('rgb') &&
             hassState.attributes['supported_color_modes'].includes('color_temp')
@@ -284,6 +278,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             );
           }
         }
+
         // Special case for climate domain: configure the thermostat cluster
         if (domain === 'climate') {
           if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat_cool')) {
@@ -456,34 +451,52 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   */
 
   async updateHandler(deviceId: string, entityId: string, old_state: HassState, new_state: HassState) {
-    // this.hassEntityStates.set(entityId, new_state);
-    const mbDevice = this.matterbridgeDevices.get(deviceId);
-    if (!mbDevice) return;
-    const endpoint = mbDevice.getChildEndpointByName(entityId) || mbDevice.getChildEndpointByName(entityId.replaceAll('.', ''));
+    const matterbridgeDevice = this.matterbridgeDevices.get(deviceId);
+    if (!matterbridgeDevice) return;
+    const endpoint = (matterbridgeDevice.getChildEndpointByName(entityId) || matterbridgeDevice.getChildEndpointByName(entityId.replaceAll('.', ''))) as MatterbridgeDevice;
     if (!endpoint) return;
-    mbDevice.log.info(
-      `${db}Received update event from Home Assistant device ${idn}${mbDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
+    matterbridgeDevice.log.info(
+      `${db}Received update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
         `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
     );
     const domain = entityId.split('.')[0];
-    // Update state of the device
-    const hassUpdateState = hassUpdateStateConverter.find((updateState) => updateState.domain === domain && updateState.state === new_state.state);
-    if (hassUpdateState) {
-      await mbDevice.setAttribute(hassUpdateState.clusterId, hassUpdateState.attribute, hassUpdateState.value, mbDevice.log, endpoint);
+    if (domain === 'sensor') {
+      // Update sensors of the device
+      const hassSensorConverter = hassDomainSensorsConverter.find(
+        (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],
+      );
+      if (hassSensorConverter) {
+        const convertedValue = hassSensorConverter.converter(parseFloat(new_state.state));
+        endpoint.log.debug(
+          `Converting sensor ${new_state.attributes['state_class']}:${new_state.attributes['device_class']} value "${new_state.state}" to ${CYAN}${convertedValue}${db}`,
+        );
+        if (convertedValue !== null) await matterbridgeDevice.setAttribute(hassSensorConverter.clusterId, hassSensorConverter.attribute, convertedValue, endpoint.log, endpoint);
+      } else {
+        endpoint.log.warn(
+          `Update sensor ${CYAN}${domain}${wr}:${CYAN}${new_state.attributes['state_class']}${wr}:${CYAN}${new_state.attributes['device_class']}${wr} not supported for entity ${entityId}`,
+        );
+      }
     } else {
-      mbDevice.log.warn(`Update state ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
-    }
-    // Update attributes of the device
-    const hassUpdateAttributes = hassUpdateAttributeConverter.filter((updateAttribute) => updateAttribute.domain === domain);
-    if (hassUpdateAttributes.length > 0) {
-      // console.log('Processing update attributes: ', hassUpdateAttributes.length);
-      for (const update of hassUpdateAttributes) {
-        // console.log('- processing update attribute', update.with, 'value', new_state.attributes[update.with]);
-        const value = new_state.attributes[update.with];
-        if (value !== null) {
-          // console.log('-- converting update attribute value', update.converter(value));
-          const convertedValue = update.converter(value, new_state);
-          if (convertedValue !== null) await mbDevice.setAttribute(update.clusterId, update.attribute, convertedValue, mbDevice.log, endpoint);
+      // Update state of the device
+      const hassUpdateState = hassUpdateStateConverter.find((updateState) => updateState.domain === domain && updateState.state === new_state.state);
+      if (hassUpdateState) {
+        await matterbridgeDevice.setAttribute(hassUpdateState.clusterId, hassUpdateState.attribute, hassUpdateState.value, matterbridgeDevice.log, endpoint);
+      } else {
+        endpoint.log.warn(`Update state ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
+      }
+      // Update attributes of the device
+      const hassUpdateAttributes = hassUpdateAttributeConverter.filter((updateAttribute) => updateAttribute.domain === domain);
+      if (hassUpdateAttributes.length > 0) {
+        // console.log('Processing update attributes: ', hassUpdateAttributes.length);
+        for (const update of hassUpdateAttributes) {
+          // console.log('- processing update attribute', update.with, 'value', new_state.attributes[update.with]);
+          const value = new_state.attributes[update.with];
+          if (value !== null) {
+            // console.log('-- converting update attribute value', update.converter(value));
+            const convertedValue = update.converter(value, new_state);
+            endpoint.log.debug(`Converting attribute ${update.with} value ${value} to ${CYAN}${convertedValue}${db}`);
+            if (convertedValue !== null) await matterbridgeDevice.setAttribute(update.clusterId, update.attribute, convertedValue, endpoint.log, endpoint);
+          }
         }
       }
     }
