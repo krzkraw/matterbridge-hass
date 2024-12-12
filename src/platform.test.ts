@@ -23,9 +23,66 @@ const readMockHomeAssistantFile = () => {
 };
 
 describe('HassPlatform', () => {
-  let mockMatterbridge: Matterbridge;
-  let mockLog: AnsiLogger;
-  let mockConfig: PlatformConfig;
+  const mockLog = {
+    fatal: jest.fn((message: string, ...parameters: any[]) => {
+      // console.error('mockLog.fatal', message, parameters);
+    }),
+    error: jest.fn((message: string, ...parameters: any[]) => {
+      // console.error('mockLog.error', message, parameters);
+    }),
+    warn: jest.fn((message: string, ...parameters: any[]) => {
+      // console.error('mockLog.warn', message, parameters);
+    }),
+    notice: jest.fn((message: string, ...parameters: any[]) => {
+      // console.error('mockLog.notice', message, parameters);
+    }),
+    info: jest.fn((message: string, ...parameters: any[]) => {
+      // console.error('mockLog.info', message, parameters);
+    }),
+    debug: jest.fn((message: string, ...parameters: any[]) => {
+      // console.error('mockLog.debug', message, parameters);
+    }),
+  } as unknown as AnsiLogger;
+
+  const mockMatterbridge = {
+    addBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
+      // console.error('addBridgedDevice called');
+    }),
+    addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+      device.number = 100;
+      // console.error('addBridgedEndpoint called');
+    }),
+    removeBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
+      // console.error('removeBridgedDevice called');
+    }),
+    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+      // console.error('removeBridgedEndpoint called');
+    }),
+    removeAllBridgedDevices: jest.fn(async (pluginName: string) => {
+      // console.error('removeAllBridgedDevices called');
+    }),
+    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
+      // console.error('removeAllBridgedEndpoints called');
+    }),
+    edge: false,
+    log: mockLog,
+    matterbridgeDirectory: '',
+    matterbridgePluginDirectory: 'temp',
+    systemInformation: { ipv4Address: '192.168.1.100', osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
+    matterbridgeVersion: '1.6.5',
+  } as unknown as Matterbridge;
+
+  const mockConfig = {
+    'name': 'matterbridge-hass',
+    'type': 'DynamicPlatform',
+    'blackList': [],
+    'whiteList': [],
+    'host': 'http://homeassistant.local:8123',
+    'token': 'long-lived token',
+    'debug': false,
+    'unregisterOnShutdown': false,
+  } as PlatformConfig;
+
   // let mockHomeAssistant: HomeAssistant;
   let haPlatform: HomeAssistantPlatform;
   let mockMatterbridgeDevice: MatterbridgeDevice;
@@ -77,65 +134,6 @@ describe('HassPlatform', () => {
     });
 
   beforeAll(() => {
-    // Creates the mocks for Matterbridge, AnsiLogger, and PlatformConfig
-    mockMatterbridge = {
-      addBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
-        // console.error('addBridgedDevice called');
-      }),
-      addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-        device.number = 100;
-        // console.error('addBridgedEndpoint called');
-      }),
-      removeBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
-        // console.error('removeBridgedDevice called');
-      }),
-      removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-        // console.error('removeBridgedEndpoint called');
-      }),
-      removeAllBridgedDevices: jest.fn(async (pluginName: string) => {
-        // console.error('removeAllBridgedDevices called');
-      }),
-      removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
-        // console.error('removeAllBridgedEndpoints called');
-      }),
-      matterbridgeDirectory: '',
-      matterbridgePluginDirectory: 'temp',
-      systemInformation: { ipv4Address: undefined },
-      matterbridgeVersion: '1.6.5',
-    } as unknown as Matterbridge;
-
-    mockLog = {
-      fatal: jest.fn((message: string, ...parameters: any[]) => {
-        // console.error('mockLog.fatal', message, parameters);
-      }),
-      error: jest.fn((message: string, ...parameters: any[]) => {
-        // console.error('mockLog.error', message, parameters);
-      }),
-      warn: jest.fn((message: string, ...parameters: any[]) => {
-        // console.error('mockLog.warn', message, parameters);
-      }),
-      notice: jest.fn((message: string, ...parameters: any[]) => {
-        // console.error('mockLog.notice', message, parameters);
-      }),
-      info: jest.fn((message: string, ...parameters: any[]) => {
-        // console.error('mockLog.info', message, parameters);
-      }),
-      debug: jest.fn((message: string, ...parameters: any[]) => {
-        // console.error('mockLog.debug', message, parameters);
-      }),
-    } as unknown as AnsiLogger;
-
-    mockConfig = {
-      'name': 'matterbridge-hass',
-      'type': 'DynamicPlatform',
-      'blackList': [],
-      'whiteList': [],
-      'host': 'http://homeassistant.local:8123',
-      'token': 'long-lived token',
-      'debug': false,
-      'unregisterOnShutdown': false,
-    } as PlatformConfig;
-
     /*
     mockHomeAssistant = {
       connect: jest.fn(),
@@ -167,6 +165,16 @@ describe('HassPlatform', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    if (haPlatform) {
+      haPlatform.ha.connected = true;
+      haPlatform.ha.devicesReceived = true;
+      haPlatform.ha.entitiesReceived = true;
+      haPlatform.ha.statesReceived = true;
+      haPlatform.ha.subscribed = true;
+      haPlatform.ha.hassDevices.clear();
+      haPlatform.ha.hassEntities.clear();
+      haPlatform.ha.hassStates.clear();
+    }
   });
 
   afterAll(() => {
@@ -186,11 +194,17 @@ describe('HassPlatform', () => {
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow('Host and token must be defined in the configuration');
   });
 
-  it('should initialize platform with config name', () => {
+  it('should initialize platform with with config name', () => {
     mockConfig.host = 'http://homeassistant.local:8123';
     mockConfig.token = 'long-lived token';
     haPlatform = new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig);
     expect(mockLog.debug).toHaveBeenCalledWith(`MatterbridgeDynamicPlatform loaded`);
+  });
+
+  it('should not initialize platform with wrong version', () => {
+    mockMatterbridge.matterbridgeVersion = '1.5.5';
+    expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow();
+    mockMatterbridge.matterbridgeVersion = '1.6.5';
   });
 
   it('should validate with white and black list', () => {
@@ -339,13 +353,19 @@ describe('HassPlatform', () => {
 
   it('should call onStart with reason', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.subscribed = true;
     await haPlatform.onStart('Test reason');
 
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    await wait(1000);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Payload successfully written to homeassistant.json`);
+
+    /*
+    mockMatterbridge.matterbridgePluginDirectory = 'none';
+    await haPlatform.onStart('Test reason');
+    await wait(1000);
+    expect(mockLog.error).toHaveBeenCalled();
+    mockMatterbridge.matterbridgePluginDirectory = 'temp';
+    */
   });
 
   it('should receive events from ha', () => {
@@ -369,11 +389,6 @@ describe('HassPlatform', () => {
 
   it('should register a Switch device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -405,11 +420,6 @@ describe('HassPlatform', () => {
 
   it('should register a Light (on/off) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -441,11 +451,6 @@ describe('HassPlatform', () => {
 
   it('should register a Dimmer device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -477,11 +482,6 @@ describe('HassPlatform', () => {
 
   it('should register a Light (HS) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -513,11 +513,6 @@ describe('HassPlatform', () => {
 
   it('should register a Light (XY) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -549,11 +544,6 @@ describe('HassPlatform', () => {
 
   it('should register a Light (CT) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -585,11 +575,6 @@ describe('HassPlatform', () => {
 
   it('should register a Light (XY, HS and CT) device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -621,11 +606,6 @@ describe('HassPlatform', () => {
 
   it('should register a Outlet device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -657,11 +637,6 @@ describe('HassPlatform', () => {
 
   it('should register a Lock device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -693,11 +668,6 @@ describe('HassPlatform', () => {
 
   it('should register a Fan device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -730,11 +700,6 @@ describe('HassPlatform', () => {
 
   it('should register a Thermostat heat_cool device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -767,11 +732,6 @@ describe('HassPlatform', () => {
 
   it('should register a Thermostat heat device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -804,11 +764,6 @@ describe('HassPlatform', () => {
 
   it('should register a Cover device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
@@ -840,11 +795,6 @@ describe('HassPlatform', () => {
 
   it('should register a switch device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     haPlatform.ha.hassDevices.set(switchDevice.id, switchDevice as unknown as HassDevice);
     haPlatform.ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity as unknown as HassEntity);
@@ -858,13 +808,20 @@ describe('HassPlatform', () => {
     expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
   });
 
+  it('should not register a switch device from ha without states', async () => {
+    expect(haPlatform).toBeDefined();
+
+    haPlatform.ha.hassDevices.set(switchDevice.id, switchDevice as unknown as HassDevice);
+    haPlatform.ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity as unknown as HassEntity);
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Lookup device ${CYAN}${switchDevice.name}${db} entity ${CYAN}${switchDeviceEntity.entity_id}${db}: state not found`);
+    expect(mockLog.debug).not.toHaveBeenCalledWith(`Registering device ${dn}${switchDevice.name}${db}...`);
+  });
+
   it('should register a thermo heat device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     haPlatform.ha.hassDevices.set(heatDevice.id, heatDevice as unknown as HassDevice);
     haPlatform.ha.hassEntities.set(heatDeviceEntity.entity_id, heatDeviceEntity as unknown as HassEntity);
@@ -880,11 +837,6 @@ describe('HassPlatform', () => {
 
   it('should register a thermo cool device from ha', async () => {
     expect(haPlatform).toBeDefined();
-    haPlatform.ha.connected = true;
-    haPlatform.ha.devicesReceived = true;
-    haPlatform.ha.entitiesReceived = true;
-    haPlatform.ha.statesReceived = true;
-    haPlatform.ha.subscribed = true;
 
     haPlatform.ha.hassDevices.set(coolDevice.id, coolDevice as unknown as HassDevice);
     haPlatform.ha.hassEntities.set(coolDeviceEntity.entity_id, coolDeviceEntity as unknown as HassEntity);
