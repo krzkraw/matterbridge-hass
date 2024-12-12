@@ -283,7 +283,7 @@ export class MutableDevice {
     if (!mainDevice.endpoint) throw new Error('Main endpoint is not defined. Call createMainEndpoint() first.');
 
     // Create the child endpoints
-    for (const [endpoint, device] of this.mutableDevice.entries().filter(([endpoint]) => endpoint !== '')) {
+    for (const [endpoint, device] of Array.from(this.mutableDevice.entries()).filter(([endpoint]) => endpoint !== '')) {
       device.endpoint = mainDevice.endpoint.addChildDeviceType(
         endpoint,
         device.deviceTypes as AtLeastOne<DeviceTypeDefinition>,
