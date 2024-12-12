@@ -14,6 +14,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Changed
 
+- [package]: Requires Matterbridege 1.6.6.
+- [package]: Update dependencies.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
