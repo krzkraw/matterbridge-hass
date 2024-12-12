@@ -38,7 +38,7 @@ import {
   PlatformConfig,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
-import { deepEqual, isValidArray, isValidObject, isValidString, waiter } from 'matterbridge/utils';
+import { deepEqual, isValidArray, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 import path from 'path';
 import { promises as fs } from 'fs';
@@ -174,7 +174,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     for (const device of Array.from(this.ha.hassDevices.values())) {
       const name = device.name_by_user ?? device.name;
       this.log.debug(`Lookup device ${CYAN}${device.name}${db} id ${CYAN}${device.id}${db}`);
-      if (!isValidString(name) || !this._validateDeviceWhiteBlackList([name, device.id], true)) continue;
+      if (!isValidString(name) || !this.validateDeviceWhiteBlackList([name, device.id], true)) continue;
 
       // Create a Mutable device
       const mutableDevice = new MutableDevice(
@@ -191,7 +191,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Scan entities for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
-        if (!this._validateEntityBlackList(name, entity.entity_id, true)) continue;
+        if (!this.validateEntityBlackList(name, entity.entity_id, true)) continue;
         const domain = entity.entity_id.split('.')[0];
 
         // Get the device state
@@ -500,62 +500,5 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
       }
     }
-  }
-
-  // TODO: remove when matterbridge 1.6.6 is published
-  /**
-   * Validates if a device is allowed based on the whitelist and blacklist configurations.
-   * The blacklist has priority over the whitelist.
-   *
-   * @param {string | string[]} device - The device name(s) to validate.
-   * @param {boolean} [log=true] - Whether to log the validation result.
-   * @returns {boolean} - Returns true if the device is allowed, false otherwise.
-   */
-  _validateDeviceWhiteBlackList(device: string | string[], log = true): boolean {
-    if (!Array.isArray(device)) device = [device];
-
-    let blackListBlocked = 0;
-    if (isValidArray(this.config.blackList, 1)) {
-      for (const d of device) if (this.config.blackList.includes(d)) blackListBlocked++;
-    }
-    if (blackListBlocked > 0) {
-      if (log) this.log.info(`Skipping device ${CYAN}${device.join(', ')}${nf} because in blacklist`);
-      return false;
-    }
-
-    let whiteListPassed = 0;
-    if (isValidArray(this.config.whiteList, 1)) {
-      for (const d of device) if (this.config.whiteList.includes(d)) whiteListPassed++;
-    } else whiteListPassed++;
-    if (whiteListPassed > 0) {
-      return true;
-    }
-    if (log) this.log.info(`Skipping device ${CYAN}${device.join(', ')}${nf} because not in whitelist`);
-    return false;
-  }
-
-  // TODO: remove when matterbridge 1.6.6 is published
-  /**
-   * Validates if an entity is allowed based on the entity blacklist and device-entity blacklist configurations.
-   *
-   * @param {string} device - The device to which the entity belongs.
-   * @param {string} entity - The entity to validate.
-   * @param {boolean} [log=true] - Whether to log the validation result.
-   * @returns {boolean} - Returns true if the entity is allowed, false otherwise.
-   */
-  _validateEntityBlackList(device: string, entity: string, log = true): boolean {
-    if (isValidArray(this.config.entityBlackList, 1) && this.config.entityBlackList.find((e) => e === entity)) {
-      if (log) this.log.info(`Skipping entity ${CYAN}${entity}${nf} because in entityBlackList`);
-      return false;
-    }
-    if (
-      isValidObject(this.config.deviceEntityBlackList, 1) &&
-      device in this.config.deviceEntityBlackList &&
-      (this.config.deviceEntityBlackList as Record<string, string[]>)[device].includes(entity)
-    ) {
-      if (log) this.log.info(`Skipping entity ${CYAN}${entity}${wr} for device ${CYAN}${device}${nf} because in deviceEntityBlackList`);
-      return false;
-    }
-    return true;
   }
 }
