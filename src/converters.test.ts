@@ -38,6 +38,45 @@ describe('HassPlatform', () => {
         converter.converter('xy');
         converter.converter('color_temp');
       }
+      if (converter.domain === 'fan' && converter.with === 'percentage') {
+        converter.converter(0);
+        converter.converter(50);
+      }
+      if (converter.domain === 'fan' && converter.with === 'preset_mode') {
+        converter.converter('low');
+        converter.converter('medium');
+        converter.converter('high');
+        converter.converter('auto');
+        converter.converter('none');
+        converter.converter('on');
+      }
+      if (converter.domain === 'cover' && converter.with === 'current_position') {
+        converter.converter(0);
+        converter.converter(100);
+        converter.converter(-1);
+      }
+      if (converter.domain === 'climate' && converter.with === 'temperature') {
+        converter.converter(20, { state: 'heat' });
+        converter.converter(20, { state: 'cool' });
+        converter.converter(20, { state: '' });
+        converter.converter('20', { state: '' });
+      }
+      if (converter.domain === 'climate' && converter.with === 'target_temp_high') {
+        converter.converter(20, { state: 'heat' });
+        converter.converter(20, { state: 'cool' });
+        converter.converter(20, { state: 'heat_cool' });
+        converter.converter('20');
+      }
+      if (converter.domain === 'climate' && converter.with === 'target_temp_low') {
+        converter.converter(20, { state: 'heat' });
+        converter.converter(20, { state: 'cool' });
+        converter.converter(20, { state: 'heat_cool' });
+        converter.converter('20');
+      }
+      if (converter.domain === 'climate' && converter.with === 'current_temperature') {
+        converter.converter(20);
+        converter.converter('20');
+      }
     });
   });
   it('should verify the hassDomainConverter converter', () => {

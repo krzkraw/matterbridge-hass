@@ -43,6 +43,7 @@ import {
   OnOffCluster,
   onOffLight,
   onOffOutlet,
+  PressureMeasurementCluster,
   RelativeHumidityMeasurementCluster,
   TemperatureMeasurementCluster,
   temperatureSensor,
@@ -154,6 +155,7 @@ export const hassDomainAttributeConverter: { domain: string; with: string; devic
 export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',   deviceType: temperatureSensor,  clusterId: TemperatureMeasurementCluster.id },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',      deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurementCluster.id },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',      deviceType: temperatureSensor,  clusterId: PressureMeasurementCluster.id },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'illuminance',   deviceType: lightSensor,        clusterId: IlluminanceMeasurementCluster.id },
   ];
 
