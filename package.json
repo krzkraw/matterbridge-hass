@@ -58,6 +58,7 @@
     "test:coverage": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --coverage",
     "test:index": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js index.test.ts --verbose --coverage",
     "test:platform": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js platform.test.ts --verbose --coverage",
+    "test:converters": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js converters.test.ts --verbose --coverage",
     "test:mutableDevice": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js mutableDevice.test.ts --verbose --coverage",
     "lint": "eslint --max-warnings=0 .",
     "lint:fix": "eslint --fix --max-warnings=0 .",
