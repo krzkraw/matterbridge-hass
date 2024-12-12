@@ -210,52 +210,52 @@ describe('HassPlatform', () => {
   it('should validate with white and black list', () => {
     haPlatform.config.whiteList = ['white1', 'white2', 'white3'];
     haPlatform.config.blackList = ['black1', 'black2', 'black3'];
-    expect(haPlatform._validateDeviceWhiteBlackList('white1')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('black2')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList(['white1', 'black2'])).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('white1')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('black2')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList(['white1', 'black2'])).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(false);
   });
 
   it('should validate with white list', () => {
     haPlatform.config.whiteList = ['white1', 'white2', 'white3'];
     haPlatform.config.blackList = [];
-    expect(haPlatform._validateDeviceWhiteBlackList('white1')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('black2')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList(['white1', 'black2'])).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('white1')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('black2')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList(['white1', 'black2'])).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(false);
   });
 
   it('should validate with black list', () => {
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = ['black1', 'black2', 'black3'];
-    expect(haPlatform._validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('black1')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList('black2')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList('black3')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList(['x', 'y', 'z'])).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList(['x', 'y', 'z', 'black3'])).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('black1')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('black2')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('black3')).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList(['x', 'y', 'z'])).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList(['x', 'y', 'z', 'black3'])).toBe(false);
+    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(true);
   });
 
   it('should validate with no white and black list', () => {
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = [];
-    expect(haPlatform._validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList(['whiteDevice', '123456'])).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('blackDevice')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList(['blackDevice', '123456'])).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList(['whiteDevice', '123456'])).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('blackDevice')).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList(['blackDevice', '123456'])).toBe(true);
+    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(true);
   });
 
   it('should validate with entity black list', () => {
     haPlatform.config.entityBlackList = ['blackEntity'];
     haPlatform.config.deviceEntityBlackList = {};
-    expect(haPlatform._validateEntityBlackList('any', 'whiteEntity')).toBe(true);
-    expect(haPlatform._validateEntityBlackList('any', 'blackEntity')).toBe(false);
-    expect(haPlatform._validateEntityBlackList('any', '')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('any', 'whiteEntity')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('any', 'blackEntity')).toBe(false);
+    expect(haPlatform.validateEntityBlackList('any', '')).toBe(true);
 
     haPlatform.config.entityBlackList = [];
     haPlatform.config.deviceEntityBlackList = {};
@@ -264,15 +264,15 @@ describe('HassPlatform', () => {
   it('should validate with device entity black list and entity black list', () => {
     haPlatform.config.entityBlackList = ['blackEntity'];
     haPlatform.config.deviceEntityBlackList = { device1: ['blackEntityDevice1'] };
-    expect(haPlatform._validateEntityBlackList('any', 'whiteEntity')).toBe(true);
-    expect(haPlatform._validateEntityBlackList('any', 'blackEntity')).toBe(false);
-    expect(haPlatform._validateEntityBlackList('any', 'blackEntityDevice1')).toBe(true);
-    expect(haPlatform._validateEntityBlackList('any', '')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('any', 'whiteEntity')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('any', 'blackEntity')).toBe(false);
+    expect(haPlatform.validateEntityBlackList('any', 'blackEntityDevice1')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('any', '')).toBe(true);
 
-    expect(haPlatform._validateEntityBlackList('device1', 'whiteEntity')).toBe(true);
-    expect(haPlatform._validateEntityBlackList('device1', 'blackEntity')).toBe(false);
-    expect(haPlatform._validateEntityBlackList('device1', 'blackEntityDevice1')).toBe(false);
-    expect(haPlatform._validateEntityBlackList('device1', '')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('device1', 'whiteEntity')).toBe(true);
+    expect(haPlatform.validateEntityBlackList('device1', 'blackEntity')).toBe(false);
+    expect(haPlatform.validateEntityBlackList('device1', 'blackEntityDevice1')).toBe(false);
+    expect(haPlatform.validateEntityBlackList('device1', '')).toBe(true);
 
     haPlatform.config.entityBlackList = [];
     haPlatform.config.deviceEntityBlackList = {};

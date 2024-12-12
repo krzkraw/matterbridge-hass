@@ -23,18 +23,14 @@
  */
 
 import {
-  AtLeastOne,
   bridgedNode,
   ClusterRegistry,
   ClusterServerObj,
   colorTemperatureLight,
-  DeviceTypeDefinition,
   Endpoint,
-  EndpointOptions,
   Matterbridge,
   MatterbridgeDevice,
   MatterbridgeDynamicPlatform,
-  MatterbridgeEndpoint,
   PlatformConfig,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
@@ -65,13 +61,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   // Matterbridge devices
   matterbridgeDevices = new Map<string, MatterbridgeDevice>();
   bridgedHassDevices = new Map<string, HassDevice>(); // Only the bridged devices from Home Assistant
-
-  async createMutableDevice(definition: DeviceTypeDefinition | AtLeastOne<DeviceTypeDefinition>, options: EndpointOptions = {}, debug = false): Promise<MatterbridgeDevice> {
-    let device: MatterbridgeDevice;
-    if (this.matterbridge.edge === true) device = new MatterbridgeEndpoint(definition, options, debug) as unknown as MatterbridgeDevice;
-    else device = new MatterbridgeDevice(definition, options, debug);
-    return device;
-  }
 
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
@@ -285,14 +274,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             mutableDevice.addClusterServerObjs(
               entity.entity_id,
               child.getDefaultThermostatClusterServer(
-                hassState?.attributes['current_temperature'] as number | undefined,
-                hassState?.attributes['target_temp_low'] as number | undefined,
-                hassState?.attributes['target_temp_high'] as number | undefined,
+                hassState.attributes['current_temperature'] as number | undefined,
+                hassState.attributes['target_temp_low'] as number | undefined,
+                hassState.attributes['target_temp_high'] as number | undefined,
                 0,
-                hassState?.attributes['min_temp'] as number | undefined,
-                hassState?.attributes['max_temp'] as number | undefined,
-                hassState?.attributes['min_temp'] as number | undefined,
-                hassState?.attributes['max_temp'] as number | undefined,
+                hassState.attributes['min_temp'] as number | undefined,
+                hassState.attributes['max_temp'] as number | undefined,
+                hassState.attributes['min_temp'] as number | undefined,
+                hassState.attributes['max_temp'] as number | undefined,
               ) as unknown as ClusterServerObj,
             );
           } else if (
@@ -303,10 +292,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             mutableDevice.addClusterServerObjs(
               entity.entity_id,
               child.getDefaultHeatingThermostatClusterServer(
-                hassState?.attributes['current_temperature'] as number | undefined,
-                hassState?.attributes['temperature'] as number | undefined,
-                hassState?.attributes['min_temp'] as number | undefined,
-                hassState?.attributes['max_temp'] as number | undefined,
+                hassState.attributes['current_temperature'] as number | undefined,
+                hassState.attributes['temperature'] as number | undefined,
+                hassState.attributes['min_temp'] as number | undefined,
+                hassState.attributes['max_temp'] as number | undefined,
               ) as unknown as ClusterServerObj,
             );
           } else if (
@@ -317,14 +306,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             mutableDevice.addClusterServerObjs(
               entity.entity_id,
               child.getDefaultCoolingThermostatClusterServer(
-                hassState?.attributes['current_temperature'] as number | undefined,
-                hassState?.attributes['temperature'] as number | undefined,
-                hassState?.attributes['min_temp'] as number | undefined,
-                hassState?.attributes['max_temp'] as number | undefined,
+                hassState.attributes['current_temperature'] as number | undefined,
+                hassState.attributes['temperature'] as number | undefined,
+                hassState.attributes['min_temp'] as number | undefined,
+                hassState.attributes['max_temp'] as number | undefined,
               ) as unknown as ClusterServerObj,
             );
           }
         }
+
+        // Att the clusterId to the child endpoint
+        this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
+        await mutableDevice.createClusters();
 
         // Add Matter command handlers to the child endpoint for supported domains and services
         const hassCommands = hassCommandConverter.filter((c) => c.domain === domain);
@@ -353,7 +346,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               (newValue: any, oldValue: any) => {
                 if ((typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) {
                   matterbridgeDevice?.log.debug(
-                    `*Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
+                    `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
                       `on endpoint ${or}${child?.name}${db}:${or}${child?.number}${db} not changed`,
                   );
                   return;
@@ -364,7 +357,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                 );
                 const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
                 matterbridgeDevice?.log.debug(
-                  `*Converter(${hassSubscribe.converter !== undefined}): ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`,
+                  `Converter(${hassSubscribe.converter !== undefined}): ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`,
                 );
                 if (value !== null) this.ha.callServiceAsync(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
                 else this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
@@ -375,13 +368,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
       } // hassEntities
 
-      await mutableDevice.createClusters();
       // Register the device if we have found supported domains and entities
       if (matterbridgeDevice && matterbridgeDevice.getChildEndpoints().length > 0) {
         this.log.debug(`Registering device ${dn}${device.name}${db}...`);
         mutableDevice.logMutableDevice();
         await this.registerDevice(mutableDevice.getEndpoint());
         this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
+        this.bridgedHassDevices.set(device.id, device);
       }
     } // hassDevices
   }

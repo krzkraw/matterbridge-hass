@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-conditional-expect */
 import { FanControl, Thermostat } from 'matterbridge';
 import {
   hassCommandConverter,
@@ -30,6 +31,11 @@ describe('HassPlatform', () => {
   it('should verify the hassUpdateAttributeConverter converter', () => {
     hassUpdateAttributeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
+      if (converter.domain === 'light' && converter.with === 'brightness') {
+        expect(converter.converter(0)).toBe(null);
+        expect(converter.converter(1)).toBe(1);
+        expect(converter.converter(255)).toBe(254);
+      }
       if (converter.domain === 'light' && converter.with === 'color_mode') {
         converter.converter('');
         converter.converter('unknown');
@@ -37,6 +43,18 @@ describe('HassPlatform', () => {
         converter.converter('rgb');
         converter.converter('xy');
         converter.converter('color_temp');
+      }
+      if (converter.domain === 'light' && converter.with === 'color_temp') {
+        converter.converter(2, { attributes: { color_mode: 'color_temp' } });
+        converter.converter(undefined, {});
+      }
+      if (converter.domain === 'light' && converter.with === 'hs_color') {
+        converter.converter([0, 0], { attributes: { color_mode: 'hs' } });
+        converter.converter(undefined, {});
+      }
+      if (converter.domain === 'light' && converter.with === 'xy_color') {
+        converter.converter([0, 0], { attributes: { color_mode: 'xy' } });
+        converter.converter(undefined, {});
       }
       if (converter.domain === 'fan' && converter.with === 'percentage') {
         converter.converter(0);
@@ -92,6 +110,10 @@ describe('HassPlatform', () => {
   it('should verify the hassDomainSensorsConverter convertes', () => {
     hassDomainSensorsConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
+      if (converter.domain === 'sensor' && converter.withStateClass === 'measurement') {
+        expect(converter.converter(0)).not.toBe(null);
+        expect(converter.converter(undefined)).toBe(null);
+      }
     });
   });
   it('should verify the hassCommandConverter convertes', () => {
@@ -99,6 +121,9 @@ describe('HassPlatform', () => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.domain === 'cover' && converter.service === 'set_cover_position') {
         converter.converter({ liftPercent100thsValue: 10000 });
+      }
+      if (converter.command.startsWith('moveTo') && converter.domain === 'light' && converter.service === 'turn_on') {
+        converter.converter({ level: 1, colorTemperatureMireds: 200, colorX: 0, colorY: 0, hue: 0, saturation: 0 }, { currentHue: 0, currentSaturation: 0 });
       }
     });
   });
@@ -119,6 +144,9 @@ describe('HassPlatform', () => {
         converter.converter(Thermostat.SystemMode.Cool);
         converter.converter(Thermostat.SystemMode.Heat);
         converter.converter(Thermostat.SystemMode.Off);
+        converter.converter(10);
+      }
+      if (converter.domain === 'climate' && converter.service === 'set_temperature' && converter.converter) {
         converter.converter(10);
       }
     });
