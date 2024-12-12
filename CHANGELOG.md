@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
+## [0.0.4] - 2024-12-12
+
+### Added
+
+- [homeassistant]: Add the possibility to white and black list a device with its name or its device id.
+- [homeassistant]: Add the possibility to black list one or more device entities with their entity id globally or on a device base.
+- [homeassistant]: Add sensor domain with temperature, humidity, pressure and illuminance.
+
+### Changed
+
+- [package]: Requires Matterbridege 1.6.6.
+- [package]: Update dependencies.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+</a>
+
 ## [0.0.3] - 2024-12-07
 
 ### Added

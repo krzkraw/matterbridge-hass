@@ -12,10 +12,6 @@
 
 ---
 
-Work in progress, this release is still at development stage!
-
-Other device types will be added each new release.
-
 This plugin allows you to expose the Home Assistant devices to Matter.
 
 It is the ideal companion of the official [Matterbridge Home Assistant Add-on](https://github.com/Luligu/matterbridge-home-assistant-addon/blob/main/README.md).
@@ -28,11 +24,18 @@ Features:
 Supported devices:
 
 - switch (with state on/off)
+
 - light (with state on/off and attributes brightness/color_mode/color_temp/hs_color/xy_color)
+
 - lock (with state locked/locking/unlocking/unlocked)
+
 - fan (with state on/off and attributes percentage/preset_mode)
+
 - cover (with state open/close/opening/closing and attribute current_position)
+
 - climate (with state off/heat/cool/heat_cool and attribute temperature/current_temperature/target_temp_low/target_temp_high)
+
+- sensor (with deviceClass temperature/humidity/pressure/illuminance)
 
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 
@@ -90,13 +93,13 @@ matterbridge
 
 You may need to set some config values in the frontend (wait that the plugin has been configured before changing the config):
 
-I suggest to use the whiteList adding each device you want to expose to Matter
+I suggest to always use the whiteList adding each device you want to expose to Matter.
 
 If any device creates issues put it in the blackList.
 
 ### host
 
-Your Home Assistance address (eg. http://homeassistant.local:8123 or http://IP-ADDRESS:8123). It is better to use the IP if it is stable.
+Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). It is better to use the IP if it is stable.
 
 ### token
 
@@ -104,11 +107,19 @@ Home Assistant long term token used to connect to Home Assistant with WebSocket.
 
 ### whiteList
 
-If the whiteList is defined only the devices included are exposed to Matter.
+If the whiteList is defined only the devices included are exposed to Matter. Use the device name or the device id.
 
 ### blackList
 
-If the blackList is defined the devices included will not be exposed to Matter.
+If the blackList is defined the devices included will not be exposed to Matter. Use the device name or the device id.
+
+### entityBlackList
+
+The entities in the list will not be exposed for all devices. Use the entity name.
+
+### deviceEntityBlackList
+
+List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
 
 ### debug
 
