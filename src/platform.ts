@@ -187,7 +187,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
-      matterbridgeDevice.log.logName = name;
+      // matterbridgeDevice.log.logName = name;
 
       // Scan entities for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
@@ -209,6 +209,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           hassDomains.forEach((hassDomain) => {
             if (hassDomain.deviceType) mutableDevice.addDeviceTypes(entity.entity_id, hassDomain.deviceType);
             if (hassDomain.clusterId) mutableDevice.addClusterServerIds(entity.entity_id, hassDomain.clusterId);
+            if (hassDomain.deviceType && isValidString(hassState.attributes['friendly_name']))
+              mutableDevice.setFriendlyName(entity.entity_id, hassState.attributes['friendly_name']);
           });
         } else {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}: domain not found`);
@@ -237,13 +239,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             this.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
             mutableDevice.addDeviceTypes(entity.entity_id, hassDomainSensor.deviceType);
             mutableDevice.addClusterServerIds(entity.entity_id, hassDomainSensor.clusterId);
+            if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(entity.entity_id, hassState.attributes['friendly_name']);
           }
         });
 
         // Create a child endpoint for the entity if we found supported domains and attributes
         if (!mutableDevice.has(entity.entity_id)) continue;
         const child = await mutableDevice.createChildEndpoint(entity.entity_id);
-        child.log.logName = entity.entity_id;
+        // child.log.logName = entity.entity_id;
         // Special case for light domain: configure the color control cluster
         if (domain === 'light' && mutableDevice.get(entity.entity_id).deviceTypes[0] === colorTemperatureLight) {
           if (

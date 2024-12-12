@@ -52,6 +52,7 @@ import { CYAN } from 'node-ansi-logger';
 
 interface MutableDeviceInterface {
   endpoint?: MatterbridgeDevice;
+  friendlyName: string;
   tagList: Semtag[];
   deviceTypes: DeviceTypeDefinition[];
   clusterServersIds: ClusterId[];
@@ -118,6 +119,7 @@ export class MutableDevice {
   private initializeEndpoint(endpoint: string) {
     if (!this.mutableDevice.has(endpoint)) {
       this.mutableDevice.set(endpoint, {
+        friendlyName: endpoint,
         tagList: [],
         deviceTypes: [],
         clusterServersIds: [],
@@ -138,6 +140,11 @@ export class MutableDevice {
     if (this.matterbridge.edge === true) device = new MatterbridgeEndpoint(definition, options, debug) as unknown as MatterbridgeDevice;
     else device = new MatterbridgeDevice(definition, options, debug);
     return device;
+  }
+
+  setFriendlyName(endpoint: string, friendlyName: string) {
+    const device = this.initializeEndpoint(endpoint);
+    device.friendlyName = friendlyName;
   }
 
   addTagLists(endpoint: string, ...tagList: Semtag[]) {
@@ -240,7 +247,9 @@ export class MutableDevice {
 
     // Create the mutable device for the main endpoint
     const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
+    mainDevice.friendlyName = this.deviceName;
     mainDevice.endpoint = await this.createMutableDevice(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { uniqueStorageKey: this.deviceName }, true);
+    mainDevice.endpoint.log.logName = this.deviceName;
     return mainDevice.endpoint;
   }
 
@@ -261,6 +270,7 @@ export class MutableDevice {
       device.tagList.length ? { tagList: device.tagList } : {},
       true,
     );
+    device.endpoint.log.logName = device.friendlyName;
     return device.endpoint;
   }
 
@@ -365,7 +375,7 @@ export class MutableDevice {
         (clusterServerObj) => '0x' + clusterServerObj.id.toString(16) + '-' + ClusterRegistry.get(clusterServerObj.id)?.name,
       );
       this.matterbridge.log.debug(
-        `- endpoint: ${ign}${endpoint === '' ? 'main' : endpoint}${rs}${db} => ` +
+        `- endpoint: ${ign}${endpoint === '' ? 'main' : endpoint}${rs}${db} => friendlyName ${CYAN}${device.friendlyName}${db} ` +
           `${db}tagList: ${debugStringify(device.tagList)}${db} deviceTypes: ${debugStringify(deviceTypes)}${db} ` +
           `clusterServersIds: ${debugStringify(clusterServersIds)}${db} clusterServersObjs: ${debugStringify(clusterServersObjsIds)}${db}`,
       );
