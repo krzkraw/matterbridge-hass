@@ -180,6 +180,8 @@ interface HomeAssistantEventEmitter {
   devices: [devices: HassDevice[]];
   entities: [entities: HassEntity[]];
   event: [deviceId: string, entityId: string, old_state: HassState, new_state: HassState];
+  call_service: [];
+  pong: [];
 }
 
 interface HassWebSocketResponse {
@@ -273,7 +275,7 @@ export class HomeAssistant extends EventEmitter {
     }
 
     try {
-      this.log.info(`Connecting to Home Assistant on ${this.wsUrl} ...`);
+      this.log.info(`Connecting to Home Assistant on ${this.wsUrl}...`);
       this.ws = new WebSocket(this.wsUrl + '/api/websocket');
 
       this.ws.onopen = () => {
@@ -366,6 +368,7 @@ export class HomeAssistant extends EventEmitter {
           this.log.debug(`Home Assistant pong received with id ${response.id}`);
           if (this.pingTimeout) clearTimeout(this.pingTimeout);
           this.pingTimeout = null;
+          this.emit('pong');
         } else if (response.type === 'event') {
           // this.log.debug(`Event received id ${data.id}:` /* , data.event*/);
           if (!response.event) {
@@ -387,6 +390,7 @@ export class HomeAssistant extends EventEmitter {
             this.emit('event', device.id, entity.entity_id, response.event.data.old_state, response.event.data.new_state);
           } else if (response.id === this.eventsSubscribeId && response.event && response.event.event_type === 'call_service') {
             this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
+            this.emit('call_service');
           } else if (response.id === this.eventsSubscribeId && response.event && response.event.event_type === 'device_registry_updated') {
             this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
             const devices = (await this.fetchAsync('config/device_registry/list')) as HassDevice[];
@@ -443,7 +447,7 @@ export class HomeAssistant extends EventEmitter {
     }
     this.log.debug('Starting ping interval...');
     this.pingInterval = setInterval(() => {
-      if (!this.ws || this.ws?.readyState !== WebSocket.OPEN) {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
         this.log.error('WebSocket not open sending ping. Closing connection...');
         this.close();
         return;
@@ -465,6 +469,9 @@ export class HomeAssistant extends EventEmitter {
     }, this.pingIntervalTime);
   }
 
+  /**
+   * Start the reconnection timeout.
+   */
   startReconnect() {
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
