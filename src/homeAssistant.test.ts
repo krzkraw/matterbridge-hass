@@ -1,10 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
 
-/* eslint-disable jest/no-commented-out-tests */
 import { WebSocket, WebSocketServer } from 'ws';
 import { HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
 import { jest } from '@jest/globals';
+import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
+import { wait } from 'matterbridge/utils';
+
+// let loggerLogSpy: jest.SpiedFunction<(level: LogLevel, message: string, ...parameters: any[]) => void>;
+
+// Spy on and mock the AnsiLogger.log method
+const loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
+  // console.error(`Mocked AnsiLogger.log: ${level} - ${message}`, ...parameters);
+});
 
 describe('HomeAssistant', () => {
   let server: WebSocketServer;
@@ -77,10 +86,10 @@ describe('HomeAssistant', () => {
   });
 
   beforeEach(() => {
-    //
+    jest.clearAllMocks();
   });
 
-  beforeAll(() => {
+  afterEach(() => {
     //
   });
 
@@ -113,6 +122,54 @@ describe('HomeAssistant', () => {
     expect(homeAssistant).toBeInstanceOf(HomeAssistant);
   });
 
+  it('should log error if not connected to HomeAssistant', () => {
+    homeAssistant.fetch('get_states', 1000);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Fetch error: not connected to Home Assistant');
+    homeAssistant.callService('light', 'turn_on', 'myentityid', {}, 1000);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'CallService error: not connected to Home Assistant');
+  });
+
+  it('should log error for async if not connected to HomeAssistant', async () => {
+    try {
+      await homeAssistant.fetchAsync('get_states', 1000);
+    } catch (error: any) {
+      //
+    }
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'FetchAsync error: not connected to Home Assistant');
+    try {
+      await homeAssistant.callServiceAsync('light', 'turn_on', 'myentityid', {}, 1000);
+    } catch (error: any) {
+      //
+    }
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'CallServiceAsync error: not connected to Home Assistant');
+  });
+
+  it('should log error if ws is not connected to HomeAssistant', () => {
+    homeAssistant.connected = true;
+    homeAssistant.fetch('get_states', 1000);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Fetch error: WebSocket not open');
+    homeAssistant.callService('light', 'turn_on', 'myentityid', {}, 1000);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'CallService error: WebSocket not open');
+    homeAssistant.connected = false;
+  });
+
+  it('should log error for async if ws is not connected to HomeAssistant', async () => {
+    homeAssistant.connected = true;
+    try {
+      await homeAssistant.fetchAsync('get_states', 1000);
+    } catch (error: any) {
+      //
+    }
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'FetchAsync error: WebSocket not open');
+    try {
+      await homeAssistant.callServiceAsync('light', 'turn_on', 'myentityid', {}, 1000);
+    } catch (error: any) {
+      //
+    }
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'CallServiceAsync error: WebSocket not open');
+    homeAssistant.connected = false;
+  });
+
   it('should establish a WebSocket connection to Home Assistant', async () => {
     await new Promise((resolve) => {
       homeAssistant.on('connected', () => {
@@ -127,6 +184,59 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).pingInterval).not.toBeNull();
     expect((homeAssistant as any).pingTimeout).toBeNull();
     expect((homeAssistant as any).reconnectTimeout).toBeNull();
+  });
+
+  it('should parse messages from Home Assistant', async () => {
+    for (const client of server.clients) {
+      client.send(JSON.stringify({ type: 'event' }));
+      await wait(100);
+      client.send(
+        JSON.stringify({
+          type: 'event',
+          event: { event_type: 'state_changed', data: { entity_id: 'myentityid', new_state: { entity_id: 'myentityid' } } },
+          id: (homeAssistant as any).eventsSubscribeId,
+        }),
+      );
+      await wait(100);
+      homeAssistant.hassEntities.set('myentityid', { entity_id: 'myentityid', device_id: 'mydeviceid' } as any);
+      client.send(
+        JSON.stringify({
+          type: 'event',
+          event: { event_type: 'state_changed', data: { entity_id: 'myentityid', new_state: { entity_id: 'myentityid' } } },
+          id: (homeAssistant as any).eventsSubscribeId,
+        }),
+      );
+      await wait(100);
+      homeAssistant.hassDevices.set('mydeviceid', { device_id: 'mydeviceid' } as any);
+      client.send(
+        JSON.stringify({
+          type: 'event',
+          event: { event_type: 'state_changed', data: { entity_id: 'myentityid', new_state: { entity_id: 'myentityid' } } },
+          id: (homeAssistant as any).eventsSubscribeId,
+        }),
+      );
+      client.send(JSON.stringify({ type: 'event', event: { event_type: 'call_service' }, id: (homeAssistant as any).eventsSubscribeId }));
+      client.send(JSON.stringify({ type: 'event', event: { event_type: 'device_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+      client.send(JSON.stringify({ type: 'event', event: { event_type: 'entity_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    }
+    await wait(500);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Event response missing event data');
+  });
+
+  it('should fetch from HomeAssistant', () => {
+    homeAssistant.fetch('get_states', 1000);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Fetching ${CYAN}get_states${db} id ${CYAN}1000${db}...`);
+    homeAssistant.fetch('get_states');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Fetching ${CYAN}get_states${db} id ${CYAN}${(homeAssistant as any).nextId - 1}${db}...`);
+  });
+
+  it('should call_service from HomeAssistant', () => {
+    homeAssistant.callService('light', 'turn_on', 'myentityid', {}, 1000);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`Calling service ${CYAN}light.turn_on${db} for entity ${CYAN}myentityid${db}`));
+
+    jest.clearAllMocks();
+    homeAssistant.callService('light', 'turn_on', 'myentityid', {});
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`Calling service ${CYAN}light.turn_on${db} for entity ${CYAN}myentityid${db}`));
   });
 
   it('should request call_service from Home Assistant', async () => {
@@ -204,6 +314,8 @@ describe('HomeAssistant', () => {
     });
 
     expect((homeAssistant as any).pingTimeout).toBeNull();
+
+    homeAssistant.startReconnect();
 
     jest.useRealTimers();
 
@@ -293,68 +405,4 @@ describe('HomeAssistant', () => {
 
     expect(homeAssistant.connected).toBe(false);
   });
-
-  /*
-  it('should handle WebSocket messages', (done) => {
-    server.on('connection', (ws) => {
-      ws.send(JSON.stringify({ type: 'auth_required' }));
-      ws.on('message', (message) => {
-        const parsedMessage = JSON.parse(message.toString());
-        if (parsedMessage.type === 'auth') {
-          ws.send(JSON.stringify({ type: 'auth_ok' }));
-        }
-      });
-    });
-
-    homeAssistant.connect();
-
-    setTimeout(() => {
-      homeAssistant['ws'].onmessage({
-        data: JSON.stringify({ type: 'result', success: true }),
-      } as WebSocket.MessageEvent);
-
-      setTimeout(() => {
-        // Add your assertions here
-        done();
-      }, 100);
-    }, 100);
-  });
-
-  it('should log an error when WebSocket message parsing fails', (done) => {
-    const logErrorSpy = jest.spyOn(homeAssistant['log'], 'error');
-
-    server.on('connection', (ws) => {
-      ws.send('invalid JSON');
-    });
-
-    homeAssistant.connect();
-
-    setTimeout(() => {
-      expect(logErrorSpy).toHaveBeenCalledWith('Error parsing WebSocket.MessageEvent:', expect.any(SyntaxError));
-      done();
-    }, 100);
-  });
-
-  it('should log a message when already connected', (done) => {
-    const logInfoSpy = jest.spyOn(homeAssistant['log'], 'info');
-
-    server.on('connection', (ws) => {
-      ws.send(JSON.stringify({ type: 'auth_required' }));
-      ws.on('message', (message) => {
-        const parsedMessage = JSON.parse(message.toString());
-        if (parsedMessage.type === 'auth') {
-          ws.send(JSON.stringify({ type: 'auth_ok' }));
-        }
-      });
-    });
-
-    homeAssistant.connect();
-
-    setTimeout(() => {
-      homeAssistant.connect();
-      expect(logInfoSpy).toHaveBeenCalledWith('Already connected to Home Assistant');
-      done();
-    }, 100);
-  });
-  */
 });

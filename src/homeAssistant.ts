@@ -533,7 +533,7 @@ export class HomeAssistant extends EventEmitter {
       return;
     }
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      this.log.error('Fetch error: WebSocket not open.');
+      this.log.error('Fetch error: WebSocket not open');
       return;
     }
     if (!id) id = this.nextId++;
@@ -567,8 +567,8 @@ export class HomeAssistant extends EventEmitter {
         return;
       }
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-        this.log.error('FetchAsync error: WebSocket not open.');
-        reject('FetchAsync error: WebSocket not open.');
+        this.log.error('FetchAsync error: WebSocket not open');
+        reject('FetchAsync error: WebSocket not open');
         return;
       }
       const asyncFetchId = (this.asyncFetchId = this.nextId++);
@@ -627,7 +627,7 @@ export class HomeAssistant extends EventEmitter {
       return;
     }
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      this.log.error('CallService error: WebSocket not open.');
+      this.log.error('CallService error: WebSocket not open');
       return;
     }
     if (!id) id = this.nextId++;
@@ -669,8 +669,8 @@ export class HomeAssistant extends EventEmitter {
         return;
       }
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-        this.log.error('CallServiceAsync error: WebSocket not open.');
-        reject('CallServiceAsync error: WebSocket not open.');
+        this.log.error('CallServiceAsync error: WebSocket not open');
+        reject('CallServiceAsync error: WebSocket not open');
         return;
       }
       const asyncCallServiceId = (this.asyncCallServiceId = this.nextId++);
