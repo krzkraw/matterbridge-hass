@@ -66,9 +66,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('1.6.5')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('1.6.6')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "1.6.5". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "1.6.6". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -162,8 +162,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Scan devices and entities and create Matterbridge devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
       const name = device.name_by_user ?? device.name;
-      this.log.debug(`Lookup device ${CYAN}${device.name}${db} id ${CYAN}${device.id}${db}`);
       if (!isValidString(name) || !this.validateDeviceWhiteBlackList([name, device.id], true)) continue;
+      this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
+      // this.log.debug(`Lookup device ${CYAN}${device.name}${db} id ${CYAN}${device.id}${db}`);
 
       // Create a Mutable device
       const mutableDevice = new MutableDevice(
@@ -233,6 +234,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
         // Create a child endpoint for the entity if we found supported domains and attributes
         if (!mutableDevice.has(entity.entity_id)) continue;
+        this.log.info(`Creating endpoint ${CYAN}${entity.entity_id}${nf} for device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
         const child = await mutableDevice.createChildEndpoint(entity.entity_id);
 
         // Special case for light domain: configure the color control cluster
@@ -315,9 +317,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
         }
 
-        // Att the clusterId to the child endpoint
-        this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
-        await mutableDevice.createClusters();
+        // Add all the clusters to the child endpoint
+        await mutableDevice.createClusters(entity.entity_id);
 
         // Add Matter command handlers to the child endpoint for supported domains and services
         const hassCommands = hassCommandConverter.filter((c) => c.domain === domain);
@@ -367,6 +368,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
         }
       } // hassEntities
+
+      // Add all the clusters to the device
+      await mutableDevice.createClusters('');
 
       // Register the device if we have found supported domains and entities
       if (matterbridgeDevice && matterbridgeDevice.getChildEndpoints().length > 0) {
