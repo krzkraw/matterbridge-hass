@@ -69,7 +69,7 @@ describe('HassPlatform', () => {
     matterbridgeDirectory: '',
     matterbridgePluginDirectory: 'temp',
     systemInformation: { ipv4Address: '192.168.1.100', osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '1.6.5',
+    matterbridgeVersion: '1.6.6',
   } as unknown as Matterbridge;
 
   const mockConfig = {
@@ -204,7 +204,7 @@ describe('HassPlatform', () => {
   it('should not initialize platform with wrong version', () => {
     mockMatterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow();
-    mockMatterbridge.matterbridgeVersion = '1.6.5';
+    mockMatterbridge.matterbridgeVersion = '1.6.6';
   });
 
   it('should validate with white and black list', () => {
