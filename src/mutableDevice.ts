@@ -145,6 +145,7 @@ export class MutableDevice {
   setFriendlyName(endpoint: string, friendlyName: string) {
     const device = this.initializeEndpoint(endpoint);
     device.friendlyName = friendlyName;
+    return this;
   }
 
   addTagLists(endpoint: string, ...tagList: Semtag[]) {
@@ -220,7 +221,9 @@ export class MutableDevice {
   async create() {
     await this.createMainEndpoint();
     await this.createChildEndpoints();
-    await this.createClusters();
+    for (const [endpoint] of this.mutableDevice) {
+      await this.createClusters(endpoint);
+    }
     const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
     return mainDevice.endpoint as MatterbridgeDevice;
   }
@@ -328,30 +331,32 @@ export class MutableDevice {
     }
   }
 
-  async createClusters() {
+  async createClusters(endpoint: string) {
     // Filter out duplicate clusters and clusters objects on all endpoints
     this.removeDuplicateClusterServers();
 
-    // Get the main endpoint
-    const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
-    if (!mainDevice.endpoint) throw new Error('Main endpoint is not defined');
+    if (endpoint === '') {
+      // Get the main endpoint
+      const mainDevice = this.mutableDevice.get(endpoint) as MutableDeviceInterface;
+      if (!mainDevice.endpoint) throw new Error('Main endpoint is not defined');
 
-    // Add the cluster objects to the main endpoint
-    this.addBridgedDeviceBasicInformationClusterServer();
-    for (const clusterServerObj of mainDevice.clusterServersObjs) {
-      mainDevice.endpoint.addClusterServer(clusterServerObj);
+      // Add the cluster objects to the main endpoint
+      this.addBridgedDeviceBasicInformationClusterServer();
+      for (const clusterServerObj of mainDevice.clusterServersObjs) {
+        mainDevice.endpoint.addClusterServer(clusterServerObj);
+      }
+
+      // Add the cluster ids to the main endpoint
+      mainDevice.endpoint.addClusterServerFromList(mainDevice.endpoint, mainDevice.clusterServersIds);
+      mainDevice.endpoint.addRequiredClusterServers(mainDevice.endpoint);
+
+      // Add the Fixed Label cluster to the main endpoint
+      if (this.composedType) await mainDevice.endpoint.addFixedLabel('composed', this.composedType);
+      return this;
     }
 
-    // Add the cluster ids to the main endpoint
-    mainDevice.endpoint.addClusterServerFromList(mainDevice.endpoint, mainDevice.clusterServersIds);
-    mainDevice.endpoint.addRequiredClusterServers(mainDevice.endpoint);
-
-    // Add the Fixed Label cluster to the main endpoint
-    if (this.composedType) await mainDevice.endpoint.addFixedLabel('composed', this.composedType);
-
     // Add clusters to the child endpoints
-    for (const [endpoint, device] of this.mutableDevice) {
-      if (endpoint === '') continue;
+    for (const [, device] of Array.from(this.mutableDevice.entries()).filter(([e]) => e === endpoint)) {
       if (!device.endpoint) throw new Error('Child endpoint is not defined');
       for (const clusterServerObj of device.clusterServersObjs) {
         device.endpoint.addClusterServer(clusterServerObj);

@@ -104,17 +104,21 @@ describe('MutableDevice', () => {
     expect(() => mutableDevice.getEndpoint()).toThrow();
     await expect(mutableDevice.createChildEndpoint('none')).rejects.toThrow();
     mutableDevice.addDeviceTypes('', bridgedNode);
+    expect(mutableDevice.has('')).toBeTruthy();
     mutableDevice.addDeviceTypes('child1', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
+    expect(mutableDevice.has('child1')).toBeTruthy();
+    expect(mutableDevice.setFriendlyName('child1', 'Child')).toBe(mutableDevice);
     await expect(mutableDevice.createChildEndpoints()).rejects.toThrow();
-    await expect(mutableDevice.createClusters()).rejects.toThrow();
+    await expect(mutableDevice.createClusters('')).rejects.toThrow();
     await mutableDevice.createMainEndpoint();
     await expect(mutableDevice.createChildEndpoint('none')).rejects.toThrow();
     expect(mutableDevice.getEndpoint()).toBeDefined();
-    await expect(mutableDevice.createClusters()).rejects.toThrow();
+    // await expect(mutableDevice.createClusters('')).rejects.toThrow();
     mutableDevice.addDeviceTypes('one', temperatureSensor);
     expect(await mutableDevice.createChildEndpoint('one')).toBeDefined();
     mutableDevice.addDeviceTypes('two', temperatureSensor);
     mutableDevice.addTagLists('two', { mfgCode: null, namespaceId: 1, tag: 1, label: 'Test' });
+    await expect(mutableDevice.createClusters('two')).rejects.toThrow();
     expect(await mutableDevice.createChildEndpoint('two')).toBeDefined();
   });
 

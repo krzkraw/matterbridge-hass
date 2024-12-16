@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -60,6 +60,7 @@
     "test:platform": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js platform.test.ts --verbose --coverage",
     "test:converters": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js converters.test.ts --verbose --coverage",
     "test:mutableDevice": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js mutableDevice.test.ts --verbose --coverage",
+    "test:homeAssistant": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js homeAssistant.test.ts --verbose --coverage",
     "lint": "eslint --max-warnings=0 .",
     "lint:fix": "eslint --fix --max-warnings=0 .",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
