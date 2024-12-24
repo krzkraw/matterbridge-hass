@@ -123,6 +123,15 @@ If the whiteList is defined only the devices included are exposed to Matter. Use
 
 If the blackList is defined the devices included will not be exposed to Matter. Use the device name or the device id.
 
+### individualEntityWhiteList
+
+White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. Enter the entity name.
+
+### individualEntityBlackList
+
+Black list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. Enter the entity name.
+
+
 ### entityBlackList
 
 The entities in the list will not be exposed for all devices. Use the entity name.
