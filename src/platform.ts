@@ -31,6 +31,8 @@ import {
   Matterbridge,
   MatterbridgeDevice,
   MatterbridgeDynamicPlatform,
+  OnOff,
+  onOffOutlet,
   PlatformConfig,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
@@ -61,6 +63,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   // Matterbridge devices
   matterbridgeDevices = new Map<string, MatterbridgeDevice>();
   bridgedHassDevices = new Map<string, HassDevice>(); // Only the bridged devices from Home Assistant
+  bridgedHassEntities = new Map<string, HassEntity>(); // Only the bridged individual entities from Home Assistant
 
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
@@ -158,6 +161,52 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       .catch((error) => {
         this.log.error('Error writing payload to file:', error);
       });
+
+    // Scan individual entities and create Matterbridge devices
+    for (const entity of Array.from(this.ha.hassEntities.values())) {
+      const [domain, name] = entity.entity_id.split('.');
+      if (!['automation', 'scene', 'script'].includes(domain)) continue;
+      const entityName = entity.name ?? entity.original_name;
+      if (!isValidString(entityName)) continue;
+      if (isValidArray(this.config.individualEntityWhiteList, 1) && !this.config.individualEntityWhiteList.includes(entityName)) continue;
+      if (isValidArray(this.config.individualEntityBlackList, 1) && this.config.individualEntityBlackList.includes(entityName)) continue;
+
+      this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
+      // Create a Mutable device with bridgedNode and the BridgedDeviceBasicInformationCluster
+      const mutableDevice = new MutableDevice(
+        this.matterbridge,
+        entityName,
+        entity.id + (isValidString(this.config.postfix, 1, 3) ? '-' + this.config.postfix : ''),
+        0xfff1,
+        'HomeAssistant',
+        domain,
+      );
+      mutableDevice.addDeviceTypes('', bridgedNode);
+      await mutableDevice.createMainEndpoint();
+      await mutableDevice.createClusters('');
+
+      // Create the child endpoint with onOffOutlet and the OnOffCluster
+      mutableDevice.addDeviceTypes(entity.entity_id, onOffOutlet);
+      mutableDevice.setFriendlyName(entity.entity_id, entityName);
+      const child = await mutableDevice.createChildEndpoint(entity.entity_id);
+      await mutableDevice.createClusters(entity.entity_id);
+      child.addCommandHandler('on', async () => {
+        await this.ha.callServiceAsync(domain, domain === 'automation' ? 'trigger' : 'turn_on', entity.entity_id);
+        child.setAttribute(OnOff.Cluster.id, 'onOff', true, child.log);
+        setTimeout(() => {
+          child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log);
+        }, 500);
+      });
+      child.addCommandHandler('off', async () => {
+        child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log);
+      });
+
+      this.log.debug(`Registering device ${dn}${entityName}${db}...`);
+      mutableDevice.logMutableDevice();
+      await this.registerDevice(mutableDevice.getEndpoint());
+      this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
+      this.bridgedHassEntities.set(entity.entity_id, entity);
+    }
 
     // Scan devices and entities and create Matterbridge devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
@@ -384,6 +433,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   override async onConfigure() {
+    await super.onConfigure();
     this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}`);
     try {
       for (const state of Array.from(this.ha.hassStates.values())) {
@@ -401,9 +451,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   override async onChangeLoggerLevel(logLevel: LogLevel) {
     this.log.info(`Logger level changed to ${logLevel}`);
+    for (const device of this.matterbridgeDevices.values()) {
+      device.log.logLevel = logLevel;
+    }
   }
 
   override async onShutdown(reason?: string) {
+    await super.onShutdown(reason);
     this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     this.ha.close();

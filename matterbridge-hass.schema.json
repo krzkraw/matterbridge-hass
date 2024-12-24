@@ -45,6 +45,20 @@
         "type": "string"
       }
     },
+    "individualEntityWhiteList": {
+      "description": "White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. Enter the entity name.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "individualEntityBlackList": {
+      "description": "Black list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. Enter the entity name.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "entityBlackList": {
       "description": "The entities in the list will not be exposed. Use the entity name.",
       "type": "array",
