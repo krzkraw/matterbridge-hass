@@ -3,14 +3,21 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J50BAHZ8AKHB79K34M3MXC"],
+      "config_entries": [
+        "01J6J50BAHZ8AKHB79K34M3MXC"
+      ],
       "connections": [],
       "created_at": 1725038603.61461,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "fbaee7a0f13380a642201889e2906e8c",
-      "identifiers": [["sun", "01J6J50BAHZ8AKHB79K34M3MXC"]],
+      "identifiers": [
+        [
+          "sun",
+          "01J6J50BAHZ8AKHB79K34M3MXC"
+        ]
+      ],
       "labels": [],
       "manufacturer": null,
       "model": null,
@@ -26,14 +33,21 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J50C9GRRNRZWNH189GDHBT"],
+      "config_entries": [
+        "01J6J50C9GRRNRZWNH189GDHBT"
+      ],
       "connections": [],
       "created_at": 1725038604.726252,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "3ccdb9024997eab91c68e3ac74fa7893",
-      "identifiers": [["hassio", "core"]],
+      "identifiers": [
+        [
+          "hassio",
+          "core"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Home Assistant",
       "model": "Home Assistant Core",
@@ -49,14 +63,21 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J50C9GRRNRZWNH189GDHBT"],
+      "config_entries": [
+        "01J6J50C9GRRNRZWNH189GDHBT"
+      ],
       "connections": [],
       "created_at": 1725038604.726873,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "069662c6234ec6170619ae3e98cdf51e",
-      "identifiers": [["hassio", "supervisor"]],
+      "identifiers": [
+        [
+          "hassio",
+          "supervisor"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Home Assistant",
       "model": "Home Assistant Supervisor",
@@ -72,14 +93,21 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J50C9GRRNRZWNH189GDHBT"],
+      "config_entries": [
+        "01J6J50C9GRRNRZWNH189GDHBT"
+      ],
       "connections": [],
       "created_at": 1725038604.727217,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "4f42c80bdc9f665956b498deb4c9dbfd",
-      "identifiers": [["hassio", "host"]],
+      "identifiers": [
+        [
+          "hassio",
+          "host"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Home Assistant",
       "model": "Home Assistant Host",
@@ -95,14 +123,21 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J50C9GRRNRZWNH189GDHBT"],
+      "config_entries": [
+        "01J6J50C9GRRNRZWNH189GDHBT"
+      ],
       "connections": [],
       "created_at": 1725038604.727483,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "73259c15f1251065e0191ab0e79f6613",
-      "identifiers": [["hassio", "OS"]],
+      "identifiers": [
+        [
+          "hassio",
+          "OS"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Home Assistant",
       "model": "Home Assistant Operating System",
@@ -118,14 +153,21 @@
     {
       "area_id": null,
       "configuration_url": "https://www.met.no/en",
-      "config_entries": ["01J6J6BH25M5MMJVEJ04FADJV5"],
+      "config_entries": [
+        "01J6J6BH25M5MMJVEJ04FADJV5"
+      ],
       "connections": [],
       "created_at": 1725040018.889964,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "34ddaedf22e5c61e23fc8cbfc27db4b0",
-      "identifiers": [["met", "01J6J6BH25M5MMJVEJ04FADJV5"]],
+      "identifiers": [
+        [
+          "met",
+          "01J6J6BH25M5MMJVEJ04FADJV5"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Met.no",
       "model": "Forecast",
@@ -141,14 +183,21 @@
     {
       "area_id": null,
       "configuration_url": "homeassistant://hassio/addon/core_matter_server",
-      "config_entries": ["01J6J50C9GRRNRZWNH189GDHBT"],
+      "config_entries": [
+        "01J6J50C9GRRNRZWNH189GDHBT"
+      ],
       "connections": [],
       "created_at": 1725041204.129441,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "2c7ef5f366331c562dbff21df659613a",
-      "identifiers": [["hassio", "core_matter_server"]],
+      "identifiers": [
+        [
+          "hassio",
+          "core_matter_server"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Official add-ons",
       "model": "Home Assistant Add-on",
@@ -164,14 +213,22 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J7NJAF02T3BSC3WTWTJ4YVT1", "01J7JMMF9DP1S0422TP2EBA4W6"],
+      "config_entries": [
+        "01J7NJAF02T3BSC3WTWTJ4YVT1",
+        "01J7JMMF9DP1S0422TP2EBA4W6"
+      ],
       "connections": [],
       "created_at": 1725120289.599289,
       "disabled_by": null,
       "entry_type": null,
       "hw_version": null,
       "id": "e19544471e06a2fc73da46bec34b3f13",
-      "identifiers": [["mobile_app", "85EA0E37-6F8E-4292-9D69-F2DD757F2672"]],
+      "identifiers": [
+        [
+          "mobile_app",
+          "85EA0E37-6F8E-4292-9D69-F2DD757F2672"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Apple",
       "model": "iPhone16,1",
@@ -187,14 +244,21 @@
     {
       "area_id": null,
       "configuration_url": "homeassistant://hassio/addon/core_samba",
-      "config_entries": ["01J6J50C9GRRNRZWNH189GDHBT"],
+      "config_entries": [
+        "01J6J50C9GRRNRZWNH189GDHBT"
+      ],
       "connections": [],
       "created_at": 1725620177.379212,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "ff327eaee438df4701fe201c0645096f",
-      "identifiers": [["hassio", "core_samba"]],
+      "identifiers": [
+        [
+          "hassio",
+          "core_samba"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Official add-ons",
       "model": "Home Assistant Add-on",
@@ -210,14 +274,21 @@
     {
       "area_id": null,
       "configuration_url": "homeassistant://hassio/addon/core_ssh",
-      "config_entries": ["01J6J50C9GRRNRZWNH189GDHBT"],
+      "config_entries": [
+        "01J6J50C9GRRNRZWNH189GDHBT"
+      ],
       "connections": [],
       "created_at": 1725624710.188691,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "0a8e282e657d2154dfbf56553cd0616f",
-      "identifiers": [["hassio", "core_ssh"]],
+      "identifiers": [
+        [
+          "hassio",
+          "core_ssh"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Official add-ons",
       "model": "Home Assistant Add-on",
@@ -233,8 +304,15 @@
     {
       "area_id": null,
       "configuration_url": "http://192.168.1.150:80",
-      "config_entries": ["01J7RFH4C1RWTMZ1Z2EBY2WZ4B"],
-      "connections": [["mac", "cc:7b:5c:0a:b6:24"]],
+      "config_entries": [
+        "01J7RFH4C1RWTMZ1Z2EBY2WZ4B"
+      ],
+      "connections": [
+        [
+          "mac",
+          "cc:7b:5c:0a:b6:24"
+        ]
+      ],
       "created_at": 1726324707.846316,
       "disabled_by": null,
       "entry_type": null,
@@ -256,8 +334,15 @@
     {
       "area_id": null,
       "configuration_url": "http://192.168.1.156:80",
-      "config_entries": ["01J85DN3ARHRZJ3X2Y3C0ZSNMY"],
-      "connections": [["mac", "34:98:7a:49:57:c4"]],
+      "config_entries": [
+        "01J85DN3ARHRZJ3X2Y3C0ZSNMY"
+      ],
+      "connections": [
+        [
+          "mac",
+          "34:98:7a:49:57:c4"
+        ]
+      ],
       "created_at": 1726758948.372638,
       "disabled_by": null,
       "entry_type": null,
@@ -279,14 +364,21 @@
     {
       "area_id": null,
       "configuration_url": "homeassistant://hassio/addon/local_matterbridge",
-      "config_entries": ["01J6J50C9GRRNRZWNH189GDHBT"],
+      "config_entries": [
+        "01J6J50C9GRRNRZWNH189GDHBT"
+      ],
       "connections": [],
       "created_at": 1725862540.40383,
       "disabled_by": null,
       "entry_type": "service",
       "hw_version": null,
       "id": "1a96bdc13db15a236b1774953b8cf0fc",
-      "identifiers": [["hassio", "local_matterbridge"]],
+      "identifiers": [
+        [
+          "hassio",
+          "local_matterbridge"
+        ]
+      ],
       "labels": [],
       "manufacturer": "Local add-ons",
       "model": "Home Assistant Add-on",
@@ -302,8 +394,15 @@
     {
       "area_id": null,
       "configuration_url": "http://SLZB-06P10-II.local",
-      "config_entries": ["01J8FCM8B3N3GR21GMAXAGMPMF"],
-      "connections": [["mac", "e4:65:b8:d9:0f:e8"]],
+      "config_entries": [
+        "01J8FCM8B3N3GR21GMAXAGMPMF"
+      ],
+      "connections": [
+        [
+          "mac",
+          "e4:65:b8:d9:0f:e8"
+        ]
+      ],
       "created_at": 1727093416.537993,
       "disabled_by": null,
       "entry_type": null,
@@ -325,8 +424,15 @@
     {
       "area_id": null,
       "configuration_url": "http://SLZB-06P10-I.local",
-      "config_entries": ["01J97K5KZJVWW0XYC4MVWW8JAN"],
-      "connections": [["mac", "e4:65:b8:d9:0d:64"]],
+      "config_entries": [
+        "01J97K5KZJVWW0XYC4MVWW8JAN"
+      ],
+      "connections": [
+        [
+          "mac",
+          "e4:65:b8:d9:0d:64"
+        ]
+      ],
       "created_at": 1727905583.814959,
       "disabled_by": null,
       "entry_type": null,
@@ -348,7 +454,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1728717123.913952,
       "disabled_by": null,
@@ -356,8 +464,14 @@
       "hw_version": "10.0.22631",
       "id": "842c0f96d437045d9aa915e4109f9316",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-0000000000000031-MatterNodeDevice"],
-        ["matter", "serial_CS43d1dcfdf8effb88"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-0000000000000031-MatterNodeDevice"
+        ],
+        [
+          "matter",
+          "serial_CS43d1dcfdf8effb88"
+        ]
       ],
       "labels": [],
       "manufacturer": "Matterbridge",
@@ -374,7 +488,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1728717006.912548,
       "disabled_by": null,
@@ -382,8 +498,14 @@
       "hw_version": "6.6.54-haos",
       "id": "d4a13a20b1b1f2c2962f84f3ffe29df4",
       "identifiers": [
-        ["matter", "serial_CSd4c8dab75767f50a"],
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-MatterNodeDevice"]
+        [
+          "matter",
+          "serial_CSd4c8dab75767f50a"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-MatterNodeDevice"
+        ]
       ],
       "labels": [],
       "manufacturer": "Matterbridge",
@@ -400,8 +522,15 @@
     {
       "area_id": null,
       "configuration_url": "http://192.168.1.155:80",
-      "config_entries": ["01JBQC74E6XF74HAY9FPZ3DC9K"],
-      "connections": [["mac", "48:55:19:ee:12:a7"]],
+      "config_entries": [
+        "01JBQC74E6XF74HAY9FPZ3DC9K"
+      ],
+      "connections": [
+        [
+          "mac",
+          "48:55:19:ee:12:a7"
+        ]
+      ],
       "created_at": 1730582647.361794,
       "disabled_by": null,
       "entry_type": null,
@@ -423,7 +552,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725376976.61836,
       "disabled_by": null,
@@ -431,8 +562,14 @@
       "hw_version": "1.0.0",
       "id": "054236775dbec1a5e3bf809a854d5d5e",
       "identifiers": [
-        ["matter", "serial_0x2342375564"],
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-3"]
+        [
+          "matter",
+          "serial_0x2342375564"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-3"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -449,7 +586,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725397907.162919,
       "disabled_by": null,
@@ -457,8 +596,14 @@
       "hw_version": "1.0.0",
       "id": "0e7d878fb0cee030e67c2bb806f5094b",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-21"],
-        ["matter", "serial_serial_987484318322"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-21"
+        ],
+        [
+          "matter",
+          "serial_serial_987484318322"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -475,7 +620,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725285447.665569,
       "disabled_by": null,
@@ -483,8 +630,14 @@
       "hw_version": "1.0.0",
       "id": "e7a5676bcfa4a5a57bf2cdd4d7020448",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-6"],
-        ["matter", "serial_0x25097564"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-6"
+        ],
+        [
+          "matter",
+          "serial_0x25097564"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -501,7 +654,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725378185.32515,
       "disabled_by": null,
@@ -509,8 +664,14 @@
       "hw_version": "1.0.0",
       "id": "a7fac3ec781275f3872d089e4f82307e",
       "identifiers": [
-        ["matter", "serial_0x234554564"],
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-4"]
+        [
+          "matter",
+          "serial_0x234554564"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-4"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -527,7 +688,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725288864.247281,
       "disabled_by": null,
@@ -535,8 +698,14 @@
       "hw_version": "1.0.0",
       "id": "1adb7198570f7bf0662d99618def644e",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-16"],
-        ["matter", "serial_serial_980545631228"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-16"
+        ],
+        [
+          "matter",
+          "serial_serial_980545631228"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -553,7 +722,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725287568.537371,
       "disabled_by": null,
@@ -561,8 +732,14 @@
       "hw_version": "1.0.0",
       "id": "66aa9045b11c8e5e2c90b06175fae0f0",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-8"],
-        ["matter", "serial_0x23480749"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-8"
+        ],
+        [
+          "matter",
+          "serial_0x23480749"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -579,7 +756,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725284669.248506,
       "disabled_by": null,
@@ -587,8 +766,14 @@
       "hw_version": "1.0.0",
       "id": "de09532666dba9db586d93b4b2699062",
       "identifiers": [
-        ["matter", "serial_0x23497564"],
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-7"]
+        [
+          "matter",
+          "serial_0x23497564"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-7"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -605,7 +790,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1730641626.471183,
       "disabled_by": null,
@@ -613,8 +800,14 @@
       "hw_version": "1.0.0",
       "id": "3898c5aa5d1c14b05406b7007d8d347f",
       "identifiers": [
-        ["matter", "serial_0x96382164"],
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-12"]
+        [
+          "matter",
+          "serial_0x96382164"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-12"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -631,7 +824,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1730641626.550536,
       "disabled_by": null,
@@ -639,8 +834,14 @@
       "hw_version": "1.0.0",
       "id": "6af9352ad295b876bfcfc1d90d11f4ce",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-19"],
-        ["matter", "serial_serial_98745631224"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-19"
+        ],
+        [
+          "matter",
+          "serial_serial_98745631224"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -657,7 +858,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725044472.645806,
       "disabled_by": null,
@@ -665,8 +868,14 @@
       "hw_version": "1.0.0",
       "id": "2aa3364c58e0e2b7f343629a26ea7d13",
       "identifiers": [
-        ["matter", "serial_0x23480564"],
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-5"]
+        [
+          "matter",
+          "serial_0x23480564"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-5"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -683,7 +892,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1730641626.696591,
       "disabled_by": null,
@@ -691,8 +902,14 @@
       "hw_version": "1.0.0",
       "id": "85476b52c919e7d58a779155c476fdb0",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-2"],
-        ["matter", "serial_0x23452164"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-2"
+        ],
+        [
+          "matter",
+          "serial_0x23452164"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -709,7 +926,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1730641626.757749,
       "disabled_by": null,
@@ -717,8 +936,14 @@
       "hw_version": "1.0.0",
       "id": "198113096bd13a9aaec18871780962cb",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-18"],
-        ["matter", "serial_serial_98745631223"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-18"
+        ],
+        [
+          "matter",
+          "serial_serial_98745631223"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -735,7 +960,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725044472.69598,
       "disabled_by": null,
@@ -743,8 +970,14 @@
       "hw_version": "1.0.0",
       "id": "7b5c275b2e7c3844caf7a7c438ce77ac",
       "identifiers": [
-        ["matter", "serial_0x96352164"],
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-11"]
+        [
+          "matter",
+          "serial_0x96352164"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-11"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -761,7 +994,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1730641626.859755,
       "disabled_by": null,
@@ -769,8 +1004,14 @@
       "hw_version": "1.0.0",
       "id": "df128ee16983a0166879f2e3484a6f7e",
       "identifiers": [
-        ["matter", "serial_serial_94745631225"],
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-20"]
+        [
+          "matter",
+          "serial_serial_94745631225"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-20"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -787,7 +1028,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1730641626.961021,
       "disabled_by": null,
@@ -795,8 +1038,14 @@
       "hw_version": "1.0.0",
       "id": "96efad8d87e1b740cd6713e41cb78446",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-17"],
-        ["matter", "serial_serial_98745631222"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-17"
+        ],
+        [
+          "matter",
+          "serial_serial_98745631222"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -813,7 +1062,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1725044472.678494,
       "disabled_by": null,
@@ -821,8 +1072,14 @@
       "hw_version": "1.0.0",
       "id": "b684c54436937eea8bfd0884cf4b4547",
       "identifiers": [
-        ["matter", "serial_0x01020564"],
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-10"]
+        [
+          "matter",
+          "serial_0x01020564"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-10"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -839,7 +1096,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": ["01J6J7D7EADB8KNX8XBDYDNB1B"],
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
       "connections": [],
       "created_at": 1730641627.022424,
       "disabled_by": null,
@@ -847,8 +1106,14 @@
       "hw_version": "1.0.0",
       "id": "9b9ca0dbe87c6305334e5ef0afb4f6c5",
       "identifiers": [
-        ["matter", "deviceid_CAD2FA0F285B2850-000000000000001F-9"],
-        ["matter", "serial_0x29252164"]
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-9"
+        ],
+        [
+          "matter",
+          "serial_0x29252164"
+        ]
       ],
       "labels": [],
       "manufacturer": "Luligu",
@@ -864,6 +1129,84 @@
     }
   ],
   "entities": [
+    {
+      "area_id": null,
+      "categories": {},
+      "config_entry_id": null,
+      "created_at": 1735037047.225905,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "scene.turn_off_all_lights",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": null,
+      "id": "642a4f53487f3ec3cb290cac8a7df5d7",
+      "labels": [],
+      "modified_at": 1735037047.227269,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": true
+        }
+      },
+      "original_name": "Turn off all lights",
+      "platform": "homeassistant",
+      "translation_key": null,
+      "unique_id": "1735037047927"
+    },
+    {
+      "area_id": null,
+      "categories": {},
+      "config_entry_id": null,
+      "created_at": 1735044755.741982,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "script.increase_brightness",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": null,
+      "id": "84d37330be1a5ae7d87a48d9744f3cc8",
+      "labels": [],
+      "modified_at": 1735044755.743951,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": false
+        }
+      },
+      "original_name": "Increase brightness",
+      "platform": "script",
+      "translation_key": null,
+      "unique_id": "increase_brightness"
+    },
+    {
+      "area_id": null,
+      "categories": {},
+      "config_entry_id": null,
+      "created_at": 1735046946.732935,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "automation.turn_off_all_switches",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": null,
+      "id": "2d3ef78144f1220a813ae97133fc115a",
+      "labels": [],
+      "modified_at": 1735046946.734678,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": false
+        }
+      },
+      "original_name": "Turn off all switches",
+      "platform": "automation",
+      "translation_key": null,
+      "unique_id": "1735046935586"
+    },
     {
       "area_id": null,
       "categories": {},
@@ -7289,7 +7632,9 @@
       "attributes": {
         "editable": true,
         "id": "luca",
-        "device_trackers": ["device_tracker.lucas_iphone"],
+        "device_trackers": [
+          "device_tracker.lucas_iphone"
+        ],
         "latitude": 43.73546856841873,
         "longitude": 7.414291906426737,
         "gps_accuracy": 14,
@@ -7976,7 +8321,9 @@
       "state": "Stationary",
       "attributes": {
         "Confidence": "High",
-        "Types": ["Stationary"],
+        "Types": [
+          "Stationary"
+        ],
         "icon": "mdi:human-male",
         "friendly_name": "Luca’s iPhone Activity"
       },
@@ -8149,7 +8496,10 @@
         "Inland Water": "N/A",
         "ISO Country Code": "MC",
         "Locality": "Monaco",
-        "Location": [43.73546856841873, 7.414291906426737],
+        "Location": [
+          43.73546856841873,
+          7.414291906426737
+        ],
         "Name": "25B Avenue Hector Otto",
         "Ocean": "N/A",
         "Postal Code": "98000",
@@ -8240,7 +8590,9 @@
       "state": "Stationary",
       "attributes": {
         "Confidence": "High",
-        "Types": ["Stationary"],
+        "Types": [
+          "Stationary"
+        ],
         "icon": "mdi:human-male",
         "friendly_name": "Luca’s iPhone Activity"
       },
@@ -8546,7 +8898,10 @@
         "Inland Water": "N/A",
         "ISO Country Code": "MC",
         "Locality": "Monaco",
-        "Location": [43.73546856841873, 7.414291906426737],
+        "Location": [
+          43.73546856841873,
+          7.414291906426737
+        ],
         "Name": "25B Avenue Hector Otto",
         "Ocean": "N/A",
         "Postal Code": "98000",
@@ -8620,7 +8975,11 @@
       "entity_id": "sensor.slzb_06p10_i_connection_mode",
       "state": "usb",
       "attributes": {
-        "options": ["eth", "wifi", "usb"],
+        "options": [
+          "eth",
+          "wifi",
+          "usb"
+        ],
         "device_class": "enum",
         "friendly_name": "SLZB-06p10 I Connection mode"
       },
@@ -8637,7 +8996,10 @@
       "entity_id": "sensor.slzb_06p10_i_firmware_channel",
       "state": "release",
       "attributes": {
-        "options": ["dev", "release"],
+        "options": [
+          "dev",
+          "release"
+        ],
         "device_class": "enum",
         "friendly_name": "SLZB-06p10 I Firmware channel"
       },
@@ -8654,7 +9016,11 @@
       "entity_id": "sensor.slzb_06p10_i_zigbee_type",
       "state": "coordinator",
       "attributes": {
-        "options": ["coordinator", "router", "thread"],
+        "options": [
+          "coordinator",
+          "router",
+          "thread"
+        ],
         "device_class": "enum",
         "friendly_name": "SLZB-06p10 I Zigbee type"
       },
@@ -8855,7 +9221,11 @@
       "entity_id": "sensor.slzb_06p10_ii_connection_mode",
       "state": "usb",
       "attributes": {
-        "options": ["eth", "wifi", "usb"],
+        "options": [
+          "eth",
+          "wifi",
+          "usb"
+        ],
         "device_class": "enum",
         "friendly_name": "SLZB-06p10 II Connection mode"
       },
@@ -8872,7 +9242,10 @@
       "entity_id": "sensor.slzb_06p10_ii_firmware_channel",
       "state": "release",
       "attributes": {
-        "options": ["dev", "release"],
+        "options": [
+          "dev",
+          "release"
+        ],
         "device_class": "enum",
         "friendly_name": "SLZB-06p10 II Firmware channel"
       },
@@ -8889,7 +9262,11 @@
       "entity_id": "sensor.slzb_06p10_ii_zigbee_type",
       "state": "coordinator",
       "attributes": {
-        "options": ["coordinator", "router", "thread"],
+        "options": [
+          "coordinator",
+          "router",
+          "thread"
+        ],
         "device_class": "enum",
         "friendly_name": "SLZB-06p10 II Zigbee type"
       },
@@ -9367,16 +9744,34 @@
         "max_color_temp_kelvin": 6500,
         "min_mireds": 153,
         "max_mireds": 333,
-        "effect_list": ["Off", "Meteor Shower", "Gradual Change", "Flash"],
-        "supported_color_modes": ["color_temp", "rgb"],
+        "effect_list": [
+          "Off",
+          "Meteor Shower",
+          "Gradual Change",
+          "Flash"
+        ],
+        "supported_color_modes": [
+          "color_temp",
+          "rgb"
+        ],
         "effect": "Off",
         "color_mode": "rgb",
         "brightness": 255,
         "color_temp_kelvin": null,
         "color_temp": null,
-        "hs_color": [306.048, 98.413],
-        "rgb_color": [252, 4, 227],
-        "xy_color": [0.419, 0.17],
+        "hs_color": [
+          306.048,
+          98.413
+        ],
+        "rgb_color": [
+          252,
+          4,
+          227
+        ],
+        "xy_color": [
+          0.419,
+          0.17
+        ],
         "friendly_name": "Bulb Gen1",
         "supported_features": 36
       },
@@ -9409,7 +9804,14 @@
       "entity_id": "event.my_shelly_dimmer_1pm_pro_input_0",
       "state": "unknown",
       "attributes": {
-        "event_types": ["single_push", "btn_down", "double_push", "long_push", "btn_up", "triple_push"],
+        "event_types": [
+          "single_push",
+          "btn_down",
+          "double_push",
+          "long_push",
+          "btn_up",
+          "triple_push"
+        ],
         "event_type": null,
         "device_class": "button",
         "friendly_name": "Dimmer 1PM Pro Input 0"
@@ -9427,7 +9829,14 @@
       "entity_id": "event.my_shelly_dimmer_1pm_pro_input_1",
       "state": "unknown",
       "attributes": {
-        "event_types": ["single_push", "btn_down", "double_push", "long_push", "btn_up", "triple_push"],
+        "event_types": [
+          "single_push",
+          "btn_down",
+          "double_push",
+          "long_push",
+          "btn_up",
+          "triple_push"
+        ],
         "event_type": null,
         "device_class": "button",
         "friendly_name": "Dimmer 1PM Pro Input 1"
@@ -9445,7 +9854,9 @@
       "entity_id": "light.my_shelly_dimmer_1pm_pro_light_0",
       "state": "on",
       "attributes": {
-        "supported_color_modes": ["brightness"],
+        "supported_color_modes": [
+          "brightness"
+        ],
         "color_mode": "brightness",
         "brightness": 255,
         "friendly_name": "Dimmer 1PM Pro",
@@ -9614,7 +10025,9 @@
       "entity_id": "light.light_on_off_light",
       "state": "on",
       "attributes": {
-        "supported_color_modes": ["onoff"],
+        "supported_color_modes": [
+          "onoff"
+        ],
         "color_mode": "onoff",
         "friendly_name": "Light (on/off) Light",
         "supported_features": 0
@@ -9774,7 +10187,14 @@
       "entity_id": "sensor.air_quality_sensor_air_quality",
       "state": "poor",
       "attributes": {
-        "options": ["extremely_poor", "very_poor", "poor", "fair", "good", "moderate"],
+        "options": [
+          "extremely_poor",
+          "very_poor",
+          "poor",
+          "fair",
+          "good",
+          "moderate"
+        ],
         "device_class": "enum",
         "friendly_name": "Air quality sensor Air quality"
       },
@@ -9861,12 +10281,24 @@
       "entity_id": "light.light_hs_light",
       "state": "on",
       "attributes": {
-        "supported_color_modes": ["hs"],
+        "supported_color_modes": [
+          "hs"
+        ],
         "color_mode": "hs",
         "brightness": 221,
-        "hs_color": [0, 50.394],
-        "rgb_color": [255, 126, 126],
-        "xy_color": [0.528, 0.313],
+        "hs_color": [
+          0,
+          50.394
+        ],
+        "rgb_color": [
+          255,
+          126,
+          126
+        ],
+        "xy_color": [
+          0.528,
+          0.313
+        ],
         "friendly_name": "Light (HS) Light",
         "supported_features": 32
       },
@@ -9918,7 +10350,9 @@
       "entity_id": "light.dimmer_light",
       "state": "on",
       "attributes": {
-        "supported_color_modes": ["brightness"],
+        "supported_color_modes": [
+          "brightness"
+        ],
         "color_mode": "brightness",
         "brightness": 221,
         "friendly_name": "Dimmer Light",
@@ -10008,7 +10442,12 @@
       "entity_id": "fan.fan_fan",
       "state": "on",
       "attributes": {
-        "preset_modes": ["low", "medium", "high", "auto"],
+        "preset_modes": [
+          "low",
+          "medium",
+          "high",
+          "auto"
+        ],
         "percentage": 30,
         "percentage_step": 1,
         "preset_mode": "auto",
@@ -10028,7 +10467,12 @@
       "entity_id": "fan.fan_fan",
       "state": "on",
       "attributes": {
-        "preset_modes": ["low", "medium", "high", "auto"],
+        "preset_modes": [
+          "low",
+          "medium",
+          "high",
+          "auto"
+        ],
         "percentage": 30,
         "percentage_step": 1,
         "preset_mode": "a",
@@ -10048,7 +10492,12 @@
       "entity_id": "fan.fan_fan",
       "state": "on",
       "attributes": {
-        "preset_modes": ["low", "medium", "high", "auto"],
+        "preset_modes": [
+          "low",
+          "medium",
+          "high",
+          "auto"
+        ],
         "percentage": 30,
         "percentage_step": 1,
         "preset_mode": "abcd",
@@ -10088,14 +10537,26 @@
         "max_color_temp_kelvin": 6802,
         "min_mireds": 147,
         "max_mireds": 500,
-        "supported_color_modes": ["color_temp"],
+        "supported_color_modes": [
+          "color_temp"
+        ],
         "color_mode": "color_temp",
         "brightness": 221,
         "color_temp_kelvin": 4000,
         "color_temp": 250,
-        "hs_color": [26.812, 34.87],
-        "rgb_color": [255, 205, 166],
-        "xy_color": [0.421, 0.364],
+        "hs_color": [
+          26.812,
+          34.87
+        ],
+        "rgb_color": [
+          255,
+          205,
+          166
+        ],
+        "xy_color": [
+          0.421,
+          0.364
+        ],
         "friendly_name": "Light (CT) Light",
         "supported_features": 32
       },
@@ -10183,12 +10644,24 @@
       "entity_id": "light.light_xy_light",
       "state": "on",
       "attributes": {
-        "supported_color_modes": ["xy"],
+        "supported_color_modes": [
+          "xy"
+        ],
         "color_mode": "xy",
         "brightness": 221,
-        "hs_color": [0, 100],
-        "rgb_color": [255, 0, 0],
-        "xy_color": [0.700592, 0.299286],
+        "hs_color": [
+          0,
+          100
+        ],
+        "rgb_color": [
+          255,
+          0,
+          0
+        ],
+        "xy_color": [
+          0.700592,
+          0.299286
+        ],
         "friendly_name": "Light (XY) Light",
         "supported_features": 32
       },
@@ -10240,7 +10713,12 @@
       "entity_id": "climate.thermostat_thermostat",
       "state": "heat_cool",
       "attributes": {
-        "hvac_modes": ["off", "heat", "cool", "heat_cool"],
+        "hvac_modes": [
+          "off",
+          "heat",
+          "cool",
+          "heat_cool"
+        ],
         "min_temp": 7,
         "max_temp": 50,
         "current_temperature": 19,
@@ -10263,7 +10741,12 @@
       "entity_id": "climate.thermostat_thermostat",
       "state": "heat",
       "attributes": {
-        "hvac_modes": ["off", "heat", "cool", "heat_cool"],
+        "hvac_modes": [
+          "off",
+          "heat",
+          "cool",
+          "heat_cool"
+        ],
         "min_temp": 7,
         "max_temp": 50,
         "current_temperature": 20,
@@ -10286,7 +10769,12 @@
       "entity_id": "climate.thermostat_thermostat",
       "state": "cool",
       "attributes": {
-        "hvac_modes": ["off", "heat", "cool", "heat_cool"],
+        "hvac_modes": [
+          "off",
+          "heat",
+          "cool",
+          "heat_cool"
+        ],
         "min_temp": 7,
         "max_temp": 50,
         "current_temperature": 20,
@@ -10309,7 +10797,12 @@
       "entity_id": "climate.thermostat_thermostat",
       "state": "heat_cool",
       "attributes": {
-        "hvac_modes": ["off", "heat", "cool", "heat_cool"],
+        "hvac_modes": [
+          "off",
+          "heat",
+          "cool",
+          "heat_cool"
+        ],
         "min_temp": 7,
         "max_temp": 50,
         "current_temperature": 20,
@@ -10420,14 +10913,28 @@
         "max_color_temp_kelvin": 6802,
         "min_mireds": 147,
         "max_mireds": 500,
-        "supported_color_modes": ["color_temp", "hs", "xy"],
+        "supported_color_modes": [
+          "color_temp",
+          "hs",
+          "xy"
+        ],
         "color_mode": "hs",
         "brightness": 221,
         "color_temp_kelvin": null,
         "color_temp": null,
-        "hs_color": [0, 50.394],
-        "rgb_color": [255, 126, 126],
-        "xy_color": [0.528, 0.313],
+        "hs_color": [
+          0,
+          50.394
+        ],
+        "rgb_color": [
+          255,
+          126,
+          126
+        ],
+        "xy_color": [
+          0.528,
+          0.313
+        ],
         "friendly_name": "Light (XY, HS and CT) Light",
         "supported_features": 32
       },
@@ -11222,8 +11729,14 @@
       "scene"
     ],
     "config_dir": "/config",
-    "whitelist_external_dirs": ["/media", "/config/www"],
-    "allowlist_external_dirs": ["/media", "/config/www"],
+    "whitelist_external_dirs": [
+      "/media",
+      "/config/www"
+    ],
+    "allowlist_external_dirs": [
+      "/media",
+      "/config/www"
+    ],
     "allowlist_external_urls": [],
     "version": "2024.10.4",
     "config_source": "storage",
@@ -11303,7 +11816,9 @@
         "description": "Generic action to turn devices off under any domain.",
         "fields": {},
         "target": {
-          "entity": [{}]
+          "entity": [
+            {}
+          ]
         }
       },
       "turn_on": {
@@ -11311,7 +11826,9 @@
         "description": "Generic action to turn devices on under any domain.",
         "fields": {},
         "target": {
-          "entity": [{}]
+          "entity": [
+            {}
+          ]
         }
       },
       "toggle": {
@@ -11319,7 +11836,9 @@
         "description": "Generic action to toggle devices on/off under any domain.",
         "fields": {},
         "target": {
-          "entity": [{}]
+          "entity": [
+            {}
+          ]
         }
       },
       "stop": {
@@ -11425,8 +11944,12 @@
           }
         },
         "target": {
-          "entity": [{}],
-          "device": [{}]
+          "entity": [
+            {}
+          ],
+          "device": [
+            {}
+          ]
         }
       },
       "reload_all": {
@@ -11443,7 +11966,14 @@
           "level": {
             "selector": {
               "select": {
-                "options": ["debug", "info", "warning", "error", "fatal", "critical"],
+                "options": [
+                  "debug",
+                  "info",
+                  "warning",
+                  "error",
+                  "fatal",
+                  "critical"
+                ],
                 "translation_key": "level"
               }
             },
@@ -11481,7 +12011,13 @@
             "default": "error",
             "selector": {
               "select": {
-                "options": ["debug", "info", "warning", "error", "critical"],
+                "options": [
+                  "debug",
+                  "info",
+                  "warning",
+                  "error",
+                  "critical"
+                ],
                 "translation_key": "level"
               }
             },
@@ -11526,7 +12062,10 @@
             "default": "light",
             "selector": {
               "select": {
-                "options": ["dark", "light"],
+                "options": [
+                  "dark",
+                  "light"
+                ],
                 "translation_key": "mode"
               }
             },
@@ -11784,7 +12323,11 @@
             "description": "Exclude the Home Assistant database file from backup"
           },
           "addons": {
-            "example": ["core_ssh", "core_samba", "core_mosquitto"],
+            "example": [
+              "core_ssh",
+              "core_samba",
+              "core_mosquitto"
+            ],
             "selector": {
               "object": null
             },
@@ -11792,7 +12335,10 @@
             "description": "List of add-ons to include in the backup. Use the name slug of the add-on."
           },
           "folders": {
-            "example": ["homeassistant", "share"],
+            "example": [
+              "homeassistant",
+              "share"
+            ],
             "selector": {
               "object": null
             },
@@ -11875,7 +12421,10 @@
             "description": "Restores Home Assistant."
           },
           "folders": {
-            "example": ["homeassistant", "share"],
+            "example": [
+              "homeassistant",
+              "share"
+            ],
             "selector": {
               "object": null
             },
@@ -11883,7 +12432,11 @@
             "description": "List of directories to include in the backup."
           },
           "addons": {
-            "example": ["core_ssh", "core_samba", "core_mosquitto"],
+            "example": [
+              "core_ssh",
+              "core_samba",
+              "core_mosquitto"
+            ],
             "selector": {
               "object": null
             },
@@ -11927,7 +12480,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["update"]
+              "domain": [
+                "update"
+              ]
             }
           ]
         }
@@ -11939,7 +12494,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["update"]
+              "domain": [
+                "update"
+              ]
             }
           ]
         }
@@ -11951,7 +12508,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["update"]
+              "domain": [
+                "update"
+              ]
             }
           ]
         }
@@ -12072,7 +12631,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["tts"]
+              "domain": [
+                "tts"
+              ]
             }
           ]
         }
@@ -12197,7 +12758,9 @@
           "entity": [
             {
               "integration": "homeassistant",
-              "domain": ["scene"]
+              "domain": [
+                "scene"
+              ]
             }
           ]
         }
@@ -12221,7 +12784,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["scene"]
+              "domain": [
+                "scene"
+              ]
             }
           ]
         }
@@ -12254,7 +12819,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_number"]
+              "domain": [
+                "input_number"
+              ]
             }
           ]
         }
@@ -12266,7 +12833,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_number"]
+              "domain": [
+                "input_number"
+              ]
             }
           ]
         }
@@ -12278,7 +12847,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_number"]
+              "domain": [
+                "input_number"
+              ]
             }
           ]
         }
@@ -12297,7 +12868,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_boolean"]
+              "domain": [
+                "input_boolean"
+              ]
             }
           ]
         }
@@ -12309,7 +12882,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_boolean"]
+              "domain": [
+                "input_boolean"
+              ]
             }
           ]
         }
@@ -12321,7 +12896,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_boolean"]
+              "domain": [
+                "input_boolean"
+              ]
             }
           ]
         }
@@ -12340,7 +12917,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_select"]
+              "domain": [
+                "input_select"
+              ]
             }
           ]
         }
@@ -12352,7 +12931,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_select"]
+              "domain": [
+                "input_select"
+              ]
             }
           ]
         }
@@ -12373,7 +12954,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_select"]
+              "domain": [
+                "input_select"
+              ]
             }
           ]
         }
@@ -12395,7 +12978,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_select"]
+              "domain": [
+                "input_select"
+              ]
             }
           ]
         }
@@ -12416,7 +13001,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_select"]
+              "domain": [
+                "input_select"
+              ]
             }
           ]
         }
@@ -12440,7 +13027,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_select"]
+              "domain": [
+                "input_select"
+              ]
             }
           ]
         }
@@ -12463,7 +13052,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["automation"]
+              "domain": [
+                "automation"
+              ]
             }
           ]
         }
@@ -12475,7 +13066,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["automation"]
+              "domain": [
+                "automation"
+              ]
             }
           ]
         }
@@ -12487,7 +13080,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["automation"]
+              "domain": [
+                "automation"
+              ]
             }
           ]
         }
@@ -12508,7 +13103,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["automation"]
+              "domain": [
+                "automation"
+              ]
             }
           ]
         }
@@ -12541,7 +13138,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["timer"]
+              "domain": [
+                "timer"
+              ]
             }
           ]
         }
@@ -12553,7 +13152,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["timer"]
+              "domain": [
+                "timer"
+              ]
             }
           ]
         }
@@ -12565,7 +13166,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["timer"]
+              "domain": [
+                "timer"
+              ]
             }
           ]
         }
@@ -12577,7 +13180,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["timer"]
+              "domain": [
+                "timer"
+              ]
             }
           ]
         }
@@ -12600,7 +13205,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["timer"]
+              "domain": [
+                "timer"
+              ]
             }
           ]
         }
@@ -12626,7 +13233,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["script"]
+              "domain": [
+                "script"
+              ]
             }
           ]
         }
@@ -12638,7 +13247,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["script"]
+              "domain": [
+                "script"
+              ]
             }
           ]
         }
@@ -12650,7 +13261,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["script"]
+              "domain": [
+                "script"
+              ]
             }
           ]
         }
@@ -12669,7 +13282,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_button"]
+              "domain": [
+                "input_button"
+              ]
             }
           ]
         }
@@ -12831,7 +13446,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_datetime"]
+              "domain": [
+                "input_datetime"
+              ]
             }
           ]
         }
@@ -12943,7 +13560,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["counter"]
+              "domain": [
+                "counter"
+              ]
             }
           ]
         }
@@ -12955,7 +13574,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["counter"]
+              "domain": [
+                "counter"
+              ]
             }
           ]
         }
@@ -12967,7 +13588,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["counter"]
+              "domain": [
+                "counter"
+              ]
             }
           ]
         }
@@ -12992,7 +13615,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["counter"]
+              "domain": [
+                "counter"
+              ]
             }
           ]
         }
@@ -13006,7 +13631,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["button"]
+              "domain": [
+                "button"
+              ]
             }
           ]
         }
@@ -13020,8 +13647,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"],
-              "supported_features": [256]
+              "domain": [
+                "climate"
+              ],
+              "supported_features": [
+                256
+              ]
             }
           ]
         }
@@ -13033,8 +13664,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"],
-              "supported_features": [128]
+              "domain": [
+                "climate"
+              ],
+              "supported_features": [
+                128
+              ]
             }
           ]
         }
@@ -13046,8 +13681,13 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"],
-              "supported_features": [128, 256]
+              "domain": [
+                "climate"
+              ],
+              "supported_features": [
+                128,
+                256
+              ]
             }
           ]
         }
@@ -13059,7 +13699,15 @@
           "hvac_mode": {
             "selector": {
               "select": {
-                "options": ["off", "auto", "cool", "dry", "fan_only", "heat_cool", "heat"],
+                "options": [
+                  "off",
+                  "auto",
+                  "cool",
+                  "dry",
+                  "fan_only",
+                  "heat_cool",
+                  "heat"
+                ],
                 "translation_key": "hvac_mode"
               }
             },
@@ -13070,7 +13718,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"]
+              "domain": [
+                "climate"
+              ]
             }
           ]
         }
@@ -13092,8 +13742,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"],
-              "supported_features": [16]
+              "domain": [
+                "climate"
+              ],
+              "supported_features": [
+                16
+              ]
             }
           ]
         }
@@ -13114,8 +13768,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"],
-              "supported_features": [64]
+              "domain": [
+                "climate"
+              ],
+              "supported_features": [
+                64
+              ]
             }
           ]
         }
@@ -13126,7 +13784,9 @@
         "fields": {
           "temperature": {
             "filter": {
-              "supported_features": [1]
+              "supported_features": [
+                1
+              ]
             },
             "selector": {
               "number": {
@@ -13141,7 +13801,9 @@
           },
           "target_temp_high": {
             "filter": {
-              "supported_features": [2]
+              "supported_features": [
+                2
+              ]
             },
             "advanced": true,
             "selector": {
@@ -13157,7 +13819,9 @@
           },
           "target_temp_low": {
             "filter": {
-              "supported_features": [2]
+              "supported_features": [
+                2
+              ]
             },
             "advanced": true,
             "selector": {
@@ -13174,7 +13838,15 @@
           "hvac_mode": {
             "selector": {
               "select": {
-                "options": ["off", "auto", "cool", "dry", "fan_only", "heat_cool", "heat"],
+                "options": [
+                  "off",
+                  "auto",
+                  "cool",
+                  "dry",
+                  "fan_only",
+                  "heat_cool",
+                  "heat"
+                ],
                 "translation_key": "hvac_mode"
               }
             },
@@ -13185,8 +13857,13 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"],
-              "supported_features": [1, 2]
+              "domain": [
+                "climate"
+              ],
+              "supported_features": [
+                1,
+                2
+              ]
             }
           ]
         }
@@ -13211,8 +13888,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"],
-              "supported_features": [4]
+              "domain": [
+                "climate"
+              ],
+              "supported_features": [
+                4
+              ]
             }
           ]
         }
@@ -13234,8 +13915,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"],
-              "supported_features": [8]
+              "domain": [
+                "climate"
+              ],
+              "supported_features": [
+                8
+              ]
             }
           ]
         }
@@ -13257,8 +13942,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["climate"],
-              "supported_features": [32]
+              "domain": [
+                "climate"
+              ],
+              "supported_features": [
+                32
+              ]
             }
           ]
         }
@@ -13272,8 +13961,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [1]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                1
+              ]
             }
           ]
         }
@@ -13285,8 +13978,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [2]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                2
+              ]
             }
           ]
         }
@@ -13311,8 +14008,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [4]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                4
+              ]
             }
           ]
         }
@@ -13324,8 +14025,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [8]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                8
+              ]
             }
           ]
         }
@@ -13337,8 +14042,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [3]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                3
+              ]
             }
           ]
         }
@@ -13350,8 +14059,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [16]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                16
+              ]
             }
           ]
         }
@@ -13363,8 +14076,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [32]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                32
+              ]
             }
           ]
         }
@@ -13376,8 +14093,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [64]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                64
+              ]
             }
           ]
         }
@@ -13402,8 +14123,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [128]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                128
+              ]
             }
           ]
         }
@@ -13415,8 +14140,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["cover"],
-              "supported_features": [48]
+              "domain": [
+                "cover"
+              ],
+              "supported_features": [
+                48
+              ]
             }
           ]
         }
@@ -13429,7 +14158,9 @@
         "fields": {
           "percentage": {
             "filter": {
-              "supported_features": [1]
+              "supported_features": [
+                1
+              ]
             },
             "selector": {
               "number": {
@@ -13444,7 +14175,9 @@
           "preset_mode": {
             "example": "auto",
             "filter": {
-              "supported_features": [8]
+              "supported_features": [
+                8
+              ]
             },
             "selector": {
               "text": null
@@ -13456,8 +14189,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["fan"],
-              "supported_features": [32]
+              "domain": [
+                "fan"
+              ],
+              "supported_features": [
+                32
+              ]
             }
           ]
         }
@@ -13469,8 +14206,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["fan"],
-              "supported_features": [16]
+              "domain": [
+                "fan"
+              ],
+              "supported_features": [
+                16
+              ]
             }
           ]
         }
@@ -13482,7 +14223,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["fan"]
+              "domain": [
+                "fan"
+              ]
             }
           ]
         }
@@ -13508,8 +14251,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["fan"],
-              "supported_features": [1]
+              "domain": [
+                "fan"
+              ],
+              "supported_features": [
+                1
+              ]
             }
           ]
         }
@@ -13535,8 +14282,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["fan"],
-              "supported_features": [1]
+              "domain": [
+                "fan"
+              ],
+              "supported_features": [
+                1
+              ]
             }
           ]
         }
@@ -13557,8 +14308,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["fan"],
-              "supported_features": [2]
+              "domain": [
+                "fan"
+              ],
+              "supported_features": [
+                2
+              ]
             }
           ]
         }
@@ -13571,7 +14326,10 @@
             "required": true,
             "selector": {
               "select": {
-                "options": ["forward", "reverse"],
+                "options": [
+                  "forward",
+                  "reverse"
+                ],
                 "translation_key": "direction"
               }
             },
@@ -13582,8 +14340,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["fan"],
-              "supported_features": [4]
+              "domain": [
+                "fan"
+              ],
+              "supported_features": [
+                4
+              ]
             }
           ]
         }
@@ -13608,8 +14370,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["fan"],
-              "supported_features": [1]
+              "domain": [
+                "fan"
+              ],
+              "supported_features": [
+                1
+              ]
             }
           ]
         }
@@ -13631,8 +14397,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["fan"],
-              "supported_features": [8]
+              "domain": [
+                "fan"
+              ],
+              "supported_features": [
+                8
+              ]
             }
           ]
         }
@@ -13645,7 +14415,9 @@
         "fields": {
           "transition": {
             "filter": {
-              "supported_features": [32]
+              "supported_features": [
+                32
+              ]
             },
             "selector": {
               "number": {
@@ -13660,7 +14432,13 @@
           "rgb_color": {
             "filter": {
               "attribute": {
-                "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                "supported_color_modes": [
+                  "hs",
+                  "xy",
+                  "rgb",
+                  "rgbw",
+                  "rgbww"
+                ]
               }
             },
             "example": "[255, 100, 100]",
@@ -13673,7 +14451,14 @@
           "kelvin": {
             "filter": {
               "attribute": {
-                "supported_color_modes": ["color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                "supported_color_modes": [
+                  "color_temp",
+                  "hs",
+                  "xy",
+                  "rgb",
+                  "rgbw",
+                  "rgbww"
+                ]
               }
             },
             "selector": {
@@ -13689,7 +14474,15 @@
           "brightness_pct": {
             "filter": {
               "attribute": {
-                "supported_color_modes": ["brightness", "color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                "supported_color_modes": [
+                  "brightness",
+                  "color_temp",
+                  "hs",
+                  "xy",
+                  "rgb",
+                  "rgbw",
+                  "rgbww"
+                ]
               }
             },
             "selector": {
@@ -13705,7 +14498,15 @@
           "brightness_step_pct": {
             "filter": {
               "attribute": {
-                "supported_color_modes": ["brightness", "color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                "supported_color_modes": [
+                  "brightness",
+                  "color_temp",
+                  "hs",
+                  "xy",
+                  "rgb",
+                  "rgbw",
+                  "rgbww"
+                ]
               }
             },
             "selector": {
@@ -13720,7 +14521,9 @@
           },
           "effect": {
             "filter": {
-              "supported_features": [4]
+              "supported_features": [
+                4
+              ]
             },
             "selector": {
               "text": null
@@ -13734,7 +14537,13 @@
               "rgbw_color": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "example": "[255, 100, 100, 50]",
@@ -13745,7 +14554,13 @@
               "rgbww_color": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "example": "[255, 100, 100, 50, 70]",
@@ -13756,7 +14571,13 @@
               "color_name": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "selector": {
@@ -13918,7 +14739,13 @@
               "hs_color": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "example": "[300, 70]",
@@ -13929,7 +14756,13 @@
               "xy_color": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "example": "[0.52, 0.43]",
@@ -13940,7 +14773,14 @@
               "color_temp": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "color_temp",
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "selector": {
@@ -13954,7 +14794,15 @@
               "brightness": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["brightness", "color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "brightness",
+                      "color_temp",
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "selector": {
@@ -13967,7 +14815,15 @@
               "brightness_step": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["brightness", "color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "brightness",
+                      "color_temp",
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "selector": {
@@ -13980,7 +14836,9 @@
               "white": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["white"]
+                    "supported_color_modes": [
+                      "white"
+                    ]
                   }
                 },
                 "selector": {
@@ -13998,7 +14856,9 @@
               },
               "flash": {
                 "filter": {
-                  "supported_features": [8]
+                  "supported_features": [
+                    8
+                  ]
                 },
                 "selector": {
                   "select": {
@@ -14021,7 +14881,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["light"]
+              "domain": [
+                "light"
+              ]
             }
           ]
         }
@@ -14032,7 +14894,9 @@
         "fields": {
           "transition": {
             "filter": {
-              "supported_features": [32]
+              "supported_features": [
+                32
+              ]
             },
             "selector": {
               "number": {
@@ -14049,7 +14913,9 @@
             "fields": {
               "flash": {
                 "filter": {
-                  "supported_features": [8]
+                  "supported_features": [
+                    8
+                  ]
                 },
                 "selector": {
                   "select": {
@@ -14072,7 +14938,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["light"]
+              "domain": [
+                "light"
+              ]
             }
           ]
         }
@@ -14083,7 +14951,9 @@
         "fields": {
           "transition": {
             "filter": {
-              "supported_features": [32]
+              "supported_features": [
+                32
+              ]
             },
             "selector": {
               "number": {
@@ -14098,7 +14968,13 @@
           "rgb_color": {
             "filter": {
               "attribute": {
-                "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                "supported_color_modes": [
+                  "hs",
+                  "xy",
+                  "rgb",
+                  "rgbw",
+                  "rgbww"
+                ]
               }
             },
             "example": "[255, 100, 100]",
@@ -14111,7 +14987,14 @@
           "kelvin": {
             "filter": {
               "attribute": {
-                "supported_color_modes": ["color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                "supported_color_modes": [
+                  "color_temp",
+                  "hs",
+                  "xy",
+                  "rgb",
+                  "rgbw",
+                  "rgbww"
+                ]
               }
             },
             "selector": {
@@ -14127,7 +15010,15 @@
           "brightness_pct": {
             "filter": {
               "attribute": {
-                "supported_color_modes": ["brightness", "color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                "supported_color_modes": [
+                  "brightness",
+                  "color_temp",
+                  "hs",
+                  "xy",
+                  "rgb",
+                  "rgbw",
+                  "rgbww"
+                ]
               }
             },
             "selector": {
@@ -14142,7 +15033,9 @@
           },
           "effect": {
             "filter": {
-              "supported_features": [4]
+              "supported_features": [
+                4
+              ]
             },
             "selector": {
               "text": null
@@ -14156,7 +15049,13 @@
               "rgbw_color": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "example": "[255, 100, 100, 50]",
@@ -14167,7 +15066,13 @@
               "rgbww_color": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "example": "[255, 100, 100, 50, 70]",
@@ -14178,7 +15083,13 @@
               "color_name": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "selector": {
@@ -14340,7 +15251,13 @@
               "hs_color": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "example": "[300, 70]",
@@ -14351,7 +15268,13 @@
               "xy_color": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "example": "[0.52, 0.43]",
@@ -14362,7 +15285,14 @@
               "color_temp": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "color_temp",
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "selector": {
@@ -14376,7 +15306,15 @@
               "brightness": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["brightness", "color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"]
+                    "supported_color_modes": [
+                      "brightness",
+                      "color_temp",
+                      "hs",
+                      "xy",
+                      "rgb",
+                      "rgbw",
+                      "rgbww"
+                    ]
                   }
                 },
                 "selector": {
@@ -14389,7 +15327,9 @@
               "white": {
                 "filter": {
                   "attribute": {
-                    "supported_color_modes": ["white"]
+                    "supported_color_modes": [
+                      "white"
+                    ]
                   }
                 },
                 "selector": {
@@ -14407,7 +15347,9 @@
               },
               "flash": {
                 "filter": {
-                  "supported_features": [8]
+                  "supported_features": [
+                    8
+                  ]
                 },
                 "selector": {
                   "select": {
@@ -14430,7 +15372,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["light"]
+              "domain": [
+                "light"
+              ]
             }
           ]
         }
@@ -14453,7 +15397,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["lock"]
+              "domain": [
+                "lock"
+              ]
             }
           ]
         }
@@ -14474,7 +15420,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["lock"]
+              "domain": [
+                "lock"
+              ]
             }
           ]
         }
@@ -14495,8 +15443,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["lock"],
-              "supported_features": [1]
+              "domain": [
+                "lock"
+              ],
+              "supported_features": [
+                1
+              ]
             }
           ]
         }
@@ -14519,7 +15471,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["number"]
+              "domain": [
+                "number"
+              ]
             }
           ]
         }
@@ -14533,7 +15487,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["select"]
+              "domain": [
+                "select"
+              ]
             }
           ]
         }
@@ -14545,7 +15501,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["select"]
+              "domain": [
+                "select"
+              ]
             }
           ]
         }
@@ -14566,7 +15524,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["select"]
+              "domain": [
+                "select"
+              ]
             }
           ]
         }
@@ -14588,7 +15548,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["select"]
+              "domain": [
+                "select"
+              ]
             }
           ]
         }
@@ -14609,7 +15571,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["select"]
+              "domain": [
+                "select"
+              ]
             }
           ]
         }
@@ -14623,7 +15587,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["switch"]
+              "domain": [
+                "switch"
+              ]
             }
           ]
         }
@@ -14635,7 +15601,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["switch"]
+              "domain": [
+                "switch"
+              ]
             }
           ]
         }
@@ -14647,7 +15615,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["switch"]
+              "domain": [
+                "switch"
+              ]
             }
           ]
         }
@@ -14661,8 +15631,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["valve"],
-              "supported_features": [1]
+              "domain": [
+                "valve"
+              ],
+              "supported_features": [
+                1
+              ]
             }
           ]
         }
@@ -14674,8 +15648,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["valve"],
-              "supported_features": [2]
+              "domain": [
+                "valve"
+              ],
+              "supported_features": [
+                2
+              ]
             }
           ]
         }
@@ -14700,8 +15678,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["valve"],
-              "supported_features": [4]
+              "domain": [
+                "valve"
+              ],
+              "supported_features": [
+                4
+              ]
             }
           ]
         }
@@ -14713,8 +15695,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["valve"],
-              "supported_features": [8]
+              "domain": [
+                "valve"
+              ],
+              "supported_features": [
+                8
+              ]
             }
           ]
         }
@@ -14726,8 +15712,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["valve"],
-              "supported_features": [3]
+              "domain": [
+                "valve"
+              ],
+              "supported_features": [
+                3
+              ]
             }
           ]
         }
@@ -14756,7 +15746,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["input_text"]
+              "domain": [
+                "input_text"
+              ]
             }
           ]
         }
@@ -14778,7 +15770,9 @@
           },
           "due_date": {
             "filter": {
-              "supported_features": [16]
+              "supported_features": [
+                16
+              ]
             },
             "example": "2023-11-17",
             "selector": {
@@ -14789,7 +15783,9 @@
           },
           "due_datetime": {
             "filter": {
-              "supported_features": [32]
+              "supported_features": [
+                32
+              ]
             },
             "example": "2023-11-17 13:30:00",
             "selector": {
@@ -14800,7 +15796,9 @@
           },
           "description": {
             "filter": {
-              "supported_features": [64]
+              "supported_features": [
+                64
+              ]
             },
             "example": "A more complete description of the to-do item than that provided by the summary.",
             "selector": {
@@ -14813,8 +15811,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["todo"],
-              "supported_features": [1]
+              "domain": [
+                "todo"
+              ],
+              "supported_features": [
+                1
+              ]
             }
           ]
         }
@@ -14845,7 +15847,10 @@
             "selector": {
               "select": {
                 "translation_key": "status",
-                "options": ["needs_action", "completed"]
+                "options": [
+                  "needs_action",
+                  "completed"
+                ]
               }
             },
             "name": "Set status",
@@ -14853,7 +15858,9 @@
           },
           "due_date": {
             "filter": {
-              "supported_features": [16]
+              "supported_features": [
+                16
+              ]
             },
             "example": "2023-11-17",
             "selector": {
@@ -14864,7 +15871,9 @@
           },
           "due_datetime": {
             "filter": {
-              "supported_features": [32]
+              "supported_features": [
+                32
+              ]
             },
             "example": "2023-11-17 13:30:00",
             "selector": {
@@ -14875,7 +15884,9 @@
           },
           "description": {
             "filter": {
-              "supported_features": [64]
+              "supported_features": [
+                64
+              ]
             },
             "example": "A more complete description of the to-do item than that provided by the summary.",
             "selector": {
@@ -14888,8 +15899,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["todo"],
-              "supported_features": [4]
+              "domain": [
+                "todo"
+              ],
+              "supported_features": [
+                4
+              ]
             }
           ]
         }
@@ -14910,8 +15925,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["todo"],
-              "supported_features": [2]
+              "domain": [
+                "todo"
+              ],
+              "supported_features": [
+                2
+              ]
             }
           ]
         }
@@ -14926,7 +15945,10 @@
             "selector": {
               "select": {
                 "translation_key": "status",
-                "options": ["needs_action", "completed"],
+                "options": [
+                  "needs_action",
+                  "completed"
+                ],
                 "multiple": true
               }
             },
@@ -14937,7 +15959,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["todo"]
+              "domain": [
+                "todo"
+              ]
             }
           ]
         },
@@ -14952,8 +15976,12 @@
         "target": {
           "entity": [
             {
-              "domain": ["todo"],
-              "supported_features": [2]
+              "domain": [
+                "todo"
+              ],
+              "supported_features": [
+                2
+              ]
             }
           ]
         }
@@ -14978,7 +16006,9 @@
               "text": null
             },
             "filter": {
-              "supported_features": [1]
+              "supported_features": [
+                1
+              ]
             },
             "name": "Title",
             "description": "Title for your notification message."
@@ -14987,7 +16017,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["notify"]
+              "domain": [
+                "notify"
+              ]
             }
           ]
         }
@@ -15165,7 +16197,11 @@
             "required": true,
             "selector": {
               "select": {
-                "options": ["daily", "hourly", "twice_daily"],
+                "options": [
+                  "daily",
+                  "hourly",
+                  "twice_daily"
+                ],
                 "translation_key": "forecast_type"
               }
             },
@@ -15176,8 +16212,14 @@
         "target": {
           "entity": [
             {
-              "domain": ["weather"],
-              "supported_features": [1, 2, 4]
+              "domain": [
+                "weather"
+              ],
+              "supported_features": [
+                1,
+                2,
+                4
+              ]
             }
           ]
         },
@@ -15204,7 +16246,9 @@
         "target": {
           "entity": [
             {
-              "domain": ["text"]
+              "domain": [
+                "text"
+              ]
             }
           ]
         }

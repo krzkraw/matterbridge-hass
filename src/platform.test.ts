@@ -391,6 +391,75 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Entities received from Home Assistant`);
   });
 
+  it('should register a Scene entity', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let entity: HassEntity | undefined;
+    (mockData.entities as HassEntity[]).forEach((e) => {
+      if (e.original_name === 'Turn off all lights') entity = e;
+    });
+    expect(entity).toBeDefined();
+    if (!entity) return;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassStates.clear();
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(
+      `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}scene${nf} name ${CYAN}turn_off_all_lights${nf}`,
+    );
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
+    expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
+  });
+
+  it('should register a Script entity', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let entity: HassEntity | undefined;
+    (mockData.entities as HassEntity[]).forEach((e) => {
+      if (e.original_name === 'Increase brightness') entity = e;
+    });
+    expect(entity).toBeDefined();
+    if (!entity) return;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassStates.clear();
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(
+      `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}script${nf} name ${CYAN}increase_brightness${nf}`,
+    );
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
+    expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
+  });
+
+  it('should register an Automation entity', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let entity: HassEntity | undefined;
+    (mockData.entities as HassEntity[]).forEach((e) => {
+      if (e.original_name === 'Turn off all switches') entity = e;
+    });
+    expect(entity).toBeDefined();
+    if (!entity) return;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassStates.clear();
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(
+      `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}automation${nf} name ${CYAN}turn_off_all_switches${nf}`,
+    );
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
+    expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
+  });
+
   it('should register a Switch device from ha', async () => {
     expect(haPlatform).toBeDefined();
 
