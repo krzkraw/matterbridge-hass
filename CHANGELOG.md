@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
+## [0.0.6] - 2024-12-24
+
+### Added
+
+- [entity]: Added individual entity of domain automation, scene and script.
+- [config]: Added individual entity white and black list.
+
+### Changed
+
+- [package]: Update package.
+- [package]: Update dependencies.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+</a>
+
 ## [0.0.5] - 2024-12-16
 
 ### Added

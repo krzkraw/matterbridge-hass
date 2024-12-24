@@ -45,31 +45,35 @@ describe('HassPlatform', () => {
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
-    addBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
-      // console.error('addBridgedDevice called');
-    }),
-    addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      device.number = 100;
-      // console.error('addBridgedEndpoint called');
-    }),
-    removeBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
-      // console.error('removeBridgedDevice called');
-    }),
-    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      // console.error('removeBridgedEndpoint called');
-    }),
-    removeAllBridgedDevices: jest.fn(async (pluginName: string) => {
-      // console.error('removeAllBridgedDevices called');
-    }),
-    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
-      // console.error('removeAllBridgedEndpoints called');
-    }),
+    matterbridgeDirectory: './jest/matterbridge',
+    matterbridgePluginDirectory: './jest/plugins',
+    systemInformation: { ipv4Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
+    matterbridgeVersion: '1.6.7',
     edge: false,
     log: mockLog,
-    matterbridgeDirectory: '',
-    matterbridgePluginDirectory: 'temp',
-    systemInformation: { ipv4Address: '192.168.1.100', osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '1.6.6',
+    getDevices: jest.fn(() => {
+      // console.log('getDevices called');
+      return [];
+    }),
+    addBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
+      // console.log('addBridgedDevice called');
+    }),
+    addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+      // console.log('addBridgedEndpoint called');
+      // await aggregator.add(device);
+    }),
+    removeBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
+      // console.log('removeBridgedDevice called');
+    }),
+    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+      // console.log('removeBridgedEndpoint called');
+    }),
+    removeAllBridgedDevices: jest.fn(async (pluginName: string) => {
+      // console.log('removeAllBridgedDevices called');
+    }),
+    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
+      // console.log('removeAllBridgedEndpoints called');
+    }),
   } as unknown as Matterbridge;
 
   const mockConfig = {
