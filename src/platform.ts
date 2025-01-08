@@ -69,9 +69,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('1.6.6')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('1.7.1')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "1.6.6". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "1.7.1". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -167,22 +167,34 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const [domain, name] = entity.entity_id.split('.');
       if (!['automation', 'scene', 'script'].includes(domain)) continue;
       const entityName = entity.name ?? entity.original_name;
+      if (entityName && this.selectEntity) this.selectEntity.set(entity.id, { name: entity.entity_id, description: entityName, icon: 'hub' });
       if (!isValidString(entityName)) continue;
-      if (isValidArray(this.config.individualEntityWhiteList, 1) && !this.config.individualEntityWhiteList.includes(entityName)) continue;
-      if (isValidArray(this.config.individualEntityBlackList, 1) && this.config.individualEntityBlackList.includes(entityName)) continue;
+      if (
+        isValidArray(this.config.individualEntityWhiteList, 1) &&
+        !this.config.individualEntityWhiteList.includes(entityName) &&
+        !this.config.individualEntityWhiteList.includes(entity.entity_id)
+      )
+        continue;
+      if (
+        isValidArray(this.config.individualEntityBlackList, 1) &&
+        (this.config.individualEntityBlackList.includes(entityName) || this.config.individualEntityBlackList.includes(entity.entity_id))
+      )
+        continue;
 
       this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
       // Create a Mutable device with bridgedNode and the BridgedDeviceBasicInformationCluster
       const mutableDevice = new MutableDevice(
         this.matterbridge,
-        entityName,
-        entity.id + (isValidString(this.config.postfix, 1, 3) ? '-' + this.config.postfix : ''),
+        entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
+        isValidString(this.config.serialPostfix, 1, 3) ? entity.id.slice(0, 29) + this.config.serialPostfix : entity.id,
         0xfff1,
         'HomeAssistant',
         domain,
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
-      await mutableDevice.createMainEndpoint();
+      mutableDevice.composedType = 'HomeAssistant';
+      const matterbridgeDevice = await mutableDevice.createMainEndpoint();
+      matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/entities/entity/${entity.id}`;
       await mutableDevice.createClusters('');
 
       // Create the child endpoint with onOffOutlet and the OnOffCluster
@@ -211,6 +223,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Scan devices and entities and create Matterbridge devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
       const name = device.name_by_user ?? device.name;
+      const entitiesCount = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length;
+      if (name && entitiesCount > 0 && this.selectDevice) this.selectDevice.set(device.id, { serial: device.id, name, icon: 'hub' });
       if (!isValidString(name) || !this.validateDeviceWhiteBlackList([name, device.id], true)) continue;
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
       // this.log.debug(`Lookup device ${CYAN}${device.name}${db} id ${CYAN}${device.id}${db}`);
@@ -218,14 +232,16 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Create a Mutable device
       const mutableDevice = new MutableDevice(
         this.matterbridge,
-        name,
-        device.id + (isValidString(this.config.postfix, 1, 3) ? '-' + this.config.postfix : ''),
+        name + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
+        isValidString(this.config.serialPostfix, 1, 3) ? device.id.slice(0, 29) + this.config.serialPostfix : device.id,
         0xfff1,
         'HomeAssistant',
         device.model ?? 'Unknown',
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
+      mutableDevice.composedType = 'HomeAssistant';
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
+      matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/devices/device/${device.id}`;
 
       // Scan entities for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
