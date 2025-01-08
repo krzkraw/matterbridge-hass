@@ -167,6 +167,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const [domain, name] = entity.entity_id.split('.');
       if (!['automation', 'scene', 'script'].includes(domain)) continue;
       const entityName = entity.name ?? entity.original_name;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       if (entityName && this.selectEntity) this.selectEntity.set(entity.id, { name: entity.entity_id, description: entityName, icon: 'hub' });
       if (!isValidString(entityName)) continue;
       if (
