@@ -18,8 +18,11 @@ It is the ideal companion of the official [Matterbridge Home Assistant Add-on](h
 
 Features:
 
-- the plugin can run with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
-- the connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if the Home Assistant host is reachable.
+- The plugin can run with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
+- The connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if the Home Assistant host is reachable.
+- It is possible to select from a list the devices to include in the device white or black list.
+- It is possible to select from a list the entities to include in the entity white or black list.
+- It is possible to postfix the Matter device serialNumber or name to avoid collision with other instances.
 
 Supported devices:
 
@@ -125,11 +128,13 @@ If the blackList is defined the devices included will not be exposed to Matter. 
 
 ### individualEntityWhiteList
 
-White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. Enter the entity name.
+White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. 
+Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).
 
 ### individualEntityBlackList
 
-Black list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. Enter the entity name.
+Black list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. 
+Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).
 
 
 ### entityBlackList

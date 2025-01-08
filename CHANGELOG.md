@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
+## [0.0.7] - 2025-01-08
+
+### Added
+
+- [selectDevice]: Added selectDevice to get the device names from a list in the config editor.
+- [selectDevice]: Added selectEntity to get the entity names from a list in the config editor (requires matterbridge >= 1.7.2).
+- [config]: Added the possibility to validate individual entity in the white and black list by entity_id.
+- [config]: Added the possibility to postfix also the Matter device name to avoid collision with other instances.
+- [package]: Requires matterbridge 1.7.1.
+
+### Changed
+
+- [package]: Update dependencies.
+
+### Fixed
+
+- [config]: Fix the Matter serial number postfix.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+</a>
+
 ## [0.0.6] - 2024-12-24
 
 ### Added

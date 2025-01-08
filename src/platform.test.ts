@@ -48,11 +48,15 @@ describe('HassPlatform', () => {
     matterbridgeDirectory: './jest/matterbridge',
     matterbridgePluginDirectory: './jest/plugins',
     systemInformation: { ipv4Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '1.6.7',
+    matterbridgeVersion: '1.7.1',
     edge: false,
     log: mockLog,
     getDevices: jest.fn(() => {
       // console.log('getDevices called');
+      return [];
+    }),
+    getPlugins: jest.fn(() => {
+      // console.log('getPlugins called');
       return [];
     }),
     addBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {

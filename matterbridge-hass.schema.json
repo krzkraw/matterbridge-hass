@@ -31,36 +31,40 @@
       "type": "number",
       "default": 60
     },
-    "blackList": {
-      "description": "The devices in the list will not be exposed. Use the device name or the device id.",
+    "individualEntityWhiteList": {
+      "description": "White list of individual entities without associated device to be exposed. It allows to select scenes, scripts, automations. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "selectEntityFrom": "name"
+    },
+    "individualEntityBlackList": {
+      "description": "Black list of individual entities without associated device to not be exposed. It allows to select scenes, scripts, automations. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "selectEntityFrom": "name"
     },
     "whiteList": {
       "description": "Only the devices in the list will be exposed. Use the device name or the device id.",
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "selectFrom": "name"
     },
-    "individualEntityWhiteList": {
-      "description": "White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. Enter the entity name.",
+    "blackList": {
+      "description": "The devices in the list will not be exposed. Use the device name or the device id.",
       "type": "array",
       "items": {
         "type": "string"
-      }
-    },
-    "individualEntityBlackList": {
-      "description": "Black list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. Enter the entity name.",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+      },
+      "selectFrom": "name"
     },
     "entityBlackList": {
-      "description": "The entities in the list will not be exposed. Use the entity name.",
+      "description": "The entities in the list will not be exposed. Enter the entity name.",
       "type": "array",
       "items": {
         "type": "string"
@@ -76,8 +80,13 @@
         }
       }
     },
-    "postfix": {
+    "serialPostfix": {
       "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
+      "type": "string",
+      "default": ""
+    },
+    "namePostfix": {
+      "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
       "type": "string",
       "default": ""
     },
