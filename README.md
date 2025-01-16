@@ -104,11 +104,21 @@ matterbridge
 
 ## How to use it
 
+There are 2 different source of Matter devices coming from matterbridge-hass plugin:
+
+- Regular devices with their entities that use the main whiteList, blackList, entityBlackList and deviceEntityBlackList.
+
+You see them in Home Assistant at http://localhost:8123/config/devices/dashboard.
+
+- Individual entities with domain scenes, scripts, automations that use individualEntityWhiteList and individualEntityBlackList.
+
+You see these special entities in Home Assistant at http://localhost:8123/config/automation/dashboard, http://localhost:8123/config/scene/dashboard and http://localhost:8123/config/script/dashboard.
+
 You may need to set some config values in the frontend (wait that the plugin has been configured before changing the config):
 
-I suggest to always use the whiteList adding each device you want to expose to Matter.
+I suggest to always use the whiteList and individualEntityWhiteList adding each device you want to expose to Matter.
 
-If any device creates issues put it in the blackList.
+If any device or individual entity creates issues put it in the blackList.
 
 ### host
 
@@ -118,6 +128,16 @@ Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRE
 
 Home Assistant long term token used to connect to Home Assistant with WebSocket. Click on your user name in the bottom left corner of the Home Assistand frontend, then Security and create a Long-Lived Access Tokens.
 
+### individualEntityWhiteList
+
+White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations.
+Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).
+
+### individualEntityBlackList
+
+Black list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations.
+Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).
+
 ### whiteList
 
 If the whiteList is defined only the devices included are exposed to Matter. Use the device name or the device id.
@@ -125,17 +145,6 @@ If the whiteList is defined only the devices included are exposed to Matter. Use
 ### blackList
 
 If the blackList is defined the devices included will not be exposed to Matter. Use the device name or the device id.
-
-### individualEntityWhiteList
-
-White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. 
-Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).
-
-### individualEntityBlackList
-
-Black list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations. 
-Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).
-
 
 ### entityBlackList
 

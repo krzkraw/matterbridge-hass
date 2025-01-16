@@ -27,10 +27,10 @@ import {
   ClusterRegistry,
   ClusterServerObj,
   colorTemperatureLight,
-  Endpoint,
   Matterbridge,
   MatterbridgeDevice,
   MatterbridgeDynamicPlatform,
+  MatterbridgeEndpoint,
   OnOff,
   onOffOutlet,
   PlatformConfig,
@@ -69,9 +69,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('1.7.1')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('1.7.3')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "1.7.1". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "1.7.3". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -483,7 +483,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
   }
 
-  async commandHandler(mbDevice: MatterbridgeDevice | undefined, endpoint: Endpoint, request: any, attributes: any, command: string) {
+  async commandHandler(mbDevice: MatterbridgeDevice | undefined, endpoint: MatterbridgeEndpoint, request: any, attributes: any, command: string) {
     if (!mbDevice) {
       this.log.error(`Command handler: Matterbridge device not found`);
       return;

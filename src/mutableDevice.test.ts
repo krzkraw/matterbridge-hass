@@ -238,9 +238,9 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
 
-    expect(device.getAllClusterServers()).toHaveLength(8);
+    expect(device.getAllClusterServers()).toHaveLength(7);
     expect(device.getClusterServerById(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(DescriptorCluster.id)).toBeTruthy();
+    // expect(device.getClusterServerById(DescriptorCluster.id)).toBeTruthy();
     expect(device.getClusterServerById(PowerSourceCluster.id)).toBeTruthy();
     expect(device.getClusterServerById(IdentifyCluster.id)).toBeTruthy();
     expect(device.getClusterServerById(GroupsCluster.id)).toBeTruthy();
@@ -281,8 +281,8 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().deviceTypes).toHaveLength(2);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1); // BridgedDeviceBasicInformation
-    expect(device.getAllClusterServers()).toHaveLength(4);
-    expect(device.getClusterServerById(DescriptorCluster.id)).toBeTruthy();
+    expect(device.getAllClusterServers()).toHaveLength(3);
+    // expect(device.getClusterServerById(DescriptorCluster.id)).toBeTruthy();
     expect(device.getClusterServerById(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
     expect(device.getClusterServerById(PowerSourceCluster.id)).toBeTruthy();
     expect(device.getClusterServerById(FixedLabelCluster.id)).toBeTruthy();
@@ -291,12 +291,12 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child1').clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
-    expect(mutableDevice.getEndpoint('child1').getAllClusterServers()).toHaveLength(7);
+    expect(mutableDevice.getEndpoint('child1').getAllClusterServers()).toHaveLength(5);
 
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child2').clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get('child2').clusterServersObjs).toHaveLength(1);
-    expect(mutableDevice.getEndpoint('child1').getAllClusterServers()).toHaveLength(7);
+    expect(mutableDevice.getEndpoint('child1').getAllClusterServers()).toHaveLength(5);
 
     expect(mutableDevice.getEndpoint()).toBeDefined();
     expect(mutableDevice.getEndpoint('child1')).toBeDefined();
