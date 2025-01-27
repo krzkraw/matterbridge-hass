@@ -24,41 +24,43 @@
 import { createHash, randomBytes } from 'crypto';
 import {
   AtLeastOne,
-  BridgedDeviceBasicInformationCluster,
-  ClusterClientObj,
+  BridgedDeviceBasicInformation,
   ClusterId,
   ClusterRegistry,
-  ClusterServer,
-  ClusterServerObj,
-  ClusterType,
   colorTemperatureLight,
   colorTemperatureSwitch,
   DeviceTypeDefinition,
   dimmableLight,
   dimmableOutlet,
   dimmableSwitch,
-  EndpointOptions,
   Matterbridge,
-  MatterbridgeDevice,
   MatterbridgeEndpoint,
   onOffLight,
   onOffOutlet,
   onOffSwitch,
+  optionsFor,
   Semtag,
   VendorId,
 } from 'matterbridge';
 import { db, debugStringify, idn, ign, rs } from 'matterbridge/logger';
+import { Behavior, BridgedDeviceBasicInformationServer } from 'matterbridge/matter';
 import { CYAN } from 'node-ansi-logger';
 
+interface ClusterServerObj {
+  id: ClusterId;
+  behavior: Behavior.Type;
+  options: Behavior.Options;
+}
+
 interface MutableDeviceInterface {
-  endpoint?: MatterbridgeDevice;
+  endpoint?: MatterbridgeEndpoint;
   friendlyName: string;
   tagList: Semtag[];
   deviceTypes: DeviceTypeDefinition[];
   clusterServersIds: ClusterId[];
-  clusterServersObjs: ClusterServerObj<ClusterType>[];
+  clusterServersObjs: ClusterServerObj[]; // ClusterServerObj<ClusterType>[];
   clusterClientsIds: ClusterId[];
-  clusterClientsObjs: ClusterClientObj<ClusterType>[];
+  clusterClientsObjs: ClusterServerObj[];
 }
 
 export class MutableDevice {
@@ -111,9 +113,9 @@ export class MutableDevice {
     return this.mutableDevice.get(endpoint) as MutableDeviceInterface;
   }
 
-  getEndpoint(endpoint = ''): MatterbridgeDevice {
+  getEndpoint(endpoint = ''): MatterbridgeEndpoint {
     if (this.mutableDevice.get(endpoint)?.endpoint === undefined) throw new Error(`Device ${endpoint} endpoint is not defined`);
-    return this.mutableDevice.get(endpoint)?.endpoint as MatterbridgeDevice;
+    return this.mutableDevice.get(endpoint)?.endpoint as MatterbridgeEndpoint;
   }
 
   private initializeEndpoint(endpoint: string) {
@@ -129,17 +131,6 @@ export class MutableDevice {
       });
     }
     return this.mutableDevice.get(endpoint) as MutableDeviceInterface;
-  }
-
-  private async createMutableDevice(
-    definition: DeviceTypeDefinition | AtLeastOne<DeviceTypeDefinition>,
-    options: EndpointOptions = {},
-    debug = false,
-  ): Promise<MatterbridgeDevice> {
-    let device: MatterbridgeDevice;
-    if (this.matterbridge.edge === true) device = new MatterbridgeEndpoint(definition, options, debug) as unknown as MatterbridgeDevice;
-    else device = new MatterbridgeDevice(definition, options, debug);
-    return device;
   }
 
   setFriendlyName(endpoint: string, friendlyName: string) {
@@ -163,7 +154,7 @@ export class MutableDevice {
     device.clusterServersIds.push(...clusterServerIds);
   }
 
-  addClusterServerObjs(endpoint: string, ...clusterServerObj: ClusterServerObj<ClusterType>[]) {
+  addClusterServerObjs(endpoint: string, ...clusterServerObj: ClusterServerObj[]) {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(...clusterServerObj);
   }
@@ -189,33 +180,24 @@ export class MutableDevice {
     device.hardwareVersion = this.hardwareVersion;
     device.hardwareVersionString = this.hardwareVersionString;
 
-    this.addClusterServerObjs(
-      '',
-      ClusterServer(
-        BridgedDeviceBasicInformationCluster,
-        {
-          vendorId: this.vendorId,
-          vendorName: this.vendorName.slice(0, 32),
-          productName: this.productName.slice(0, 32),
-          productLabel: this.deviceName.slice(0, 64),
-          nodeLabel: this.deviceName.slice(0, 32),
-          serialNumber: this.serialNumber.slice(0, 32),
-          uniqueId: this.createUniqueId(this.deviceName, this.serialNumber, this.vendorName, this.productName),
-          softwareVersion: this.softwareVersion,
-          softwareVersionString: this.softwareVersionString.slice(0, 64),
-          hardwareVersion: this.hardwareVersion,
-          hardwareVersionString: this.hardwareVersionString.slice(0, 64),
-          reachable: true,
-        },
-        {},
-        {
-          startUp: true,
-          shutDown: true,
-          leave: true,
-          reachableChanged: true,
-        },
-      ) as unknown as ClusterServerObj,
-    );
+    this.addClusterServerObjs('', {
+      id: BridgedDeviceBasicInformation.Cluster.id,
+      behavior: BridgedDeviceBasicInformationServer,
+      options: optionsFor(BridgedDeviceBasicInformationServer, {
+        vendorId: this.vendorId,
+        vendorName: this.vendorName.slice(0, 32),
+        productName: this.productName.slice(0, 32),
+        productLabel: this.deviceName.slice(0, 64),
+        nodeLabel: this.deviceName.slice(0, 32),
+        serialNumber: this.serialNumber.slice(0, 32),
+        uniqueId: this.createUniqueId(this.deviceName, this.serialNumber, this.vendorName, this.productName),
+        softwareVersion: this.softwareVersion,
+        softwareVersionString: this.softwareVersionString.slice(0, 64),
+        hardwareVersion: this.hardwareVersion,
+        hardwareVersionString: this.hardwareVersionString.slice(0, 64),
+        reachable: true,
+      }),
+    });
   }
 
   async create() {
@@ -225,7 +207,7 @@ export class MutableDevice {
       await this.createClusters(endpoint);
     }
     const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
-    return mainDevice.endpoint as MatterbridgeDevice;
+    return mainDevice.endpoint as MatterbridgeEndpoint;
   }
 
   private removeDuplicateAndSupersetDeviceTypes() {
@@ -251,7 +233,7 @@ export class MutableDevice {
     // Create the mutable device for the main endpoint
     const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
     mainDevice.friendlyName = this.deviceName;
-    mainDevice.endpoint = await this.createMutableDevice(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { uniqueStorageKey: this.deviceName }, true);
+    mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { uniqueStorageKey: this.deviceName }, true);
     mainDevice.endpoint.log.logName = this.deviceName;
     return mainDevice.endpoint;
   }
@@ -343,13 +325,12 @@ export class MutableDevice {
       // Add the cluster objects to the main endpoint
       this.addBridgedDeviceBasicInformationClusterServer();
       for (const clusterServerObj of mainDevice.clusterServersObjs) {
-        mainDevice.endpoint.addClusterServer(clusterServerObj);
+        mainDevice.endpoint.behaviors.require(clusterServerObj.behavior, clusterServerObj.options);
       }
-
       // Add the cluster ids to the main endpoint
-      mainDevice.endpoint.addClusterServerFromList(mainDevice.endpoint, mainDevice.clusterServersIds);
-      mainDevice.endpoint.addRequiredClusterServers(mainDevice.endpoint);
-
+      mainDevice.endpoint.addClusterServers(mainDevice.clusterServersIds);
+      // Add the required clusters to the main endpoint
+      mainDevice.endpoint.addRequiredClusterServers();
       // Add the Fixed Label cluster to the main endpoint
       if (this.composedType) await mainDevice.endpoint.addFixedLabel('composed', this.composedType);
       return this;
@@ -358,11 +339,14 @@ export class MutableDevice {
     // Add clusters to the child endpoints
     for (const [, device] of Array.from(this.mutableDevice.entries()).filter(([e]) => e === endpoint)) {
       if (!device.endpoint) throw new Error('Child endpoint is not defined');
+      // Add the cluster objects to the child endpoint
       for (const clusterServerObj of device.clusterServersObjs) {
-        device.endpoint.addClusterServer(clusterServerObj);
+        device.endpoint.behaviors.require(clusterServerObj.behavior, clusterServerObj.options);
       }
-      device.endpoint.addClusterServerFromList(device.endpoint, device.clusterServersIds);
-      device.endpoint.addRequiredClusterServers(device.endpoint);
+      // Add the cluster ids to the child endpoint
+      device.endpoint.addClusterServers(device.clusterServersIds);
+      // Add the required clusters to the child endpoint
+      device.endpoint.addRequiredClusterServers();
     }
     return this;
   }

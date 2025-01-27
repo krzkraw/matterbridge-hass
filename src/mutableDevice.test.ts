@@ -2,12 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Matterbridge,
-  Semtag,
-  DeviceTypeDefinition,
-  ClusterId,
-  ClusterServerObj,
-  ClusterClientObj,
-  MatterbridgeDevice,
   MatterbridgeEndpoint,
   bridgedNode,
   powerSource,
@@ -28,61 +22,66 @@ import {
   LevelControlCluster,
   ColorControlCluster,
   DescriptorCluster,
-  FixedLabelCluster,
   temperatureSensor,
+  optionsFor,
+  OnOff,
+  PowerSource,
+  BridgedDeviceBasicInformation,
+  LevelControl,
+  FixedLabel,
+  Descriptor,
 } from 'matterbridge';
 import { MutableDevice } from './mutableDevice';
 import { jest } from '@jest/globals';
 import { AnsiLogger } from 'matterbridge/logger';
+import { LevelControlServer, OnOffServer } from 'matterbridge/matter';
 
 describe('MutableDevice', () => {
   const mockLog = {
     fatal: jest.fn((message: string, ...parameters: any[]) => {
-      // console.error('mockLog.fatal', message, parameters);
+      // console.log('mockLog.fatal', message, parameters);
     }),
     error: jest.fn((message: string, ...parameters: any[]) => {
-      // console.error('mockLog.error', message, parameters);
+      // console.log('mockLog.error', message, parameters);
     }),
     warn: jest.fn((message: string, ...parameters: any[]) => {
-      // console.error('mockLog.warn', message, parameters);
+      // console.log('mockLog.warn', message, parameters);
     }),
     notice: jest.fn((message: string, ...parameters: any[]) => {
-      // console.error('mockLog.notice', message, parameters);
+      // console.log('mockLog.notice', message, parameters);
     }),
     info: jest.fn((message: string, ...parameters: any[]) => {
-      // console.error('mockLog.info', message, parameters);
+      // console.log('mockLog.info', message, parameters);
     }),
     debug: jest.fn((message: string, ...parameters: any[]) => {
-      // console.error('mockLog.debug', message, parameters);
+      // console.log('mockLog.debug', message, parameters);
     }),
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
-    addBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
-      // console.error('addBridgedDevice called');
+    matterbridgeDirectory: './jest/matterbridge',
+    matterbridgePluginDirectory: './jest/plugins',
+    systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
+    matterbridgeVersion: '2.1.0',
+    edge: true,
+    log: mockLog,
+    getDevices: jest.fn(() => {
+      // console.log('getDevices called');
+      return [];
+    }),
+    getPlugins: jest.fn(() => {
+      // console.log('getDevices called');
+      return [];
     }),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      device.number = 100;
-      // console.error('addBridgedEndpoint called');
-    }),
-    removeBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
-      // console.error('removeBridgedDevice called');
+      // console.log('addBridgedEndpoint called');
     }),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      // console.error('removeBridgedEndpoint called');
-    }),
-    removeAllBridgedDevices: jest.fn(async (pluginName: string) => {
-      // console.error('removeAllBridgedDevices called');
+      // console.log('removeBridgedEndpoint called');
     }),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
-      // console.error('removeAllBridgedEndpoints called');
+      // console.log('removeAllBridgedEndpoints called');
     }),
-    edge: false,
-    log: mockLog,
-    matterbridgeDirectory: '',
-    matterbridgePluginDirectory: 'temp',
-    systemInformation: { ipv4Address: '192.168.1.100', osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '1.6.5',
   } as unknown as Matterbridge;
 
   beforeAll(() => {
@@ -133,7 +132,7 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', bridgedNode);
     const device = await mutableDevice.create();
     expect(device).toBeDefined();
-    expect(device).toBeInstanceOf(MatterbridgeDevice);
+    expect(device).toBeInstanceOf(MatterbridgeEndpoint);
     mockMatterbridge.edge = false;
   });
 
@@ -195,22 +194,21 @@ describe('MutableDevice', () => {
   it('should add a cluster ids', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
-    mutableDevice.addClusterServerIds('', PowerSourceCluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
 
     expect(mutableDevice.get()).toBeDefined();
-    expect(mutableDevice.get().clusterServersIds).toContain(PowerSourceCluster.id);
-    expect(mutableDevice.get().clusterServersIds).not.toContain(BridgedDeviceBasicInformationCluster.id);
+    expect(mutableDevice.get().clusterServersIds).toContain(PowerSource.Cluster.id);
+    expect(mutableDevice.get().clusterServersIds).not.toContain(BridgedDeviceBasicInformation.Cluster.id);
   });
 
   it('should add a cluster objects', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
-    mutableDevice.addClusterServerIds('', PowerSourceCluster.id);
-
-    const onOff = new MatterbridgeDevice(onOffOutlet);
-    mutableDevice.addClusterServerObjs('', onOff.getDefaultOnOffClusterServer(false) as unknown as ClusterServerObj);
+    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
+    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, behavior: OnOffServer, options: optionsFor(OnOffServer, {}) });
 
     expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
   });
 
@@ -223,11 +221,10 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
     mutableDevice.addDeviceTypes('', onOffOutlet, dimmableOutlet);
     mutableDevice.addDeviceTypes('', onOffLight, dimmableLight, colorTemperatureLight);
-    mutableDevice.addClusterServerIds('', PowerSourceCluster.id);
-    mutableDevice.addClusterServerIds('', PowerSourceCluster.id, OnOffCluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
+    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, behavior: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
 
-    const onOff = new MatterbridgeDevice(onOffOutlet);
-    mutableDevice.addClusterServerObjs('', onOff.getDefaultOnOffClusterServer(false) as unknown as ClusterServerObj);
     expect(mutableDevice.get().deviceTypes).toHaveLength(12);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(3);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
@@ -238,15 +235,15 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
 
-    expect(device.getAllClusterServers()).toHaveLength(7);
-    expect(device.getClusterServerById(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
-    // expect(device.getClusterServerById(DescriptorCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(PowerSourceCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(IdentifyCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(GroupsCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(OnOffCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(LevelControlCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(ColorControlCluster.id)).toBeTruthy();
+    expect(Object.keys(device.behaviors.supported)).toHaveLength(9); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "levelControl", "colorControl"]
+    expect(device.hasClusterServer(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(DescriptorCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(PowerSourceCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(IdentifyCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(GroupsCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(OnOffCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(LevelControlCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(ColorControlCluster.id)).toBeTruthy();
   });
 
   it('should create a MatterbridgeDevice with child endpoint', async () => {
@@ -255,21 +252,19 @@ describe('MutableDevice', () => {
     mutableDevice.composedType = 'Switch';
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
 
-    const onOff = (await (mutableDevice as any).createMutableDevice(onOffOutlet)) as MatterbridgeDevice;
-
     mutableDevice.addDeviceTypes('child1', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
-    mutableDevice.addClusterServerIds('child1', OnOffCluster.id);
+    mutableDevice.addClusterServerIds('child1', OnOff.Cluster.id);
     mutableDevice.addClusterServerObjs(
       'child1',
-      onOff.getDefaultOnOffClusterServer(false) as unknown as ClusterServerObj,
-      onOff.getDefaultLevelControlClusterServer(100) as unknown as ClusterServerObj,
+      { id: OnOff.Cluster.id, behavior: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) },
+      { id: LevelControl.Cluster.id, behavior: LevelControlServer, options: optionsFor(LevelControlServer, { currentLevel: 100 }) },
     );
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(3);
     expect(mutableDevice.get('child1').clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
 
     mutableDevice.addDeviceTypes('child2', onOffOutlet);
-    mutableDevice.addClusterServerObjs('child2', onOff.getDefaultOnOffClusterServer(false) as unknown as ClusterServerObj);
+    mutableDevice.addClusterServerObjs('child2', { id: OnOff.Cluster.id, behavior: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
     mutableDevice.addTagLists('child2', { mfgCode: null, namespaceId: 1, tag: 1, label: 'Test' });
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child2').clusterServersIds).toHaveLength(0);
@@ -281,22 +276,22 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().deviceTypes).toHaveLength(2);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1); // BridgedDeviceBasicInformation
-    expect(device.getAllClusterServers()).toHaveLength(3);
-    // expect(device.getClusterServerById(DescriptorCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(PowerSourceCluster.id)).toBeTruthy();
-    expect(device.getClusterServerById(FixedLabelCluster.id)).toBeTruthy();
+    expect(Object.keys(device.behaviors.supported)).toHaveLength(5); // ["descriptor", "matterbridge", "bridgedDeviceBasicInformation", "powerSource", "fixedLabel"]
+    expect(device.hasClusterServer(Descriptor.Cluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(BridgedDeviceBasicInformation.Cluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(PowerSource.Cluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(FixedLabel.Cluster.id)).toBeTruthy();
     expect(device.getChildEndpoints()).toHaveLength(2);
 
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child1').clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
-    expect(mutableDevice.getEndpoint('child1').getAllClusterServers()).toHaveLength(5);
+    expect(Object.keys(mutableDevice.getEndpoint('child1').behaviors.supported)).toHaveLength(7); // ["descriptor", "matterbridge", "onOff", "levelControl", "identify", "groups", "colorControl"]
 
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child2').clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get('child2').clusterServersObjs).toHaveLength(1);
-    expect(mutableDevice.getEndpoint('child1').getAllClusterServers()).toHaveLength(5);
+    expect(Object.keys(mutableDevice.getEndpoint('child2').behaviors.supported)).toHaveLength(5); // ["descriptor", "matterbridge", "onOff", "identify", "groups"]
 
     expect(mutableDevice.getEndpoint()).toBeDefined();
     expect(mutableDevice.getEndpoint('child1')).toBeDefined();
