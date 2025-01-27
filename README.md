@@ -118,7 +118,7 @@ You may need to set some config values in the frontend (wait that the plugin has
 
 I suggest to always use the whiteList and individualEntityWhiteList adding each device you want to expose to Matter.
 
-If any device or individual entity creates issues put it in the blackList.
+If any device or individual entity creates issues put it in the blackList or in the individualEntityBlackList.
 
 ### host
 
@@ -131,12 +131,12 @@ Home Assistant long term token used to connect to Home Assistant with WebSocket.
 ### individualEntityWhiteList
 
 White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations.
-Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).
+Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switches).
 
 ### individualEntityBlackList
 
 Black list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations.
-Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).
+Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switches).
 
 ### whiteList
 

@@ -14,6 +14,10 @@ import { wait } from 'matterbridge/utils';
 const loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
   // console.error(`Mocked AnsiLogger.log: ${level} - ${message}`, ...parameters);
 });
+// Spy on and mock console.log
+const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {
+  //
+});
 
 describe('HomeAssistant', () => {
   let server: WebSocketServer;

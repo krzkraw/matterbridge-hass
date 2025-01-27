@@ -84,6 +84,11 @@ describe('MutableDevice', () => {
     }),
   } as unknown as Matterbridge;
 
+  // Spy on and mock AnsiLogger.log
+  const loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
+    //
+  });
+
   beforeAll(() => {
     //
   });

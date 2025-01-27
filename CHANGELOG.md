@@ -9,11 +9,12 @@ If you like this project and find it useful, please consider giving it a star on
 ### Added
 
 - [config]: Added uniqueItems flag to the lists.
-- [package]: Requires matterbridge 1.7.3.
-- [readme]: Clarified the difference between single entities and device entities.
+- [package]: Requires matterbridge 2.1.0.
+- [readme]: Clarified in the README the difference between single entities and device entities.
 
 ### Changed
 
+- [package]: Update package.
 - [package]: Update dependencies.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
