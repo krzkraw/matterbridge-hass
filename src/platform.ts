@@ -28,21 +28,24 @@ import {
   ColorControl,
   colorTemperatureLight,
   Matterbridge,
+  MatterbridgeColorControlServer,
   MatterbridgeDynamicPlatform,
   MatterbridgeEndpoint,
+  MatterbridgeThermostatServer,
   OnOff,
   onOffOutlet,
-  optionsFor,
   PlatformConfig,
   Thermostat,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
+
 import path from 'path';
 import { promises as fs } from 'fs';
+
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices } from './homeAssistant.js';
-import { MutableDevice } from './mutableDevice.js';
+import { MutableDevice, getClusterServerObj } from './mutableDevice.js';
 import {
   hassCommandConverter,
   hassDomainAttributeConverter,
@@ -52,7 +55,6 @@ import {
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
 } from './converters.js';
-import { ColorControlServer, ThermostatServer } from 'matterbridge/matter';
 
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   // NodeStorageManager
@@ -315,35 +317,56 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             !hassState.attributes['supported_color_modes'].includes('rgb') &&
             hassState.attributes['supported_color_modes'].includes('color_temp')
           ) {
-            mutableDevice.addClusterServerObjs(entity.entity_id, {
-              id: ColorControl.Cluster.id,
-              behavior: ColorControlServer.with(ColorControl.Feature.ColorTemperature),
-              options: optionsFor(ColorControlServer.with(ColorControl.Feature.ColorTemperature), {
+            mutableDevice.addClusterServerObjs(
+              entity.entity_id,
+              getClusterServerObj(ColorControl.Cluster.id, MatterbridgeColorControlServer.with(ColorControl.Feature.ColorTemperature), {
+                colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
+                enhancedColorMode: ColorControl.EnhancedColorMode.ColorTemperatureMireds,
+                colorCapabilities: { xy: false, hueSaturation: false, colorLoop: false, enhancedHue: false, colorTemperature: true },
+                options: {
+                  executeIfOff: false,
+                },
+                numberOfPrimaries: null,
                 colorTemperatureMireds: hassState.attributes['max_mireds'] as number | undefined,
                 colorTempPhysicalMinMireds: hassState.attributes['min_mireds'] as number | undefined,
-                colorTempPhysicalMaxMireds: hassState.attributes['min_mireds'] as number | undefined,
+                colorTempPhysicalMaxMireds: hassState.attributes['max_mireds'] as number | undefined,
+                coupleColorTempToLevelMinMireds: hassState.attributes['min_mireds'] as number | undefined,
+                remainingTime: 0,
+                startUpColorTemperatureMireds: null,
               }),
-            });
+            );
           } else {
-            mutableDevice.addClusterServerObjs(entity.entity_id, {
-              id: ColorControl.Cluster.id,
-              behavior: ColorControlServer.with(ColorControl.Feature.ColorTemperature, ColorControl.Feature.HueSaturation, ColorControl.Feature.Xy),
-              options: optionsFor(ColorControlServer.with(ColorControl.Feature.ColorTemperature, ColorControl.Feature.HueSaturation, ColorControl.Feature.Xy), {
-                colorTemperatureMireds: hassState.attributes['max_mireds'] as number | undefined,
-                colorTempPhysicalMinMireds: hassState.attributes['min_mireds'] as number | undefined,
-                colorTempPhysicalMaxMireds: hassState.attributes['min_mireds'] as number | undefined,
-              }),
-            });
+            mutableDevice.addClusterServerObjs(
+              entity.entity_id,
+              getClusterServerObj(
+                ColorControl.Cluster.id,
+                MatterbridgeColorControlServer.with(ColorControl.Feature.ColorTemperature, ColorControl.Feature.HueSaturation, ColorControl.Feature.Xy),
+                {
+                  colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
+                  enhancedColorMode: ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation,
+                  colorCapabilities: { xy: true, hueSaturation: true, colorLoop: false, enhancedHue: false, colorTemperature: true },
+                  options: {
+                    executeIfOff: false,
+                  },
+                  numberOfPrimaries: null,
+                  colorTemperatureMireds: hassState.attributes['max_mireds'] as number | undefined,
+                  colorTempPhysicalMinMireds: hassState.attributes['min_mireds'] as number | undefined,
+                  colorTempPhysicalMaxMireds: hassState.attributes['max_mireds'] as number | undefined,
+                  coupleColorTempToLevelMinMireds: hassState.attributes['min_mireds'] as number | undefined,
+                  remainingTime: 0,
+                  startUpColorTemperatureMireds: null,
+                },
+              ),
+            );
           }
         }
 
         // Special case for climate domain: configure the thermostat cluster
         if (domain === 'climate') {
           if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat_cool')) {
-            mutableDevice.addClusterServerObjs(entity.entity_id, {
-              id: Thermostat.Cluster.id,
-              behavior: ThermostatServer.with(Thermostat.Feature.AutoMode, Thermostat.Feature.Heating, Thermostat.Feature.Cooling),
-              options: optionsFor(ThermostatServer.with(Thermostat.Feature.AutoMode, Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
+            mutableDevice.addClusterServerObjs(
+              entity.entity_id,
+              getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.AutoMode, Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
                 localTemperature: hassState.attributes['current_temperature'] as number | undefined,
                 systemMode: Thermostat.SystemMode.Auto,
                 controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
@@ -363,19 +386,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                 minSetpointDeadBand: 1 * 100,
                 thermostatRunningMode: Thermostat.ThermostatRunningMode.Off,
               }),
-            });
+            );
           } else if (
             isValidArray(hassState?.attributes['hvac_modes']) &&
             hassState.attributes['hvac_modes'].includes('heat') &&
             !hassState.attributes['hvac_modes'].includes('cool')
           ) {
-            mutableDevice.addClusterServerObjs(entity.entity_id, {
-              id: Thermostat.Cluster.id,
-              behavior: ThermostatServer.with(Thermostat.Feature.Heating),
-              options: optionsFor(ThermostatServer.with(Thermostat.Feature.Heating), {
+            mutableDevice.addClusterServerObjs(
+              entity.entity_id,
+              getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Heating), {
                 localTemperature: hassState.attributes['current_temperature'] as number | undefined,
-                systemMode: Thermostat.SystemMode.Auto,
-                controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
+                systemMode: Thermostat.SystemMode.Heat,
+                controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.HeatingOnly,
                 // Thermostat.Feature.Heating
                 occupiedHeatingSetpoint: ((hassState.attributes['temperature'] as number | undefined) ?? 21) * 100,
                 minHeatSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
@@ -383,19 +405,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                 maxHeatSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
                 absMaxHeatSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
               }),
-            });
+            );
           } else if (
             isValidArray(hassState?.attributes['hvac_modes']) &&
             hassState.attributes['hvac_modes'].includes('cool') &&
             !hassState.attributes['hvac_modes'].includes('heat')
           ) {
-            mutableDevice.addClusterServerObjs(entity.entity_id, {
-              id: Thermostat.Cluster.id,
-              behavior: ThermostatServer.with(Thermostat.Feature.Cooling),
-              options: optionsFor(ThermostatServer.with(Thermostat.Feature.Cooling), {
+            mutableDevice.addClusterServerObjs(
+              entity.entity_id,
+              getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Cooling), {
                 localTemperature: hassState.attributes['current_temperature'] as number | undefined,
-                systemMode: Thermostat.SystemMode.Auto,
-                controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
+                systemMode: Thermostat.SystemMode.Cool,
+                controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingOnly,
                 // Thermostat.Feature.Cooling
                 occupiedCoolingSetpoint: ((hassState.attributes['temperature'] as number | undefined) ?? 25) * 100,
                 minCoolSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
@@ -403,7 +424,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                 maxCoolSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
                 absMaxCoolSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
               }),
-            });
+            );
           }
         }
 

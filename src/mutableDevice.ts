@@ -38,7 +38,6 @@ import {
   onOffLight,
   onOffOutlet,
   onOffSwitch,
-  optionsFor,
   Semtag,
   VendorId,
 } from 'matterbridge';
@@ -48,7 +47,7 @@ import { CYAN } from 'node-ansi-logger';
 
 interface ClusterServerObj {
   id: ClusterId;
-  behavior: Behavior.Type;
+  type: Behavior.Type;
   options: Behavior.Options;
 }
 
@@ -58,9 +57,13 @@ interface MutableDeviceInterface {
   tagList: Semtag[];
   deviceTypes: DeviceTypeDefinition[];
   clusterServersIds: ClusterId[];
-  clusterServersObjs: ClusterServerObj[]; // ClusterServerObj<ClusterType>[];
+  clusterServersObjs: ClusterServerObj[];
   clusterClientsIds: ClusterId[];
   clusterClientsObjs: ClusterServerObj[];
+}
+
+export function getClusterServerObj<T extends Behavior.Type>(clusterId: ClusterId, type: T, options: Behavior.Options<T>) {
+  return { id: clusterId, type, options };
 }
 
 export class MutableDevice {
@@ -180,10 +183,9 @@ export class MutableDevice {
     device.hardwareVersion = this.hardwareVersion;
     device.hardwareVersionString = this.hardwareVersionString;
 
-    this.addClusterServerObjs('', {
-      id: BridgedDeviceBasicInformation.Cluster.id,
-      behavior: BridgedDeviceBasicInformationServer,
-      options: optionsFor(BridgedDeviceBasicInformationServer, {
+    this.addClusterServerObjs(
+      '',
+      getClusterServerObj(BridgedDeviceBasicInformation.Cluster.id, BridgedDeviceBasicInformationServer, {
         vendorId: this.vendorId,
         vendorName: this.vendorName.slice(0, 32),
         productName: this.productName.slice(0, 32),
@@ -197,7 +199,7 @@ export class MutableDevice {
         hardwareVersionString: this.hardwareVersionString.slice(0, 64),
         reachable: true,
       }),
-    });
+    );
   }
 
   async create() {
@@ -325,7 +327,7 @@ export class MutableDevice {
       // Add the cluster objects to the main endpoint
       this.addBridgedDeviceBasicInformationClusterServer();
       for (const clusterServerObj of mainDevice.clusterServersObjs) {
-        mainDevice.endpoint.behaviors.require(clusterServerObj.behavior, clusterServerObj.options);
+        mainDevice.endpoint.behaviors.require(clusterServerObj.type, clusterServerObj.options);
       }
       // Add the cluster ids to the main endpoint
       mainDevice.endpoint.addClusterServers(mainDevice.clusterServersIds);
@@ -341,7 +343,7 @@ export class MutableDevice {
       if (!device.endpoint) throw new Error('Child endpoint is not defined');
       // Add the cluster objects to the child endpoint
       for (const clusterServerObj of device.clusterServersObjs) {
-        device.endpoint.behaviors.require(clusterServerObj.behavior, clusterServerObj.options);
+        device.endpoint.behaviors.require(clusterServerObj.type, clusterServerObj.options);
       }
       // Add the cluster ids to the child endpoint
       device.endpoint.addClusterServers(device.clusterServersIds);

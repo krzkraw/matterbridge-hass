@@ -34,7 +34,7 @@ import {
 import { MutableDevice } from './mutableDevice';
 import { jest } from '@jest/globals';
 import { AnsiLogger } from 'matterbridge/logger';
-import { LevelControlServer, OnOffServer } from 'matterbridge/matter';
+import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter';
 
 describe('MutableDevice', () => {
   const mockLog = {
@@ -157,9 +157,12 @@ describe('MutableDevice', () => {
     await mutableDevice.createMainEndpoint();
     mutableDevice.addBridgedDeviceBasicInformationClusterServer();
 
-    // expect(mutableDevice.has('')).toBeTruthy();
+    expect(mutableDevice.has('')).toBeTruthy();
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().tagList).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.Cluster.id);
+    expect(mutableDevice.get().clusterServersObjs[0].type).toBe(BridgedDeviceBasicInformationServer);
+    expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
   });
 
   it('should add a tagList', () => {
@@ -205,7 +208,7 @@ describe('MutableDevice', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
-    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, behavior: OnOffServer, options: optionsFor(OnOffServer, {}) });
+    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, {}) });
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
@@ -223,7 +226,7 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', onOffLight, dimmableLight, colorTemperatureLight);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
-    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, behavior: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
+    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(12);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(3);
@@ -256,15 +259,15 @@ describe('MutableDevice', () => {
     mutableDevice.addClusterServerIds('child1', OnOff.Cluster.id);
     mutableDevice.addClusterServerObjs(
       'child1',
-      { id: OnOff.Cluster.id, behavior: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) },
-      { id: LevelControl.Cluster.id, behavior: LevelControlServer, options: optionsFor(LevelControlServer, { currentLevel: 100 }) },
+      { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) },
+      { id: LevelControl.Cluster.id, type: LevelControlServer, options: optionsFor(LevelControlServer, { currentLevel: 100 }) },
     );
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(3);
     expect(mutableDevice.get('child1').clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
 
     mutableDevice.addDeviceTypes('child2', onOffOutlet);
-    mutableDevice.addClusterServerObjs('child2', { id: OnOff.Cluster.id, behavior: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
+    mutableDevice.addClusterServerObjs('child2', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
     mutableDevice.addTagLists('child2', { mfgCode: null, namespaceId: 1, tag: 1, label: 'Test' });
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child2').clusterServersIds).toHaveLength(0);
