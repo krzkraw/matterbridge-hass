@@ -23,10 +23,6 @@
 
 import { createHash, randomBytes } from 'crypto';
 import {
-  AtLeastOne,
-  BridgedDeviceBasicInformation,
-  ClusterId,
-  ClusterRegistry,
   colorTemperatureLight,
   colorTemperatureSwitch,
   DeviceTypeDefinition,
@@ -38,11 +34,13 @@ import {
   onOffLight,
   onOffOutlet,
   onOffSwitch,
-  Semtag,
-  VendorId,
 } from 'matterbridge';
 import { db, debugStringify, idn, ign, rs } from 'matterbridge/logger';
-import { Behavior, BridgedDeviceBasicInformationServer } from 'matterbridge/matter';
+
+import { AtLeastOne, Behavior } from 'matterbridge/matter';
+import { VendorId, ClusterId, Semtag, ClusterRegistry } from 'matterbridge/matter/types';
+import { BridgedDeviceBasicInformation } from 'matterbridge/matter/clusters';
+import { BridgedDeviceBasicInformationServer } from 'matterbridge/matter/behaviors';
 import { CYAN } from 'node-ansi-logger';
 
 interface ClusterServerObj {

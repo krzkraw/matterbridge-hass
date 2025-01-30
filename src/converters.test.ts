@@ -1,5 +1,5 @@
 /* eslint-disable jest/no-conditional-expect */
-import { FanControl, Thermostat } from 'matterbridge';
+import { FanControl, Thermostat } from 'matterbridge/matter/clusters';
 import {
   hassCommandConverter,
   hassDomainAttributeConverter,

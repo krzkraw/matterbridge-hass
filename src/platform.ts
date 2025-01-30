@@ -24,22 +24,21 @@
 
 import {
   bridgedNode,
-  ClusterRegistry,
-  ColorControl,
   colorTemperatureLight,
   Matterbridge,
   MatterbridgeColorControlServer,
   MatterbridgeDynamicPlatform,
   MatterbridgeEndpoint,
   MatterbridgeThermostatServer,
-  OnOff,
   onOffOutlet,
   PlatformConfig,
-  Thermostat,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
+
+import { Thermostat, OnOff, ColorControl } from 'matterbridge/matter/clusters';
+import { ClusterRegistry } from 'matterbridge/matter/types';
 
 import path from 'path';
 import { promises as fs } from 'fs';

@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
-## [0.0.8-dev.2] - 2025-02-01
+## [0.0.8-dev.3] - 2025-02-01
 
 ### Added
 

@@ -65,23 +65,19 @@ describe('initializePlugin', () => {
     'unregisterOnShutdown': false,
   } as PlatformConfig;
 
-  let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
-  let loggerLogSpy: jest.SpiedFunction<(level: LogLevel, message: string, ...parameters: any[]) => void>;
+  // Spy on and mock the AnsiLogger.log method
+  const loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
+    // console.error(`Mocked AnsiLogger.log: ${level} - ${message}`, ...parameters);
+  });
 
-  beforeAll(() => {
-    // Spy on and mock the AnsiLogger.log method
-    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
-      // console.error(`Mocked AnsiLogger.log: ${level} - ${message}`, ...parameters);
-    });
-
-    // Spy on and mock console.log
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {
-      // console.error('Mocked console.log', args);
-    });
+  // Spy on and mock console.log
+  const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {
+    // console.error('Mocked console.log', args);
   });
 
   it('should return an instance of HomeAssistantPlatform', () => {
     const platform = initializePlugin(mockMatterbridge, mockLog, mockConfig);
     expect(platform).toBeInstanceOf(HomeAssistantPlatform);
+    platform.onShutdown();
   });
 });

@@ -6,10 +6,7 @@ import {
   bridgedNode,
   powerSource,
   electricalSensor,
-  PowerSourceCluster,
-  BridgedDeviceBasicInformationCluster,
   onOffOutlet,
-  OnOffCluster,
   onOffLight,
   dimmableLight,
   colorTemperatureLight,
@@ -17,24 +14,29 @@ import {
   dimmableSwitch,
   dimmableOutlet,
   colorTemperatureSwitch,
+  temperatureSensor,
+  optionsFor,
+} from 'matterbridge';
+import { MutableDevice } from './mutableDevice';
+import { jest } from '@jest/globals';
+import { AnsiLogger } from 'matterbridge/logger';
+import {
+  PowerSourceCluster,
+  BridgedDeviceBasicInformationCluster,
+  OnOffCluster,
   IdentifyCluster,
   GroupsCluster,
   LevelControlCluster,
   ColorControlCluster,
   DescriptorCluster,
-  temperatureSensor,
-  optionsFor,
   OnOff,
   PowerSource,
   BridgedDeviceBasicInformation,
   LevelControl,
   FixedLabel,
   Descriptor,
-} from 'matterbridge';
-import { MutableDevice } from './mutableDevice';
-import { jest } from '@jest/globals';
-import { AnsiLogger } from 'matterbridge/logger';
-import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter';
+} from 'matterbridge/matter/clusters';
+import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
 
 describe('MutableDevice', () => {
   const mockLog = {
