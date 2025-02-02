@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
+## [0.0.8] - 2025-02-02
+
+### Added
+
+- [config]: Added uniqueItems flag to the lists.
+- [readme]: Clarified in the README the difference between single entities and device entities.
+
+### Changed
+
+- [package]: Update package.
+- [package]: Update dependencies.
+- [package]: Requires matterbridge 2.1.0.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+</a>
+
 ## [0.0.7] - 2025-01-08
 
 ### Added

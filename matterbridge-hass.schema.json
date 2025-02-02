@@ -2,10 +2,7 @@
   "title": "Matterbridge Home Assistant plugin",
   "description": "matterbridge-hass v. 0.0.1 by https://github.com/Luligu",
   "type": "object",
-  "required": [
-    "host",
-    "token"
-  ],
+  "required": ["host", "token"],
   "properties": {
     "name": {
       "description": "Plugin name",
@@ -37,6 +34,7 @@
       "items": {
         "type": "string"
       },
+      "uniqueItems": true,
       "selectEntityFrom": "name"
     },
     "individualEntityBlackList": {
@@ -45,6 +43,7 @@
       "items": {
         "type": "string"
       },
+      "uniqueItems": true,
       "selectEntityFrom": "name"
     },
     "whiteList": {
@@ -53,6 +52,7 @@
       "items": {
         "type": "string"
       },
+      "uniqueItems": true,
       "selectFrom": "name"
     },
     "blackList": {
@@ -61,23 +61,30 @@
       "items": {
         "type": "string"
       },
+      "uniqueItems": true,
       "selectFrom": "name"
     },
     "entityBlackList": {
-      "description": "The entities in the list will not be exposed. Enter the entity name.",
+      "description": "The entities in the list that belongs to a device will not be exposed (this doesn't black list the individual entities). Enter the entity name.",
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "uniqueItems": true
     },
     "deviceEntityBlackList": {
-      "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.",
+      "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the list add all the entity names you want to exclude for that device.",
       "type": "object",
+      "uniqueItems": true,
+      "selectFrom": "name",
       "additionalProperties": {
+        "description": "List of entities not to be exposed for this device.",
         "type": "array",
         "items": {
           "type": "string"
-        }
+        },
+        "uniqueItems": true,
+        "selectDeviceEntityFrom": "name"
       }
     },
     "serialPostfix": {
