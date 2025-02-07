@@ -64,7 +64,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   ha: HomeAssistant;
 
   // Matterbridge devices
-  matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
+  matterbridgeDevices = new Map<string, MatterbridgeEndpoint>(); // Without the postfix
   bridgedHassDevices = new Map<string, HassDevice>(); // Only the bridged devices from Home Assistant
   bridgedHassEntities = new Map<string, HassEntity>(); // Only the bridged individual entities from Home Assistant
 
@@ -72,9 +72,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('2.1.0')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('2.1.4')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "2.1.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "2.1.4". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -165,15 +165,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.error('Error writing payload to file:', error);
       });
 
-    // Scan individual entities and create Matterbridge devices
+    // Scan individual entities (domain automation, scene, script and helpers input_boolean) and create Matterbridge devices
     for (const entity of Array.from(this.ha.hassEntities.values())) {
       const [domain, name] = entity.entity_id.split('.');
-      if (!['automation', 'scene', 'script'].includes(domain)) continue;
+      if (!['automation', 'scene', 'script', 'input_boolean'].includes(domain)) continue;
       const entityName = entity.name ?? entity.original_name;
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      if (entityName && this.selectEntity) this.selectEntity.set(entity.id, { name: entity.entity_id, description: entityName, icon: 'hub' });
       if (!isValidString(entityName)) continue;
+      if (entityName && this.selectEntity) this.selectEntity.set(entity.id, { name: entity.entity_id, description: entityName, icon: 'hub' });
       if (
         isValidArray(this.config.individualEntityWhiteList, 1) &&
         !this.config.individualEntityWhiteList.includes(entityName) &&
@@ -185,6 +183,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         (this.config.individualEntityBlackList.includes(entityName) || this.config.individualEntityBlackList.includes(entity.entity_id))
       )
         continue;
+      if (this.hasDeviceName(entityName)) {
+        this.log.warn(`Entity ${CYAN}${entityName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
+        continue;
+      }
 
       this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
       // Create a Mutable device with bridgedNode and the BridgedDeviceBasicInformationCluster
@@ -199,7 +201,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.addDeviceTypes('', bridgedNode);
       mutableDevice.composedType = 'HomeAssistant';
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
-      matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/entities/entity/${entity.id}`;
+      if (domain === 'automation') matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/automation/dashboard`;
+      else if (domain === 'scene') matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/scene/dashboard`;
+      else if (domain === 'script') matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/script/dashboard`;
+      else if (domain === 'input_boolean') matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/helpers`;
       await mutableDevice.createClusters('');
 
       // Create the child endpoint with onOffOutlet and the OnOffCluster
@@ -208,14 +213,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const child = await mutableDevice.createChildEndpoint(entity.entity_id);
       await mutableDevice.createClusters(entity.entity_id);
       child.addCommandHandler('on', async () => {
+        // child.setAttribute(OnOff.Cluster.id, 'onOff', true, child.log); // No need with behavior
         await this.ha.callServiceAsync(domain, domain === 'automation' ? 'trigger' : 'turn_on', entity.entity_id);
-        child.setAttribute(OnOff.Cluster.id, 'onOff', true, child.log);
-        setTimeout(() => {
-          child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log);
-        }, 500);
+        if (domain !== 'input_boolean') {
+          // We revert the state after 500ms except for input_boolean
+          setTimeout(() => {
+            child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log);
+          }, 500);
+        }
       });
       child.addCommandHandler('off', async () => {
-        child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log);
+        // child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log); // No need with behavior
+        // We update hass only for input_boolean
+        if (domain === 'input_boolean') await this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
       });
 
       this.log.debug(`Registering device ${dn}${entityName}${db}...`);
@@ -227,17 +237,21 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     // Scan devices and entities and create Matterbridge devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
-      const name = device.name_by_user ?? device.name;
+      const deviceName = device.name_by_user ?? device.name;
       const entitiesCount = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length;
-      if (name && entitiesCount > 0 && this.selectDevice) this.selectDevice.set(device.id, { serial: device.id, name, icon: 'hub' });
-      if (!isValidString(name) || !this.validateDeviceWhiteBlackList([name, device.id], true)) continue;
+      if (deviceName && entitiesCount > 0 && this.selectDevice) this.selectDevice.set(device.id, { serial: device.id, name: deviceName, icon: 'hub' });
+      if (!isValidString(deviceName) || !this.validateDevice([deviceName, device.id], true)) continue;
+      if (this.hasDeviceName(deviceName)) {
+        this.log.warn(`Device ${CYAN}${deviceName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
+        continue;
+      }
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
       // this.log.debug(`Lookup device ${CYAN}${device.name}${db} id ${CYAN}${device.id}${db}`);
 
       // Create a Mutable device
       const mutableDevice = new MutableDevice(
         this.matterbridge,
-        name + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
+        deviceName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
         isValidString(this.config.serialPostfix, 1, 3) ? device.id.slice(0, 29) + this.config.serialPostfix : device.id,
         0xfff1,
         'HomeAssistant',
@@ -251,7 +265,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Scan entities for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
-        if (!this.validateEntityBlackList(name, entity.entity_id, true)) continue;
+        if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
         const domain = entity.entity_id.split('.')[0];
 
         // Get the device state
@@ -522,8 +536,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     this.ha.close();
+    this.ha.removeAllListeners();
 
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
+
+    this.matterbridgeDevices.clear();
+    this.bridgedHassDevices.clear();
+    this.bridgedHassEntities.clear();
   }
 
   async commandHandler(mbDevice: MatterbridgeEndpoint | undefined, endpoint: MatterbridgeEndpoint, request: any, attributes: any, command: string) {
@@ -562,8 +581,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
   */
 
-  async updateHandler(deviceId: string, entityId: string, old_state: HassState, new_state: HassState) {
-    const matterbridgeDevice = this.matterbridgeDevices.get(deviceId);
+  async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
+    const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) return;
     const endpoint = matterbridgeDevice.getChildEndpointByName(entityId) || matterbridgeDevice.getChildEndpointByName(entityId.replaceAll('.', ''));
     if (!endpoint) return;
@@ -572,7 +591,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
     );
     const domain = entityId.split('.')[0];
-    if (domain === 'sensor') {
+    if (['automation', 'scene', 'script'].includes(domain)) {
+      // No update for individual entities (automation, scene, script) only for input_boolean that maintains the state
+      return;
+    } else if (domain === 'sensor') {
       // Update sensors of the device
       const hassSensorConverter = hassDomainSensorsConverter.find(
         (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],

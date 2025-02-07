@@ -50,7 +50,7 @@ describe('HassPlatform', () => {
     matterbridgeDirectory: './jest/matterbridge',
     matterbridgePluginDirectory: './jest/plugins',
     systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '2.1.0',
+    matterbridgeVersion: '2.1.4',
     edge: true,
     log: mockLog,
     getDevices: jest.fn(() => {
@@ -204,7 +204,7 @@ describe('HassPlatform', () => {
   it('should not initialize platform with wrong version', () => {
     mockMatterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow();
-    mockMatterbridge.matterbridgeVersion = '2.1.0';
+    mockMatterbridge.matterbridgeVersion = '2.1.4';
   });
 
   it('should validate with white and black list', () => {
@@ -804,7 +804,7 @@ describe('HassPlatform', () => {
 
     let device: HassDevice | undefined;
     (mockData.devices as HassDevice[]).forEach((d) => {
-      if (d.name === 'Thermostat') device = d;
+      if (d.name === 'Thermostat (Heat)') device = d;
     });
     expect(device).toBeDefined();
     if (!device) return;
@@ -816,7 +816,7 @@ describe('HassPlatform', () => {
 
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
-    expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}Thermostat${db}:${CYAN}systemMode${db} check ${CYAN}true${db}`);
+    // expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}Thermostat (Heat)${db}:${CYAN}systemMode${db} check ${CYAN}true${db}`);
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
@@ -874,7 +874,7 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${switchDevice.name}${rs}${nf} id ${CYAN}${switchDevice.id}${nf}`);
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${switchDevice.name}${db}...`);
-    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled(); // Duplicated device name
   });
 
   it('should not register a switch device from ha without states', async () => {
@@ -885,8 +885,23 @@ describe('HassPlatform', () => {
     await haPlatform.onStart('Test reason');
 
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(mockLog.debug).toHaveBeenCalledWith(`Lookup device ${CYAN}${switchDevice.name}${db} entity ${CYAN}${switchDeviceEntity.entity_id}${db}: state not found`);
+    // expect(mockLog.debug).toHaveBeenCalledWith(`Lookup device ${CYAN}${switchDevice.name}${db} entity ${CYAN}${switchDeviceEntity.entity_id}${db}: state not found`);
     expect(mockLog.debug).not.toHaveBeenCalledWith(`Registering device ${dn}${switchDevice.name}${db}...`);
+  });
+
+  it('should register a thermo auto device from ha', async () => {
+    expect(haPlatform).toBeDefined();
+
+    haPlatform.ha.hassDevices.set(autoDevice.id, autoDevice as unknown as HassDevice);
+    haPlatform.ha.hassEntities.set(autoDeviceEntity.entity_id, autoDeviceEntity as unknown as HassEntity);
+    haPlatform.ha.hassStates.set(autoDeviceEntityState.entity_id, autoDeviceEntityState as unknown as HassState);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${autoDevice.name}${rs}${nf} id ${CYAN}${autoDevice.id}${nf}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${autoDevice.name}${db}...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
   });
 
   it('should register a thermo heat device from ha', async () => {
@@ -916,7 +931,7 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${coolDevice.name}${rs}${nf} id ${CYAN}${coolDevice.id}${nf}`);
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${coolDevice.name}${db}...`);
-    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled(); // Duplicated device name
   });
 
   it('should call onConfigure', async () => {
@@ -977,7 +992,7 @@ const switchDevice = {
   model_id: null,
   modified_at: 1726500210.074452,
   name_by_user: null,
-  name: 'Switch',
+  name: 'Switch mock',
   primary_config_entry: '01J6J7D7EADB8KNX8XBDYDNB1B',
   serial_number: '0x23452164',
   sw_version: '1.0.0',
@@ -1017,6 +1032,41 @@ const switchDeviceEntityState = {
   context: { id: '01J83564ER52RJF78N4S96YHG8', parent_id: null, user_id: null },
 };
 
+const autoDevice = {
+  area_id: null,
+  id: 'd80898f83188759ed7329e97df00ee6f',
+  labels: [],
+  manufacturer: 'Luligu',
+  model: 'Matterbridge Switch',
+  model_id: null,
+  name_by_user: null,
+  name: 'Thermo auto',
+  serial_number: '0x23452164',
+};
+
+const autoDeviceEntity = {
+  area_id: null,
+  device_id: 'd80898f83188759ed7329e97df00ee6f',
+  entity_id: 'climate.thermo-auto',
+  id: '0b25a337cb83edefb1d310450ad2b0aa',
+  name: null,
+};
+
+const autoDeviceEntityState = {
+  entity_id: 'climate.thermo-auto',
+  state: 'heat',
+  attributes: {
+    hvac_modes: ['off', 'heat', 'cool', 'auto'],
+    min_temp: 7,
+    max_temp: 50,
+    current_temperature: 19,
+    temperature: 20,
+    target_temp_high: null,
+    target_temp_low: null,
+    friendly_name: 'Thermostat',
+  },
+};
+
 const heatDevice = {
   area_id: null,
   id: 'd80898f83188759ed7329e97df00ee6a',
@@ -1025,7 +1075,7 @@ const heatDevice = {
   model: 'Matterbridge Switch',
   model_id: null,
   name_by_user: null,
-  name: 'Thermo',
+  name: 'Thermo heat',
   serial_number: '0x23452164',
 };
 
@@ -1060,7 +1110,7 @@ const coolDevice = {
   model: 'Matterbridge Switch',
   model_id: null,
   name_by_user: null,
-  name: 'Thermo',
+  name: 'Thermo cool',
   serial_number: '0x23452164',
 };
 

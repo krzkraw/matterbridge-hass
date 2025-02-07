@@ -32,7 +32,7 @@ describe('initializePlugin', () => {
     matterbridgeDirectory: './jest/matterbridge',
     matterbridgePluginDirectory: './jest/plugins',
     systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '2.1.0',
+    matterbridgeVersion: '2.1.4',
     edge: true,
     log: mockLog,
     getDevices: jest.fn(() => {
@@ -75,9 +75,10 @@ describe('initializePlugin', () => {
     // console.error('Mocked console.log', args);
   });
 
-  it('should return an instance of HomeAssistantPlatform', () => {
+  it('should return an instance of HomeAssistantPlatform', async () => {
     const platform = initializePlugin(mockMatterbridge, mockLog, mockConfig);
     expect(platform).toBeInstanceOf(HomeAssistantPlatform);
     platform.onShutdown();
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for ha.close() to complete
   });
 });

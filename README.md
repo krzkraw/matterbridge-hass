@@ -12,13 +12,13 @@
 
 ---
 
-This plugin allows you to expose the Home Assistant devices to Matter.
+This plugin allows you to expose the Home Assistant devices and entities to Matter.
 
 It is the ideal companion of the official [Matterbridge Home Assistant Add-on](https://github.com/Luligu/matterbridge-home-assistant-addon/blob/main/README.md).
 
 Features:
 
-- The plugin can run with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
+- The plugin can be used with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
 - The connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if the Home Assistant host is reachable.
 - It is possible to select from a list the devices to include in the device white or black list.
 - It is possible to select from a list the entities to include in the entity white or black list.
@@ -34,7 +34,7 @@ Supported devices:
 
 - fan (with state on/off and attributes percentage/preset_mode)
 
-- cover (with state open/close/opening/closing and attribute current_position)
+- cover (with state open/closed/opening/closing and attribute current_position)
 
 - climate (with state off/heat/cool/heat_cool and attribute temperature/current_temperature/target_temp_low/target_temp_high)
 
@@ -48,7 +48,9 @@ Supported individual entities:
 
 - script
 
-These entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated automation, scene, or script. After triggering, the outlet automatically switches back to the off state.
+- helpers of domain input_boolean
+
+These entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated automation, scene, or script. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean maintain the on / off state.
 
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 
@@ -108,11 +110,11 @@ There are 2 different source of Matter devices coming from matterbridge-hass plu
 
 - Regular devices with their entities that use the main whiteList, blackList, entityBlackList and deviceEntityBlackList.
 
-You see them in Home Assistant at http://localhost:8123/config/devices/dashboard.
+You find them in Home Assistant at http://localhost:8123/config/devices/dashboard.
 
-- Individual entities with domain scenes, scripts, automations that use individualEntityWhiteList and individualEntityBlackList.
+- Individual entities with domain scene, script, automation and input_boolean that use individualEntityWhiteList and individualEntityBlackList.
 
-You see these special entities in Home Assistant at http://localhost:8123/config/automation/dashboard, http://localhost:8123/config/scene/dashboard and http://localhost:8123/config/script/dashboard.
+You find these special entities in Home Assistant at http://localhost:8123/config/automation/dashboard, http://localhost:8123/config/scene/dashboard, http://localhost:8123/config/script/dashboard and http://localhost:8123/config/helpers.
 
 You may need to set some config values in the frontend (wait that the plugin has been configured before changing the config):
 
@@ -130,7 +132,7 @@ Home Assistant long term token used to connect to Home Assistant with WebSocket.
 
 ### individualEntityWhiteList
 
-White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations.
+White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations and input_boolean.
 Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switches).
 
 ### individualEntityBlackList
@@ -148,7 +150,7 @@ If the blackList is defined the devices included will not be exposed to Matter. 
 
 ### entityBlackList
 
-The entities in the list will not be exposed for all devices. Use the entity name.
+The entities in the list will not be exposed for all devices. Use the entity name. This doesn't concern the individual entities.
 
 ### deviceEntityBlackList
 
