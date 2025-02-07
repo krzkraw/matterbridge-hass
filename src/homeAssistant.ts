@@ -61,7 +61,7 @@ export interface HassEntity {
   categories: object; // Categories of the entity
   config_entry_id: string; // The config entry this entity belongs to
   created_at: string; // Timestamp of when the entity was created
-  device_id: string; // The ID of the device this entity is associated with
+  device_id: string | null; // The ID of the device this entity is associated with
   disabled_by: string | null; // Whether the entity is disabled and by whom
   entity_category: string | null; // The category of the entity
   entity_id: string; // Unique ID of the entity (e.g., "light.living_room")
@@ -108,8 +108,8 @@ export interface HassState {
  */
 export interface HassDataEvent {
   entity_id: string;
-  old_state: HassState;
-  new_state: HassState;
+  old_state: HassState | null;
+  new_state: HassState | null;
 }
 
 /**
@@ -179,7 +179,7 @@ interface HomeAssistantEventEmitter {
   error: [error: { code: string; message: string } | WebSocket.ErrorEvent | undefined];
   devices: [devices: HassDevice[]];
   entities: [entities: HassEntity[]];
-  event: [deviceId: string, entityId: string, old_state: HassState, new_state: HassState];
+  event: [deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState];
   call_service: [];
   pong: [];
 }
@@ -376,18 +376,16 @@ export class HomeAssistant extends EventEmitter {
             return;
           }
           if (response.id === this.eventsSubscribeId && response.event && response.event.event_type === 'state_changed') {
+            // this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
             const entity = this.hassEntities.get(response.event.data.entity_id);
             if (!entity) {
               this.log.debug(`Entity id ${CYAN}${response.event.data.entity_id}${db} not found processing event`);
               return;
             }
-            const device = this.hassDevices.get(entity.device_id);
-            if (!device) {
-              this.log.debug(`Device id ${CYAN}${entity.device_id}${db} not found processing event:`);
-              return;
+            if (response.event.data.old_state && response.event.data.new_state) {
+              this.hassStates.set(response.event.data.new_state.entity_id, response.event.data.new_state);
+              this.emit('event', entity.device_id, entity.entity_id, response.event.data.old_state, response.event.data.new_state);
             }
-            this.hassStates.set(response.event.data.new_state.entity_id, response.event.data.new_state);
-            this.emit('event', device.id, entity.entity_id, response.event.data.old_state, response.event.data.new_state);
           } else if (response.id === this.eventsSubscribeId && response.event && response.event.event_type === 'call_service') {
             this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
             this.emit('call_service');

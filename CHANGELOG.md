@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
+## [0.0.9] - 2025-02-07
+
+### Added
+
+- [hass]: Added support for helpers with domain input_boolean.
+- [plugin]: Added check for duplicated device and individual entity names.
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Requires matterbridge 2.1.4.
+
+### Fixed
+
+- [cover]: Fixed state closed on domain cover.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+</a>
+
 ## [0.0.8] - 2025-02-02
 
 ### Added
