@@ -40,8 +40,8 @@ import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 import { Thermostat, OnOff, ColorControl } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 
-import path from 'path';
-import { promises as fs } from 'fs';
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
 
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices } from './homeAssistant.js';
 import { MutableDevice, getClusterServerObj } from './mutableDevice.js';
