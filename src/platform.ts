@@ -380,7 +380,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             mutableDevice.addClusterServerObjs(
               entity.entity_id,
               getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.AutoMode, Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
-                localTemperature: (hassState.attributes['current_temperature'] as number | undefined) ?? 23,
+                localTemperature: ((hassState.attributes['current_temperature'] as number | undefined) ?? 23) * 100,
                 systemMode: Thermostat.SystemMode.Auto,
                 controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
                 // Thermostat.Feature.Heating
@@ -408,7 +408,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             mutableDevice.addClusterServerObjs(
               entity.entity_id,
               getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Heating), {
-                localTemperature: (hassState.attributes['current_temperature'] as number | undefined) ?? 21,
+                localTemperature: ((hassState.attributes['current_temperature'] as number | undefined) ?? 23) * 100,
                 systemMode: Thermostat.SystemMode.Heat,
                 controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.HeatingOnly,
                 // Thermostat.Feature.Heating
@@ -427,7 +427,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             mutableDevice.addClusterServerObjs(
               entity.entity_id,
               getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Cooling), {
-                localTemperature: (hassState.attributes['current_temperature'] as number | undefined) ?? 21,
+                localTemperature: ((hassState.attributes['current_temperature'] as number | undefined) ?? 23) * 100,
                 systemMode: Thermostat.SystemMode.Cool,
                 controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingOnly,
                 // Thermostat.Feature.Cooling
