@@ -244,7 +244,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const deviceName = device.name_by_user ?? device.name;
       const entitiesCount = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length;
       if (deviceName && entitiesCount > 0) this.setSelectDevice(device.id, deviceName, undefined, 'hub');
-      if (!isValidString(deviceName) || !this.validateDevice([deviceName, device.id], true)) continue;
+      if (!isValidString(deviceName, 1) || !this.validateDevice([deviceName, device.id], true)) continue;
       if (this.hasDeviceName(deviceName)) {
         this.log.warn(`Device ${CYAN}${deviceName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
