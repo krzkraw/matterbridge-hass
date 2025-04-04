@@ -8,7 +8,7 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
-## [0.0.10] - 2025-04-03
+## [0.0.10] - 2025-04-04
 
 ### Added
 
@@ -19,6 +19,11 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Update package.
 - [package]: Update dependencies.
 - [package]: Requires matterbridge 2.2.6.
+
+### Fixed
+
+- [device]: Fixed case where current_temperature is not available on thermostats.
+- [device]: Fixed case with device name empty.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
