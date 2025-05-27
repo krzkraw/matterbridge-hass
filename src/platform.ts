@@ -105,28 +105,23 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info(`Subscribed to Home Assistant events`);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('config', (config: HassConfig) => {
+    this.ha.on('config', (_config: HassConfig) => {
       this.log.info('Configuration received from Home Assistant');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('services', (services: HassServices) => {
+    this.ha.on('services', (_services: HassServices) => {
       this.log.info('Services received from Home Assistant');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('devices', (devices: HassDevice[]) => {
+    this.ha.on('devices', (_devices: HassDevice[]) => {
       this.log.info('Devices received from Home Assistant');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('entities', (entities: HassEntity[]) => {
+    this.ha.on('entities', (_entities: HassEntity[]) => {
       this.log.info('Entities received from Home Assistant');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('states', (states: HassState[]) => {
+    this.ha.on('states', (_states: HassState[]) => {
       this.log.info('States received from Home Assistant');
     });
 
