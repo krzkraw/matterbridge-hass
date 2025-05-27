@@ -247,7 +247,8 @@ export class HomeAssistant extends EventEmitter {
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private readonly pingIntervalTime: number = 30000;
   private readonly pingTimeoutTime: number = 35000;
-  private readonly reconnectTimeoutTime: number = 0;
+  private readonly reconnectTimeoutTime: number = 60000; // Reconnect timeout in milliseconds, 0 means no timeout
+  private reconnectRetries: number = 10; // Number of retries for reconnection
   private readonly configFetchId = 1;
   private readonly servicesFetchId = 2;
   private readonly devicesFetchId = 3;
@@ -298,13 +299,15 @@ export class HomeAssistant extends EventEmitter {
    *
    * @param {string} url - The WebSocket URL for connecting to Home Assistant.
    * @param {string} accessToken - The access token for authenticating with Home Assistant.
-   * @param {number} [reconnectTimeoutTime=0] - The timeout duration for reconnect attempts in seconds.
+   * @param {number} [reconnectTimeoutTime=60] - The timeout duration for reconnect attempts in seconds.
+   * @param {number} [reconnectRetries=10] - The number of reconnection attempts to make before giving up.
    */
-  constructor(url: string, accessToken: string, reconnectTimeoutTime: number = 0) {
+  constructor(url: string, accessToken: string, reconnectTimeoutTime: number = 60, reconnectRetries: number = 10) {
     super();
     this.wsUrl = url;
     this.wsAccessToken = accessToken;
     this.reconnectTimeoutTime = reconnectTimeoutTime * 1000;
+    this.reconnectRetries = reconnectRetries;
     this.log = new AnsiLogger({ logName: 'HomeAssistant', logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
   }
 
@@ -531,10 +534,11 @@ export class HomeAssistant extends EventEmitter {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    if (this.reconnectTimeoutTime) {
+    if (this.reconnectTimeoutTime && this.reconnectRetries >= 0) {
       this.log.notice(`Reconnecting in ${this.reconnectTimeoutTime / 1000} seconds...`);
       this.reconnectTimeout = setTimeout(() => {
         this.connect();
+        this.reconnectRetries--;
       }, this.reconnectTimeoutTime);
     } else {
       this.log.warn('The reconnectTimeout in the config is not enabled. Restart the plugin to reconnect.');

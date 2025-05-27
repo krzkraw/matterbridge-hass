@@ -34,7 +34,7 @@ import {
   PlatformConfig,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
-import { deepEqual, isValidArray, isValidString, waiter } from 'matterbridge/utils';
+import { deepEqual, isValidArray, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
 import { Thermostat, OnOff, ColorControl } from 'matterbridge/matter/clusters';
@@ -86,8 +86,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
     this.config.serialPostfix = isValidString(this.config.serialPostfix, 1, 3) ? this.config.serialPostfix : '';
+    this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 0) ? config.reconnectTimeout : undefined;
+    this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
 
-    this.ha = new HomeAssistant(config.host, config.token, (config.reconnectTimeout as number | undefined) ?? 60);
+    this.ha = new HomeAssistant(config.host, config.token, config.reconnectTimeout as number | undefined, config.reconnectRetries as number | undefined);
 
     this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
