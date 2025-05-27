@@ -82,6 +82,23 @@ export interface HassEntity {
 }
 
 /**
+ * Interface representing a Home Assistant area.
+ */
+export interface HassArea {
+  aliases: string[];
+  area_id: string;
+  floor_id: string | null;
+  humidity_entity_id: string | null;
+  icon: string | null;
+  labels: string[];
+  name: string;
+  picture: string | null;
+  temperature_entity_id: string | null;
+  created_at: number;
+  modified_at: number;
+}
+
+/**
  * Interface representing the context of a Home Assistant event.
  */
 export interface HassContext {
@@ -103,6 +120,9 @@ export interface HassState {
   context: HassContext;
 }
 
+/**
+ * Interface representing the attributes of a Home Assistant entity's state.
+ */
 export interface HassStateAttributes {
   friendly_name?: string;
   unit_of_measurement?: string;
@@ -136,6 +156,9 @@ export interface HassEvent {
   context: HassContext;
 }
 
+/**
+ * Interface representing the unit system used in Home Assistant.
+ */
 export interface HassUnitSystem {
   length: string;
   accumulated_precipitation: string;
@@ -146,6 +169,9 @@ export interface HassUnitSystem {
   wind_speed: string;
 }
 
+/**
+ * Interface representing the configuration of Home Assistant.
+ */
 export interface HassConfig {
   latitude: number;
   longitude: number;
@@ -203,6 +229,7 @@ interface HomeAssistantEventEmitter {
   error: [error: string];
   devices: [devices: HassDevice[]];
   entities: [entities: HassEntity[]];
+  areas: [areas: HassArea[]];
   event: [deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState];
   call_service: [];
   pong: [];
@@ -212,6 +239,7 @@ export class HomeAssistant extends EventEmitter {
   hassDevices = new Map<string, HassDevice>();
   hassEntities = new Map<string, HassEntity>();
   hassStates = new Map<string, HassState>();
+  hassAreas = new Map<string, HassArea>();
   hassServices: HassServices | null = null;
   hassConfig: HassConfig | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
@@ -225,14 +253,16 @@ export class HomeAssistant extends EventEmitter {
   private readonly devicesFetchId = 3;
   private readonly entitiesFetchId = 4;
   private readonly statesFetchId = 5;
-  private readonly eventsSubscribeId = 6;
+  private readonly areasFetchId = 6;
+  private readonly eventsSubscribeId = 7;
   private asyncFetchId = 0;
   private asyncCallServiceId = 0;
-  private nextId = 7;
+  private nextId = 8;
   connected = false;
   devicesReceived = false;
   entitiesReceived = false;
   statesReceived = false;
+  areasReceived = false;
   subscribed = false;
   ws: WebSocket | null = null;
   wsUrl: string;
@@ -323,6 +353,7 @@ export class HomeAssistant extends EventEmitter {
           this.fetch('config/device_registry/list', this.devicesFetchId);
           this.fetch('config/entity_registry/list', this.entitiesFetchId);
           this.fetch('get_states', this.statesFetchId);
+          this.fetch('config/area_registry/list', this.areasFetchId);
           this.fetch('subscribe_events', this.eventsSubscribeId);
 
           // Start ping interval
@@ -349,6 +380,15 @@ export class HomeAssistant extends EventEmitter {
             entities.forEach((entity) => {
               this.hassEntities.set(entity.entity_id, entity);
               // console.log('Entity:', entity.entity_id, entity.name ?? entity.original_name);
+            });
+          } else if (response.id === this.areasFetchId && response.result) {
+            this.areasReceived = true;
+            const areas = response.result as HassArea[];
+            this.log.debug(`Received ${areas.length} areas.` /* , areas*/);
+            this.emit('areas', areas);
+            areas.forEach((area) => {
+              this.hassAreas.set(area.area_id, area);
+              // console.log('Area:', area.area_id, area.name ?? area.original_name);
             });
           } else if (response.id === this.statesFetchId) {
             this.statesReceived = true;

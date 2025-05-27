@@ -43,7 +43,7 @@ import { ClusterRegistry } from 'matterbridge/matter/types';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices } from './homeAssistant.js';
+import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea } from './homeAssistant.js';
 import { MutableDevice, getClusterServerObj } from './mutableDevice.js';
 import {
   hassCommandConverter,
@@ -121,6 +121,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info('Entities received from Home Assistant');
     });
 
+    this.ha.on('areas', (_areas: HassArea[]) => {
+      this.log.info('Areas received from Home Assistant');
+    });
+
     this.ha.on('states', (_states: HassState[]) => {
       this.log.info('States received from Home Assistant');
     });
@@ -155,6 +159,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const payload = {
       devices: Array.from(this.ha.hassDevices.values()),
       entities: Array.from(this.ha.hassEntities.values()),
+      areas: Array.from(this.ha.hassAreas.values()),
       states: Array.from(this.ha.hassStates.values()),
       config: this.ha.hassConfig,
       services: this.ha.hassServices,
