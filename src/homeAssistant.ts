@@ -59,9 +59,6 @@ export interface HassDevice {
 // prettier-ignore
 export interface HassEntity {
   entity_id: string;                    // Unique ID of the entity (e.g., "light.living_room")
-  state: string;                        // Current state of the entity (e.g., "on", "off", "open", "closed")
-  last_changed: string;                 // Timestamp of when the entity state was last changed
-  last_updated: string;                 // Timestamp of when the entity state was last updated
   area_id: string | null;               // The area ID this entity belongs to
   categories: object;                   // Categories of the entity
   config_entry_id: string;              // The config entry this entity belongs to
@@ -80,9 +77,8 @@ export interface HassEntity {
   original_name: string | null;         // The original name of the entity (set by the integration)
   platform: string;                     // Platform or integration the entity belongs to (e.g., "shelly")
   unique_id: string;                    // Unique ID of the entity
-  unit_of_measurement: string | null;   // Optional unit of measurement (e.g., °C, %, etc.)
-  capabilities: Record<string, HomeAssistantPrimitive> | null; // Additional capabilities, like brightness for lights
-  device_class: string | null;          // Device class (e.g., "light", "sensor", etc.)
+  config_subentry_id: string | null;
+  translation_key: string | null;
 }
 
 /**
