@@ -103,7 +103,7 @@ export interface HassState {
   last_changed: string;
   last_reported: string;
   last_updated: string;
-  attributes: Record<string, HomeAssistantPrimitive>;
+  attributes: HassStateAttributes & Record<string, HomeAssistantPrimitive>;
   context: HassContext;
 }
 
