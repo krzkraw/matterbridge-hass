@@ -12,6 +12,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
+- [homeassistant]: Updated types for Entities and States.
+
 ### Changed
 
 - [package]: Update package.

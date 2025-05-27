@@ -63,13 +63,13 @@ export interface HassEntity {
   categories: object;                   // Categories of the entity
   config_entry_id: string;              // The config entry this entity belongs to
   created_at: string;                   // Timestamp of when the entity was created
-  device_id: string | null;             // The ID of the device this entity is associated with
+  device_id: string | null;             // The ID of the device this entity is associated with (e.g., "14231f5b82717f1d9e2f71d354120331")
   disabled_by: string | null;           // Whether the entity is disabled and by whom
   entity_category: string | null;       // The category of the entity
   has_entity_name: boolean;             // Whether the entity has a name
   hidden_by: string | null;             // Whether the entity is hidden and by whom
   icon: string | null;                  // Optional icon associated with the entity
-  id: string;                           // Unique ID of the entity
+  id: string;                           // Unique ID of the entity (e.g., "368c6fd2f264aba2242e0658612c250e")
   labels: string[];                     // Labels associated with the entity
   modified_at: string;                  // Timestamp of last modification
   name: string | null;                  // Friendly name of the entity
