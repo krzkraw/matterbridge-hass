@@ -371,7 +371,7 @@ describe('HassPlatform', () => {
   it('should receive events from ha', () => {
     haPlatform.ha.emit('connected', '2024.09.1');
     expect(mockLog.notice).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
-    haPlatform.ha.emit('disconnected');
+    haPlatform.ha.emit('disconnected', 'Jest test');
     expect(mockLog.warn).toHaveBeenCalledWith(`Disconnected from Home Assistant`);
     haPlatform.ha.emit('subscribed');
     expect(mockLog.info).toHaveBeenCalledWith(`Subscribed to Home Assistant events`);

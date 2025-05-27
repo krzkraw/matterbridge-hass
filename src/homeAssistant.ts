@@ -56,29 +56,33 @@ export interface HassDevice {
 /**
  * Interface representing a Home Assistant entity.
  */
+// prettier-ignore
 export interface HassEntity {
-  area_id: string | null; // The area ID this entity belongs to
-  categories: object; // Categories of the entity
-  config_entry_id: string; // The config entry this entity belongs to
-  created_at: string; // Timestamp of when the entity was created
-  device_id: string | null; // The ID of the device this entity is associated with
-  disabled_by: string | null; // Whether the entity is disabled and by whom
-  entity_category: string | null; // The category of the entity
-  entity_id: string; // Unique ID of the entity (e.g., "light.living_room")
-  has_entity_name: boolean; // Whether the entity has a name
-  hidden_by: string | null; // Whether the entity is hidden and by whom
-  icon: string | null; // Optional icon associated with the entity
-  id: string; // Unique ID of the entity
-  labels: string[]; // Labels associated with the entity
-  modified_at: string; // Timestamp of last modification
-  name: string | null; // Friendly name of the entity
+  entity_id: string;                    // Unique ID of the entity (e.g., "light.living_room")
+  state: string;                        // Current state of the entity (e.g., "on", "off", "open", "closed")
+  last_changed: string;                 // Timestamp of when the entity state was last changed
+  last_updated: string;                 // Timestamp of when the entity state was last updated
+  area_id: string | null;               // The area ID this entity belongs to
+  categories: object;                   // Categories of the entity
+  config_entry_id: string;              // The config entry this entity belongs to
+  created_at: string;                   // Timestamp of when the entity was created
+  device_id: string | null;             // The ID of the device this entity is associated with
+  disabled_by: string | null;           // Whether the entity is disabled and by whom
+  entity_category: string | null;       // The category of the entity
+  has_entity_name: boolean;             // Whether the entity has a name
+  hidden_by: string | null;             // Whether the entity is hidden and by whom
+  icon: string | null;                  // Optional icon associated with the entity
+  id: string;                           // Unique ID of the entity
+  labels: string[];                     // Labels associated with the entity
+  modified_at: string;                  // Timestamp of last modification
+  name: string | null;                  // Friendly name of the entity
   options: Record<string, HomeAssistantPrimitive> | null; // Additional options for the entity
-  original_name: string | null; // The original name of the entity (set by the integration)
-  platform: string; // Platform or integration the entity belongs to (e.g., "shelly")
-  unique_id: string; // Unique ID of the entity
-  unit_of_measurement: string | null; // Optional unit of measurement (e.g., °C, %, etc.)
+  original_name: string | null;         // The original name of the entity (set by the integration)
+  platform: string;                     // Platform or integration the entity belongs to (e.g., "shelly")
+  unique_id: string;                    // Unique ID of the entity
+  unit_of_measurement: string | null;   // Optional unit of measurement (e.g., °C, %, etc.)
   capabilities: Record<string, HomeAssistantPrimitive> | null; // Additional capabilities, like brightness for lights
-  device_class: string | null; // Device class (e.g., "light", "sensor", etc.)
+  device_class: string | null;          // Device class (e.g., "light", "sensor", etc.)
 }
 
 /**
@@ -86,8 +90,8 @@ export interface HassEntity {
  */
 export interface HassContext {
   id: string;
-  parent_id: string | null;
   user_id: string | null;
+  parent_id: string | null;
 }
 
 /**
@@ -96,11 +100,24 @@ export interface HassContext {
 export interface HassState {
   entity_id: string;
   state: string;
-  attributes: Record<string, HomeAssistantPrimitive>;
   last_changed: string;
   last_reported: string;
   last_updated: string;
+  attributes: Record<string, HomeAssistantPrimitive>;
   context: HassContext;
+}
+
+export interface HassStateAttributes {
+  friendly_name?: string;
+  unit_of_measurement?: string;
+  icon?: string;
+  entity_picture?: string;
+  supported_features?: number;
+  hidden?: boolean;
+  assumed_state?: boolean;
+  device_class?: string;
+  state_class?: string;
+  restored?: boolean;
 }
 
 /**
@@ -169,21 +186,6 @@ export interface HassServices {
   [key: string]: HassService;
 }
 
-interface HomeAssistantEventEmitter {
-  connected: [ha_version: HomeAssistantPrimitive];
-  disconnected: [event?: WebSocket.CloseEvent];
-  subscribed: [];
-  config: [config: HassConfig];
-  services: [services: HassServices];
-  states: [states: HassState[]];
-  error: [error: { code: string; message: string } | WebSocket.ErrorEvent | undefined];
-  devices: [devices: HassDevice[]];
-  entities: [entities: HassEntity[]];
-  event: [deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState];
-  call_service: [];
-  pong: [];
-}
-
 interface HassWebSocketResponse {
   id: number;
   type: string;
@@ -194,6 +196,21 @@ interface HassWebSocketResponse {
 }
 
 export type HomeAssistantPrimitive = string | number | bigint | boolean | object | null | undefined;
+
+interface HomeAssistantEventEmitter {
+  connected: [ha_version: HomeAssistantPrimitive];
+  disconnected: [error: string];
+  subscribed: [];
+  config: [config: HassConfig];
+  services: [services: HassServices];
+  states: [states: HassState[]];
+  error: [error: string];
+  devices: [devices: HassDevice[]];
+  entities: [entities: HassEntity[]];
+  event: [deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState];
+  call_service: [];
+  pong: [];
+}
 
 export class HomeAssistant extends EventEmitter {
   hassDevices = new Map<string, HassDevice>();
@@ -315,8 +332,9 @@ export class HomeAssistant extends EventEmitter {
           // Start ping interval
           this.startPing();
         } else if (response.type === 'result' && response.success !== true) {
-          this.log.error('Error result received:', response);
-          this.emit('error', response.error);
+          const errorMessage = response.error ? `WebSocket response error: ${response.error.message}` : 'WebSocket response error: unknown error';
+          this.log.debug(`WebSocket response error: ${errorMessage}`);
+          this.emit('error', errorMessage);
         } else if (response.type === 'result' && response.success) {
           if (response.id === this.devicesFetchId && response.result) {
             this.devicesReceived = true;
@@ -418,15 +436,17 @@ export class HomeAssistant extends EventEmitter {
       });
 
       this.ws.onerror = (event: WebSocket.ErrorEvent) => {
-        this.log.error(`WebSocket error: ${event.message} type: ${event.type}`);
-        this.emit('error', event);
+        const errorMessage = `WebSocket error: ${event.message} type: ${event.type}`;
+        this.log.debug(errorMessage);
+        this.emit('error', errorMessage);
       };
 
       this.ws.onclose = (event: WebSocket.CloseEvent) => {
-        this.log.debug('WebSocket connection closed. Reason:', event.reason, 'Code:', event.code, 'Clean:', event.wasClean, 'Type:', event.type);
+        const errorMessage = `WebSocket connection closed. Reason: ${event.reason} Code: ${event.code} Clean: ${event.wasClean} Type: ${event.type}`;
+        this.log.debug(errorMessage);
         this.connected = false;
         this.stopPing();
-        this.emit('disconnected', event);
+        this.emit('disconnected', errorMessage);
         this.startReconnect();
       };
     } catch (error) {
@@ -480,6 +500,8 @@ export class HomeAssistant extends EventEmitter {
       this.reconnectTimeout = setTimeout(() => {
         this.connect();
       }, this.reconnectTimeoutTime);
+    } else {
+      this.log.warn('The reconnectTimeout in the config is not enabled. Restart the plugin to reconnect.');
     }
   }
 
@@ -515,7 +537,7 @@ export class HomeAssistant extends EventEmitter {
     this.ws?.removeAllListeners();
     this.ws = null;
     this.connected = false;
-    this.emit('disconnected');
+    this.emit('disconnected', 'WebSocket connection closed');
   }
 
   /**

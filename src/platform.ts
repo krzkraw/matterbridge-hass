@@ -84,6 +84,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       throw new Error('Host and token must be defined in the configuration');
     }
 
+    this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
+    this.config.serialPostfix = isValidString(this.config.serialPostfix, 1, 3) ? this.config.serialPostfix : '';
+
     this.ha = new HomeAssistant(config.host, config.token, (config.reconnectTimeout as number | undefined) ?? 60);
 
     this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
@@ -92,6 +95,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.ha.on('disconnected', () => {
       this.log.warn('Disconnected from Home Assistant');
+    });
+
+    this.ha.on('error', (error: string) => {
+      this.log.error(`Error from Home Assistant: ${error}`);
     });
 
     this.ha.on('subscribed', () => {
@@ -147,7 +154,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const check = () => {
       return this.ha.connected && this.ha.devicesReceived && this.ha.entitiesReceived && this.ha.subscribed;
     };
-    await waiter('Home Assistant connected', check, true, 10000, 1000); // Wait for 10 seconds with 1 second interval and throw error if not connected
+    await waiter('Home Assistant connected', check, true, 30000, 1000); // Wait for 30 seconds with 1 second interval and throw error if not connected
 
     // Save devices, entities, states, config and services to a local file
     const payload = {
@@ -174,7 +181,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (!['automation', 'scene', 'script', 'input_boolean'].includes(domain)) continue;
       const entityName = entity.name ?? entity.original_name;
       if (!isValidString(entityName)) continue;
-      // this.selectEntity.set(entity.id, { name: entity.entity_id, description: entityName, icon: 'hub' });
       this.setSelectEntity(entity.entity_id, entityName, 'hub');
       if (
         isValidArray(this.config.individualEntityWhiteList, 1) &&
@@ -188,7 +194,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       )
         continue;
       if (this.hasDeviceName(entityName)) {
-        this.log.warn(`Entity ${CYAN}${entityName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
+        this.log.warn(`Individual entity ${CYAN}${entityName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
 
@@ -197,7 +203,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const mutableDevice = new MutableDevice(
         this.matterbridge,
         entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
-        isValidString(this.config.serialPostfix, 1, 3) ? entity.id.slice(0, 29) + this.config.serialPostfix : entity.id,
+        isValidString(this.config.serialPostfix, 1, 3) ? entity.id.slice(0, 32 - this.config.serialPostfix.length) + this.config.serialPostfix : entity.id,
         0xfff1,
         'HomeAssistant',
         domain,
@@ -217,7 +223,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const child = await mutableDevice.createChildEndpoint(entity.entity_id);
       await mutableDevice.createClusters(entity.entity_id);
       child.addCommandHandler('on', async () => {
-        // child.setAttribute(OnOff.Cluster.id, 'onOff', true, child.log); // No need with behavior
         await this.ha.callServiceAsync(domain, domain === 'automation' ? 'trigger' : 'turn_on', entity.entity_id);
         if (domain !== 'input_boolean') {
           // We revert the state after 500ms except for input_boolean
@@ -227,7 +232,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
       });
       child.addCommandHandler('off', async () => {
-        // child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log); // No need with behavior
         // We update hass only for input_boolean
         if (domain === 'input_boolean') await this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
       });
@@ -237,7 +241,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       await this.registerDevice(mutableDevice.getEndpoint());
       this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
       this.bridgedHassEntities.set(entity.entity_id, entity);
-    }
+    } // End of individual entities scan
 
     // Scan devices and entities and create Matterbridge devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
