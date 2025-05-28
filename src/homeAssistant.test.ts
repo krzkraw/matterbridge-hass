@@ -5,11 +5,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
 
-import { WebSocket, WebSocketServer } from 'ws';
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
 import { jest } from '@jest/globals';
+import fs from 'node:fs';
+import path from 'node:path';
+import https from 'node:https';
+import { WebSocket, WebSocketServer } from 'ws';
 import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
+
+import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -40,10 +44,10 @@ describe('HomeAssistant', () => {
   let client: WebSocket;
   let homeAssistant: HomeAssistant;
   const wsUrl = 'ws://localhost:8123';
+  const apiPath = '/api/websocket';
   const accessToken = 'testAccessToken';
   const reconnectTimeoutTime = 120;
   const reconnectRetries = 10;
-  const path = '/api/websocket';
 
   const device_registry_response: HassDevice[] = [];
   const entity_registry_response: HassEntity[] = [];
@@ -53,7 +57,7 @@ describe('HomeAssistant', () => {
   const config_response: HassConfig = {} as HassConfig;
 
   beforeAll(async () => {
-    server = new WebSocketServer({ port: 8123, path });
+    server = new WebSocketServer({ port: 8123, path: apiPath });
 
     server.on('connection', (ws, req) => {
       const ip = req.socket.remoteAddress;
@@ -96,7 +100,7 @@ describe('HomeAssistant', () => {
 
     await new Promise((resolve) => {
       server.on('listening', () => {
-        console.log('WebSocket server listening on', wsUrl + path);
+        console.log('WebSocket server listening on', wsUrl + apiPath);
         resolve(undefined);
       });
     });
@@ -123,7 +127,7 @@ describe('HomeAssistant', () => {
   });
 
   it('client should connect', async () => {
-    client = new WebSocket(wsUrl + path);
+    client = new WebSocket(wsUrl + apiPath);
     expect(client).toBeInstanceOf(WebSocket);
 
     return new Promise((resolve) => {
@@ -730,5 +734,126 @@ describe('HomeAssistant', () => {
     });
 
     expect(homeAssistant.connected).toBe(false);
+  });
+});
+
+describe('HomeAssistant with ssl', () => {
+  let httpsServer: https.Server;
+  let server: WebSocketServer;
+  let client: WebSocket;
+  let homeAssistant: HomeAssistant;
+  const accessToken = 'testAccessToken';
+  const reconnectTimeoutTime = 120;
+  const reconnectRetries = 10;
+  const wsUrl = 'wss://localhost:8123';
+  const apiPath = '/api/websocket';
+
+  beforeAll(async () => {
+    const serverOptions = {
+      cert: fs.readFileSync(path.join('mock', 'homeassistant.crt')),
+      key: fs.readFileSync(path.join('mock', 'homeassistant.key')),
+    };
+    httpsServer = https.createServer(serverOptions);
+    server = new WebSocketServer({ server: httpsServer, path: apiPath });
+    server.on('connection', (socket, request) => {
+      const ip = request.socket.remoteAddress;
+      console.log('WebSocket ssl server new client connected:', ip);
+      socket.send(JSON.stringify({ type: 'auth_required' }));
+      socket.on('message', (message) => {
+        const msg = JSON.parse(message.toString());
+        console.log('WebSocket ssl server received a message:', msg);
+        if (msg.type === 'auth' && msg.access_token === accessToken) {
+          socket.send(JSON.stringify({ type: 'auth_ok' }));
+        }
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      httpsServer.listen(8123, () => {
+        console.log(`🛰️  Test WSS server running on port 8123`);
+        resolve();
+      });
+    });
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(async () => {
+    for (const client of server.clients) {
+      client.close();
+    }
+    await new Promise<void>((resolve) => {
+      server.close(() => {
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      httpsServer.close(() => {
+        resolve();
+      });
+    });
+  });
+
+  it('client should connect', async () => {
+    client = new WebSocket(wsUrl + apiPath, {
+      rejectUnauthorized: false,
+    });
+
+    expect(client).toBeInstanceOf(WebSocket);
+
+    await new Promise<void>((resolve) => {
+      client.once('open', () => {
+        console.log('WebSocket client connected');
+        resolve();
+      });
+    });
+    expect(client.readyState).toBe(WebSocket.OPEN);
+  });
+
+  it('client should close', async () => {
+    expect(client).toBeInstanceOf(WebSocket);
+
+    return new Promise<void>((resolve) => {
+      client.once('close', () => {
+        console.log('WebSocket client closed');
+        resolve();
+      });
+      client.close();
+    });
+  });
+
+  it('should connect to Home Assistant with ssl', async () => {
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, undefined, false);
+
+    jest.restoreAllMocks();
+
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('connected', () => {
+        resolve();
+      });
+      homeAssistant.connect();
+    });
+
+    expect(homeAssistant.connected).toBe(true);
+  });
+
+  it('should have start pingpong', async () => {
+    expect((homeAssistant as any).pingInterval).not.toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeNull();
+  });
+
+  it('should disconnect from Home Assistant with ssl', async () => {
+    expect(homeAssistant.connected).toBe(true);
+
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('disconnected', () => {
+        resolve();
+      });
+      homeAssistant.close();
+    });
+
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 });

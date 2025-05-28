@@ -24,7 +24,7 @@ Features:
 - The connection with Home Assistant can be also made with ssl WebSocket (i.e. wss://homeassistant:8123). Self signed certificates are also supported.
 - It is possible to select from a list the devices to include in the device white or black list.
 - It is possible to select from a list the entities to include in the entity white or black list.
-- It is possible to postfix the Matter device serialNumber or name to avoid collision with other instances.
+- It is possible to postfix the Matter device serialNumber or the Matter device name to avoid collision with other instances.
 
 Supported devices:
 

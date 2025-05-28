@@ -12,8 +12,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
-- [homeassistant]: Updated interface for Entities and States.
-- [homeassistant]: Updated Jest test.
+- [homeassistant]: Updated interfaces for Entities and States.
+- [homeassistant]: Updated Jest tests.
 - [areas]: Added HassArea interface and fetch areas.
 - [reconnectRetries]: Added reconnectRetries in the config.
 - [ssl]: Added the possibility to use ssl WebSocket connection to Home Assistant (i.e. wss://homeassistant:8123).
