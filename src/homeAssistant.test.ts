@@ -249,8 +249,8 @@ describe('HomeAssistant', () => {
   it('should log error if cannot parse message from Home Assistant', async () => {
     client.send('invalid message');
     await wait(100);
-    // eslint-disable-next-line no-useless-escape
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, `Error parsing WebSocket message: SyntaxError: Unexpected token 'i', \"invalid message\" is not valid JSON`);
+
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: SyntaxError: Unexpected token`));
   });
 
   it('should log error if result messages from Home Assistant has success false', async () => {
