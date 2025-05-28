@@ -23,6 +23,7 @@
  */
 
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
 import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify } from 'matterbridge/logger';
 import WebSocket from 'ws';
 
@@ -248,7 +249,10 @@ export class HomeAssistant extends EventEmitter {
   private readonly pingIntervalTime: number = 30000;
   private readonly pingTimeoutTime: number = 35000;
   private readonly reconnectTimeoutTime: number = 60000; // Reconnect timeout in milliseconds, 0 means no timeout
-  private reconnectRetries: number = 10; // Number of retries for reconnection
+  private readonly reconnectRetries: number = 10; // Number of retries for reconnection
+  private readonly certificatePath: string | undefined = undefined; // Path to the CA certificate for secure connections
+  private readonly rejectUnauthorized: boolean | undefined = undefined; // Whether to reject unauthorized certificates
+  private reconnectRetry = 0; // Reconnect retry count
   private readonly configFetchId = 1;
   private readonly servicesFetchId = 2;
   private readonly devicesFetchId = 3;
@@ -299,15 +303,24 @@ export class HomeAssistant extends EventEmitter {
    *
    * @param {string} url - The WebSocket URL for connecting to Home Assistant.
    * @param {string} accessToken - The access token for authenticating with Home Assistant.
-   * @param {number} [reconnectTimeoutTime=60] - The timeout duration for reconnect attempts in seconds.
-   * @param {number} [reconnectRetries=10] - The number of reconnection attempts to make before giving up.
+   * @param {number} [reconnectTimeoutTime=60] - The timeout duration for reconnect attempts in seconds. Defaults to 60 seconds.
+   * @param {number} [reconnectRetries=10] - The number of reconnection attempts to make before giving up. Defaults to 10 attempts.
    */
-  constructor(url: string, accessToken: string, reconnectTimeoutTime: number = 60, reconnectRetries: number = 10) {
+  constructor(
+    url: string,
+    accessToken: string,
+    reconnectTimeoutTime: number = 60,
+    reconnectRetries: number = 10,
+    certificatePath: string | undefined = undefined,
+    rejectUnauthorized: boolean | undefined = undefined,
+  ) {
     super();
     this.wsUrl = url;
     this.wsAccessToken = accessToken;
     this.reconnectTimeoutTime = reconnectTimeoutTime * 1000;
     this.reconnectRetries = reconnectRetries;
+    this.certificatePath = certificatePath;
+    this.rejectUnauthorized = rejectUnauthorized;
     this.log = new AnsiLogger({ logName: 'HomeAssistant', logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
   }
 
@@ -322,7 +335,24 @@ export class HomeAssistant extends EventEmitter {
 
     try {
       this.log.info(`Connecting to Home Assistant on ${this.wsUrl}...`);
-      this.ws = new WebSocket(this.wsUrl + '/api/websocket');
+
+      if (this.wsUrl.startsWith('ws://')) {
+        this.ws = new WebSocket(this.wsUrl + '/api/websocket');
+      } else if (this.wsUrl.startsWith('wss://')) {
+        let ca: string | Buffer<ArrayBufferLike> | (string | Buffer<ArrayBufferLike>)[] | undefined;
+        // Load the CA certificate if provided
+        if (this.certificatePath) {
+          this.log.debug(`Loading CA certificate from ${this.certificatePath}...`);
+          ca = readFileSync(this.certificatePath); // Load CA certificate from the provided path
+          this.log.debug(`CA certificate loaded successfully`);
+        }
+        this.ws = new WebSocket(this.wsUrl + '/api/websocket', {
+          ca,
+          rejectUnauthorized: this.rejectUnauthorized,
+        });
+      } else {
+        throw new Error(`Invalid WebSocket URL: ${this.wsUrl}. It must start with ws:// or wss://`);
+      }
 
       this.ws.onopen = () => {
         this.log.debug('WebSocket connection established');
@@ -497,7 +527,9 @@ export class HomeAssistant extends EventEmitter {
         this.startReconnect();
       };
     } catch (error) {
-      this.log.error('WebSocket error connecting to Home Assistant:', error);
+      const errorMessage = `WebSocket error connecting to Home Assistant: ${error}`;
+      this.log.debug(errorMessage);
+      this.emit('error', errorMessage);
     }
   }
 
@@ -507,7 +539,7 @@ export class HomeAssistant extends EventEmitter {
    */
   private startPing() {
     if (this.pingInterval) {
-      this.log.error('Ping interval already started');
+      this.log.debug('Ping interval already started');
       return;
     }
     this.log.debug('Starting ping interval...');
@@ -542,11 +574,12 @@ export class HomeAssistant extends EventEmitter {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    if (this.reconnectTimeoutTime && this.reconnectRetries >= 0) {
+    if (this.reconnectTimeoutTime && this.reconnectRetry <= this.reconnectRetries) {
       this.log.notice(`Reconnecting in ${this.reconnectTimeoutTime / 1000} seconds...`);
       this.reconnectTimeout = setTimeout(() => {
+        this.log.notice(`Reconnecting attempt ${this.reconnectRetry} of ${this.reconnectRetries}...`);
         this.connect();
-        this.reconnectRetries--;
+        this.reconnectRetry++;
       }, this.reconnectTimeoutTime);
     } else {
       this.log.warn('The reconnectTimeout in the config is not enabled. Restart the plugin to reconnect.');

@@ -89,7 +89,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 0) ? config.reconnectTimeout : undefined;
     this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
 
-    this.ha = new HomeAssistant(config.host, config.token, config.reconnectTimeout as number | undefined, config.reconnectRetries as number | undefined);
+    this.ha = new HomeAssistant(
+      config.host,
+      config.token,
+      config.reconnectTimeout as number | undefined,
+      config.reconnectRetries as number | undefined,
+      config.certificatePath as string | undefined,
+      config.rejectUnauthorized as boolean | undefined,
+    );
 
     this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);

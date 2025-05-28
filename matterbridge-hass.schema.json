@@ -15,9 +15,19 @@
       "readOnly": true
     },
     "host": {
-      "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://<IP-ADDRESS>:8123)",
+      "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://homeassistant:8123 or ws://<IP-ADDRESS>:8123). For ssl connections use wss:// (eg. wss://homeassistant.local:8123) and enable rejectUnauthorized or provide certificatePath.",
       "type": "string",
       "default": "ws://homeassistant.local:8123"
+    },
+    "certificatePath": {
+      "description": "Fully qualified path to the SSL ca certificate file. This is only needed if you use a self-signed certificate and rejectUnauthorized is enabled.",
+      "type": "string",
+      "default": "homeassistant.crt"
+    },
+    "rejectUnauthorized": {
+      "description": "Ignore SSL certificate errors. It allows to connect to Home Assistant with self-signed certificates.",
+      "type": "boolean",
+      "default": true
     },
     "token": {
       "description": "Home Assistant Long-Lived Access Token",

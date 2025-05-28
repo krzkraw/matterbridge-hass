@@ -445,8 +445,12 @@ describe('HomeAssistant', () => {
   });
 
   it('should close the WebSocket connection to Home Assistant', async () => {
+    (homeAssistant as any).reconnectTimeoutTime = 0; // Disable reconnect for this test
+    (homeAssistant as any).reconnectRetries = 0; // Disable reconnect for this test
+
     await new Promise((resolve) => {
-      homeAssistant.on('disconnected', () => {
+      homeAssistant.on('disconnected', (message) => {
+        expect(message).toBe('WebSocket connection closed');
         resolve(undefined);
       });
       homeAssistant.close();
@@ -457,15 +461,85 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).pingInterval).toBeNull();
     expect((homeAssistant as any).pingTimeout).toBeNull();
     expect((homeAssistant as any).reconnectTimeout).toBeNull();
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('should react to connection events with Home Assistant', async () => {
+    homeAssistant = new HomeAssistant(wsUrl, accessToken, reconnectTimeoutTime, reconnectRetries);
+
+    jest.useFakeTimers();
+
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('connected', () => {
+        resolve();
+      });
+      homeAssistant.connect();
+    });
+    expect(homeAssistant.connected).toBe(true);
+    expect(homeAssistant.ws).not.toBeNull();
+    expect((homeAssistant as any).reconnectTimeoutTime).toBe(reconnectTimeoutTime * 1000);
+    expect((homeAssistant as any).reconnectRetries).toBe(reconnectRetries);
+    expect((homeAssistant as any).pingInterval).not.toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).reconnectTimeout).toBeNull();
+    expect(server.clients.size).toBe(1);
+    client = Array.from(server.clients)[0];
+
+    jest.clearAllMocks();
+    (homeAssistant as any).startPing();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Ping interval already started`);
+
+    jest.clearAllMocks();
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('disconnected', () => {
+        resolve();
+      });
+      client.close(undefined, 'Bye');
+    });
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket connection closed. Reason:  Code: 1005 Clean: true Type: close');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.NOTICE, `Reconnecting in 120 seconds...`);
+    expect((homeAssistant as any).reconnectTimeout).not.toBeNull();
+    expect((homeAssistant as any).reconnectRetries).toBe(reconnectRetries);
+
+    jest.clearAllMocks();
+    homeAssistant.startReconnect();
+
+    jest.clearAllMocks();
+    jest.advanceTimersByTime(reconnectTimeoutTime * 1000);
+
+    jest.useRealTimers();
+
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('connected', () => {
+        resolve();
+      });
+    });
+    expect(homeAssistant.connected).toBe(true);
+    expect(homeAssistant.ws).not.toBeNull();
+
+    jest.clearAllMocks();
+    await new Promise<void>((resolve) => {
+      const errorHandler = () => {
+        resolve();
+      };
+      homeAssistant.once('error', errorHandler);
+      homeAssistant.ws?.emit('error', new Error('Test error'));
+    });
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket error: Test error type: error');
+
+    homeAssistant.close();
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
   it('should send ping to Home Assistant', async () => {
-    homeAssistant = new HomeAssistant(wsUrl, accessToken, reconnectTimeoutTime);
+    homeAssistant = new HomeAssistant(wsUrl, accessToken, 0, 0);
+    expect((homeAssistant as any).reconnectTimeoutTime).toBe(0);
+    expect((homeAssistant as any).reconnectRetries).toBe(0);
 
     jest.useFakeTimers();
 
     await new Promise((resolve) => {
-      homeAssistant.on('connected', () => {
+      homeAssistant.once('connected', () => {
         resolve(undefined);
       });
       homeAssistant.connect();
@@ -473,7 +547,6 @@ describe('HomeAssistant', () => {
 
     expect(homeAssistant.connected).toBe(true);
     expect(homeAssistant.ws).not.toBeNull();
-    expect((homeAssistant as any).reconnectTimeoutTime).toBe(120 * 1000);
     expect((homeAssistant as any).pingInterval).not.toBeNull();
     expect((homeAssistant as any).pingTimeout).toBeNull();
     expect((homeAssistant as any).reconnectTimeout).toBeNull();
@@ -481,7 +554,7 @@ describe('HomeAssistant', () => {
     jest.advanceTimersByTime(30000);
 
     await new Promise((resolve) => {
-      homeAssistant.on('pong', () => {
+      homeAssistant.once('pong', () => {
         resolve(undefined);
       });
     });
@@ -489,10 +562,79 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).pingTimeout).toBeNull();
 
     homeAssistant.startReconnect();
+    expect((homeAssistant as any).reconnectTimeout).toBe(null);
 
     jest.useRealTimers();
 
+    (homeAssistant as any).pingInterval = setInterval(() => {}, 30000);
+    (homeAssistant as any).pingTimeout = setTimeout(() => {}, 30000);
+
     homeAssistant.close();
+
+    expect((homeAssistant as any).pingInterval).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeNull();
+
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('should not connect if wsUrl is not ws:// or wss://', async () => {
+    homeAssistant = new HomeAssistant('http://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries);
+
+    await new Promise((resolve) => {
+      homeAssistant.once('error', () => {
+        homeAssistant.close();
+        resolve(undefined);
+      });
+      homeAssistant.connect();
+    });
+
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.DEBUG,
+      `WebSocket error connecting to Home Assistant: Error: Invalid WebSocket URL: http://localhost:8123. It must start with ws:// or wss://`,
+    );
+    expect(homeAssistant.connected).toBe(false);
+    homeAssistant.close();
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('should not connect if wsUrl is wss:// and certificate are not present', async () => {
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, './invalid/cert.pem');
+
+    await new Promise((resolve) => {
+      homeAssistant.once('error', () => {
+        homeAssistant.close();
+        resolve(undefined);
+      });
+      homeAssistant.connect();
+    });
+
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ./invalid/cert.pem...`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.DEBUG,
+      `WebSocket error connecting to Home Assistant: Error: ENOENT: no such file or directory, open 'C:\\Users\\lligu\\GitHub\\matterbridge-hass\\invalid\\cert.pem'`,
+    );
+    expect(homeAssistant.connected).toBe(false);
+    homeAssistant.close();
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('should not connect if wsUrl is wss:// and certificate are not correct', async () => {
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, './mock/homeassistant.crt');
+
+    await new Promise((resolve) => {
+      homeAssistant.once('error', () => {
+        homeAssistant.close();
+        resolve(undefined);
+      });
+      homeAssistant.connect();
+    });
+
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ./mock/homeassistant.crt...`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `CA certificate loaded successfully`);
+    // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`WebSocket error:`));
+    expect(homeAssistant.connected).toBe(false);
+    homeAssistant.close();
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
   it('should get config from Home Assistant', async () => {
