@@ -333,7 +333,7 @@ export class HomeAssistant extends EventEmitter {
         try {
           response = JSON.parse(event.data.toString()) as HassWebSocketResponse;
         } catch (error) {
-          this.log.error('Error parsing WebSocket.MessageEvent:', error);
+          this.log.error(`Error parsing WebSocket message: ${error}`);
           return;
         }
         if (response.type === 'auth_required') {
@@ -402,10 +402,6 @@ export class HomeAssistant extends EventEmitter {
               this.hassStates.set(state.entity_id, state);
               // console.log('State:', state.entity_id, state.state);
             });
-          } else if (response.id === this.eventsSubscribeId) {
-            this.subscribed = true;
-            this.emit('subscribed');
-            this.log.debug('Subscribed to events:', response);
           } else if (response.id === this.configFetchId) {
             // this.log.debug('Received config:', data);
             this.hassConfig = response.result as HassConfig;
@@ -414,6 +410,10 @@ export class HomeAssistant extends EventEmitter {
             // this.log.debug('Received services:', data);
             this.hassServices = response.result as HassServices;
             this.emit('services', this.hassServices);
+          } else if (response.id === this.eventsSubscribeId) {
+            this.subscribed = true;
+            this.emit('subscribed');
+            this.log.debug('Subscribed to events:', response);
           } else if (response.id === this.asyncFetchId) {
             this.log.debug(`Received fectch async result id ${response.id}` /* , data*/);
           } else if (response.id === this.asyncCallServiceId) {
@@ -462,6 +462,14 @@ export class HomeAssistant extends EventEmitter {
               this.hassEntities.set(entity.entity_id, entity);
             });
             this.emit('entities', entities);
+          } else if (response.id === this.eventsSubscribeId && response.event && response.event.event_type === 'area_registry_updated') {
+            this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
+            const areas = (await this.fetchAsync('config/area_registry/list')) as HassArea[];
+            this.log.debug(`Received ${areas.length} areas.`);
+            areas.forEach((area) => {
+              this.hassAreas.set(area.area_id, area);
+            });
+            this.emit('areas', areas);
           } else {
             this.log.debug(`*Unknown event type ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
           }
