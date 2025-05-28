@@ -609,10 +609,7 @@ describe('HomeAssistant', () => {
     });
 
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ./invalid/cert.pem...`);
-    expect(loggerLogSpy).toHaveBeenCalledWith(
-      LogLevel.DEBUG,
-      `WebSocket error connecting to Home Assistant: Error: ENOENT: no such file or directory, open 'C:\\Users\\lligu\\GitHub\\matterbridge-hass\\invalid\\cert.pem'`,
-    );
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`WebSocket error connecting to Home Assistant: Error: ENOENT`));
     expect(homeAssistant.connected).toBe(false);
     homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
