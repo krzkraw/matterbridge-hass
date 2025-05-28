@@ -29,6 +29,7 @@ import {
   dimmableLight,
   dimmableOutlet,
   dimmableSwitch,
+  extendedColorLight,
   Matterbridge,
   MatterbridgeEndpoint,
   onOffLight,
@@ -221,7 +222,11 @@ export class MutableDevice {
       if (deviceTypesMap.has(dimmableSwitch.code) && deviceTypesMap.has(colorTemperatureSwitch.code)) deviceTypesMap.delete(dimmableSwitch.code);
       if (deviceTypesMap.has(onOffOutlet.code) && deviceTypesMap.has(dimmableOutlet.code)) deviceTypesMap.delete(onOffOutlet.code);
       if (deviceTypesMap.has(onOffLight.code) && deviceTypesMap.has(dimmableLight.code)) deviceTypesMap.delete(onOffLight.code);
+      if (deviceTypesMap.has(onOffLight.code) && deviceTypesMap.has(colorTemperatureLight.code)) deviceTypesMap.delete(onOffLight.code);
+      if (deviceTypesMap.has(onOffLight.code) && deviceTypesMap.has(extendedColorLight.code)) deviceTypesMap.delete(onOffLight.code);
       if (deviceTypesMap.has(dimmableLight.code) && deviceTypesMap.has(colorTemperatureLight.code)) deviceTypesMap.delete(dimmableLight.code);
+      if (deviceTypesMap.has(dimmableLight.code) && deviceTypesMap.has(extendedColorLight.code)) deviceTypesMap.delete(dimmableLight.code);
+      if (deviceTypesMap.has(colorTemperatureLight.code) && deviceTypesMap.has(extendedColorLight.code)) deviceTypesMap.delete(colorTemperatureLight.code);
       device.deviceTypes = Array.from(deviceTypesMap.values());
     }
   }
