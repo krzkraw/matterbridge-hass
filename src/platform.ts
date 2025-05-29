@@ -490,7 +490,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             child.subscribeAttribute(
               hassSubscribe.clusterId,
               hassSubscribe.attribute,
-              (newValue: any, oldValue: any) => {
+              (newValue: any, oldValue: any, context) => {
+                if (context.offline === true) return; // Skip offline updates
                 if ((typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) {
                   matterbridgeDevice?.log.debug(
                     `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
