@@ -16,6 +16,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Changed
 
+- [update]: Skip attributes update when state is off. Provisional!
+
 ### Fixed
 
 <a href="https://www.buymeacoffee.com/luligugithub">
