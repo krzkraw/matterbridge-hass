@@ -392,7 +392,7 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     await haPlatform.updateHandler('dimmableDoubleOutlet', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
-    expect(mockLog.debug).toHaveBeenCalledWith(`*Update handler: Endpoint notanentity not found`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`*Update handler: Endpoint notanentity for dimmableDoubleOutlet not found`);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler('dimmableDoubleOutlet', 'switch.switch_switch_1', { state: 'off' } as HassState, { state: 'on' } as HassState);
