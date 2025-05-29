@@ -48,6 +48,7 @@ import { MutableDevice, getClusterServerObj } from './mutableDevice.js';
 import {
   hassCommandConverter,
   hassDomainAttributeConverter,
+  hassDomainBinarySensorsConverter,
   hassDomainConverter,
   hassDomainSensorsConverter,
   hassSubscribeConverter,
@@ -334,6 +335,20 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             this.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
             mutableDevice.addDeviceTypes(entity.entity_id, hassDomainSensor.deviceType);
             mutableDevice.addClusterServerIds(entity.entity_id, hassDomainSensor.clusterId);
+            if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(entity.entity_id, hassState.attributes['friendly_name']);
+          }
+        });
+
+        // Look for supported binary_sensors of the current entity state
+        const hassDomainBinarySensors = hassDomainBinarySensorsConverter.filter((d) => d.domain === domain);
+        hassDomainBinarySensors.forEach((hassDomainBinarySensor) => {
+          this.log.debug(`- binary_sensor ${CYAN}${hassDomainBinarySensor.domain}${db} deviceClass ${hassDomainBinarySensor.withDeviceClass}`);
+          if (hassState.attributes['device_class'] === hassDomainBinarySensor.withDeviceClass) {
+            this.log.debug(
+              `+ binary_sensor device ${CYAN}${hassDomainBinarySensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainBinarySensor.clusterId)?.name}${db}`,
+            );
+            mutableDevice.addDeviceTypes(entity.entity_id, hassDomainBinarySensor.deviceType);
+            mutableDevice.addClusterServerIds(entity.entity_id, hassDomainBinarySensor.clusterId);
             if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(entity.entity_id, hassState.attributes['friendly_name']);
           }
         });
@@ -643,6 +658,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           `Update sensor ${CYAN}${domain}${wr}:${CYAN}${new_state.attributes['state_class']}${wr}:${CYAN}${new_state.attributes['device_class']}${wr} not supported for entity ${entityId}`,
         );
       }
+    } else if (domain === 'binary_sensor') {
+      // Update binary_sensors of the device
+      const hassBinarySensorConverter = hassDomainBinarySensorsConverter.find((s) => s.domain === domain && s.withDeviceClass === new_state.attributes['device_class']);
+      if (hassBinarySensorConverter) {
+        const convertedValue = hassBinarySensorConverter.converter(new_state.state);
+        endpoint.log.debug(
+          `Converting binary_sensor ${new_state.attributes['device_class']} value "${new_state.state}" to ${CYAN}${typeof convertedValue === 'object' ? debugStringify(convertedValue) : convertedValue}${db}`,
+        );
+        if (convertedValue !== null) await endpoint.setAttribute(hassBinarySensorConverter.clusterId, hassBinarySensorConverter.attribute, convertedValue, endpoint.log);
+      } else {
+        endpoint.log.warn(`Update binary_sensor ${CYAN}${domain}${wr}:${CYAN}${new_state.attributes['device_class']}${wr} not supported for entity ${entityId}`);
+      }
     } else {
       // Update state of the device
       const hassUpdateState = hassUpdateStateConverter.find((updateState) => updateState.domain === domain && updateState.state === new_state.state);
@@ -659,13 +686,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Update attributes of the device
       const hassUpdateAttributes = hassUpdateAttributeConverter.filter((updateAttribute) => updateAttribute.domain === domain);
       if (hassUpdateAttributes.length > 0) {
-        // console.log('Processing update attributes: ', hassUpdateAttributes.length);
+        // console.error('Processing update attributes: ', hassUpdateAttributes.length);
         for (const update of hassUpdateAttributes) {
-          // console.log('- processing update attribute', update.with, 'value', new_state.attributes[update.with]);
+          // console.error('- processing update attribute', update.with, 'value', new_state.attributes[update.with]);
           const value = new_state.attributes[update.with];
           if (value !== null) {
-            // console.log('-- converting update attribute value', update.converter(value));
             const convertedValue = update.converter(value, new_state);
+            // console.error(`-- converting update attribute (entity: ${entityId}) (${hassUpdateAttributes.length}) update.with ${update.with} value ${value} to ${convertedValue} for cluster ${update.clusterId} attribute ${update.attribute}`);
             endpoint.log.debug(`Converting attribute ${update.with} value ${value} to ${CYAN}${convertedValue}${db}`);
             if (convertedValue !== null) await endpoint.setAttribute(update.clusterId, update.attribute, convertedValue, endpoint.log);
           }

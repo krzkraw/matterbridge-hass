@@ -33,6 +33,7 @@ import {
   fanDevice,
   humiditySensor,
   lightSensor,
+  occupancySensor,
   onOffLight,
   onOffOutlet,
   temperatureSensor,
@@ -53,6 +54,7 @@ import {
   DoorLock,
   ColorControl,
   BooleanState,
+  OccupancySensing,
 } from 'matterbridge/matter/clusters';
 
 import { HassState } from './homeAssistant.js';
@@ -146,8 +148,8 @@ export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefini
     { domain: 'fan',            deviceType: fanDevice,        clusterId: FanControl.Cluster.id },
     { domain: 'cover',          deviceType: coverDevice,      clusterId: WindowCovering.Cluster.id },
     { domain: 'climate',        deviceType: thermostatDevice, clusterId: Thermostat.Cluster.id },
-    { domain: 'binary_sensor',  deviceType: contactSensor,    clusterId: BooleanState.Cluster.id },
     { domain: 'sensor',         deviceType: null,             clusterId: null },
+    { domain: 'binary_sensor',  deviceType: null,             clusterId: null },
   ];
 
 // Convert Home Assistant domains attributes to Matterbridge device types and clusterIds
@@ -159,13 +161,20 @@ export const hassDomainAttributeConverter: { domain: string; with: string; devic
     { domain: 'light',    with: 'xy_color',    deviceType: extendedColorLight,  clusterId: ColorControl.Cluster.id },
   ];
 
-// Convert Home Assistant domains attributes to Matterbridge device types and clusterIds
+// Convert Home Assistant sensor domains attributes to Matterbridge device types and clusterIds
 // prettier-ignore
-export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter?: any }[] = [
+export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: any }[] = [
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',   deviceType: temperatureSensor,  clusterId: TemperatureMeasurement.Cluster.id,      attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value, -100, 100) ? Math.round(value * 100) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',      deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value * 100) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',      deviceType: temperatureSensor,  clusterId: PressureMeasurement.Cluster.id,         attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value) ? Math.round(value) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'illuminance',   deviceType: lightSensor,        clusterId: IlluminanceMeasurement.Cluster.id,      attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value) ? Math.round(Math.max(Math.min(10000 * Math.log10(value), 0xfffe), 0)) : null) },
+  ];
+
+// Convert Home Assistant binary_sensor domains attributes to Matterbridge device types and clusterIds
+// prettier-ignore
+export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: any }[] = [
+    { domain: 'binary_sensor',    withDeviceClass: 'door',        deviceType: contactSensor,    clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? true : false) },
+    { domain: 'binary_sensor',    withDeviceClass: 'occupancy',   deviceType: occupancySensor,  clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',   converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
   ];
 
 // Convert Home Assistant domains services to Matterbridge commands for device types

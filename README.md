@@ -42,7 +42,7 @@ Supported devices:
 
 - sensor (with deviceClass temperature/humidity/pressure/illuminance)
 
-- binary_sensor (with state on/off)
+- binary_sensor (with deviceClass door/occupancy)
 
 Supported individual entities:
 
