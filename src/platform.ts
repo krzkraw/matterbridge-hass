@@ -34,7 +34,7 @@ import {
   PlatformConfig,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
-import { deepEqual, isValidArray, isValidString, waiter } from 'matterbridge/utils';
+import { deepEqual, isValidArray, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
 import { Thermostat, OnOff, ColorControl } from 'matterbridge/matter/clusters';
@@ -43,7 +43,7 @@ import { ClusterRegistry } from 'matterbridge/matter/types';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices } from './homeAssistant.js';
+import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea } from './homeAssistant.js';
 import { MutableDevice, getClusterServerObj } from './mutableDevice.js';
 import {
   hassCommandConverter,
@@ -72,9 +72,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('2.2.6')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.0.4')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "2.2.6". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "3.0.4". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -84,7 +84,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       throw new Error('Host and token must be defined in the configuration');
     }
 
-    this.ha = new HomeAssistant(config.host, config.token, (config.reconnectTimeout as number | undefined) ?? 60);
+    this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
+    this.config.serialPostfix = isValidString(this.config.serialPostfix, 1, 3) ? this.config.serialPostfix : '';
+    this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 0) ? config.reconnectTimeout : undefined;
+    this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
+
+    this.ha = new HomeAssistant(
+      config.host,
+      config.token,
+      config.reconnectTimeout as number | undefined,
+      config.reconnectRetries as number | undefined,
+      config.certificatePath as string | undefined,
+      config.rejectUnauthorized as boolean | undefined,
+    );
 
     this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
@@ -94,32 +106,35 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.warn('Disconnected from Home Assistant');
     });
 
+    this.ha.on('error', (error: string) => {
+      this.log.error(`Error from Home Assistant: ${error}`);
+    });
+
     this.ha.on('subscribed', () => {
       this.log.info(`Subscribed to Home Assistant events`);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('config', (config: HassConfig) => {
+    this.ha.on('config', (_config: HassConfig) => {
       this.log.info('Configuration received from Home Assistant');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('services', (services: HassServices) => {
+    this.ha.on('services', (_services: HassServices) => {
       this.log.info('Services received from Home Assistant');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('devices', (devices: HassDevice[]) => {
+    this.ha.on('devices', (_devices: HassDevice[]) => {
       this.log.info('Devices received from Home Assistant');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('entities', (entities: HassEntity[]) => {
+    this.ha.on('entities', (_entities: HassEntity[]) => {
       this.log.info('Entities received from Home Assistant');
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.ha.on('states', (states: HassState[]) => {
+    this.ha.on('areas', (_areas: HassArea[]) => {
+      this.log.info('Areas received from Home Assistant');
+    });
+
+    this.ha.on('states', (_states: HassState[]) => {
       this.log.info('States received from Home Assistant');
     });
 
@@ -147,12 +162,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const check = () => {
       return this.ha.connected && this.ha.devicesReceived && this.ha.entitiesReceived && this.ha.subscribed;
     };
-    await waiter('Home Assistant connected', check, true, 10000, 1000); // Wait for 10 seconds with 1 second interval and throw error if not connected
+    await waiter('Home Assistant connected', check, true, 30000, 1000); // Wait for 30 seconds with 1 second interval and throw error if not connected
 
     // Save devices, entities, states, config and services to a local file
     const payload = {
       devices: Array.from(this.ha.hassDevices.values()),
       entities: Array.from(this.ha.hassEntities.values()),
+      areas: Array.from(this.ha.hassAreas.values()),
       states: Array.from(this.ha.hassStates.values()),
       config: this.ha.hassConfig,
       services: this.ha.hassServices,
@@ -174,7 +190,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (!['automation', 'scene', 'script', 'input_boolean'].includes(domain)) continue;
       const entityName = entity.name ?? entity.original_name;
       if (!isValidString(entityName)) continue;
-      // this.selectEntity.set(entity.id, { name: entity.entity_id, description: entityName, icon: 'hub' });
       this.setSelectEntity(entity.entity_id, entityName, 'hub');
       if (
         isValidArray(this.config.individualEntityWhiteList, 1) &&
@@ -188,7 +203,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       )
         continue;
       if (this.hasDeviceName(entityName)) {
-        this.log.warn(`Entity ${CYAN}${entityName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
+        this.log.warn(`Individual entity ${CYAN}${entityName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
 
@@ -197,7 +212,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const mutableDevice = new MutableDevice(
         this.matterbridge,
         entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
-        isValidString(this.config.serialPostfix, 1, 3) ? entity.id.slice(0, 29) + this.config.serialPostfix : entity.id,
+        isValidString(this.config.serialPostfix, 1, 3) ? entity.id.slice(0, 32 - this.config.serialPostfix.length) + this.config.serialPostfix : entity.id,
         0xfff1,
         'HomeAssistant',
         domain,
@@ -217,7 +232,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const child = await mutableDevice.createChildEndpoint(entity.entity_id);
       await mutableDevice.createClusters(entity.entity_id);
       child.addCommandHandler('on', async () => {
-        // child.setAttribute(OnOff.Cluster.id, 'onOff', true, child.log); // No need with behavior
         await this.ha.callServiceAsync(domain, domain === 'automation' ? 'trigger' : 'turn_on', entity.entity_id);
         if (domain !== 'input_boolean') {
           // We revert the state after 500ms except for input_boolean
@@ -227,7 +241,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
       });
       child.addCommandHandler('off', async () => {
-        // child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log); // No need with behavior
         // We update hass only for input_boolean
         if (domain === 'input_boolean') await this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
       });
@@ -237,7 +250,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       await this.registerDevice(mutableDevice.getEndpoint());
       this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
       this.bridgedHassEntities.set(entity.entity_id, entity);
-    }
+    } // End of individual entities scan
 
     // Scan devices and entities and create Matterbridge devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
@@ -588,9 +601,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
     const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
-    if (!matterbridgeDevice) return;
+    if (!matterbridgeDevice) {
+      this.log.debug(`*Update handler: Matterbridge device ${deviceId} not found`);
+      return;
+    }
     const endpoint = matterbridgeDevice.getChildEndpointByName(entityId) || matterbridgeDevice.getChildEndpointByName(entityId.replaceAll('.', ''));
-    if (!endpoint) return;
+    if (!endpoint) {
+      this.log.debug(`*Update handler: Endpoint ${entityId} for ${deviceId} not found`);
+      return;
+    }
     matterbridgeDevice.log.info(
       `${db}Received update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
         `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,

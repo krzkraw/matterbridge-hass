@@ -9,34 +9,46 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [18.x, 20.x, 22.x, 24.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }} 
+      - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Clean cache
         run: npm cache clean --force
-    
+
       - name: Verify Node.js version
         run: node -v
 
       - name: Verify Npm version
         run: npm -v
-            
-      - name: Install matterbridge
-        run: npm install -g matterbridge --omit=dev
+
+      - name: Clone matterbridge repo
+        run: git clone https://github.com/Luligu/matterbridge.git ../matterbridge
+
+      - name: Install matterbridge dependencies
+        working-directory: ../matterbridge
+        run: npm ci
+
+      - name: Build matterbridge
+        working-directory: ../matterbridge
+        run: npm run build
+
+      - name: Link matterbridge globally
+        working-directory: ../matterbridge
+        run: npm link
 
       - name: Install dependencies
         run: npm ci
-  
-      - name: Link matterbridge
+
+      - name: Link matterbridge in the project
         run: npm link matterbridge
 
       - name: Lint the project
@@ -47,4 +59,3 @@ jobs:
 
       - name: Build the project
         run: npm run build
-

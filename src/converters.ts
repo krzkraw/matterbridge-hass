@@ -28,6 +28,7 @@ import {
   DeviceTypeDefinition,
   dimmableLight,
   doorLockDevice,
+  extendedColorLight,
   fanDevice,
   humiditySensor,
   lightSensor,
@@ -146,8 +147,8 @@ export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefini
 export const hassDomainAttributeConverter: { domain: string; with: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
     { domain: 'light',    with: 'brightness',  deviceType: dimmableLight,          clusterId: LevelControl.Cluster.id },
     { domain: 'light',    with: 'color_temp',  deviceType: colorTemperatureLight,  clusterId: ColorControl.Cluster.id },
-    { domain: 'light',    with: 'hs_color',    deviceType: colorTemperatureLight,  clusterId: ColorControl.Cluster.id },
-    { domain: 'light',    with: 'xy_color',    deviceType: colorTemperatureLight,  clusterId: ColorControl.Cluster.id },
+    { domain: 'light',    with: 'hs_color',    deviceType: extendedColorLight,  clusterId: ColorControl.Cluster.id },
+    { domain: 'light',    with: 'xy_color',    deviceType: extendedColorLight,  clusterId: ColorControl.Cluster.id },
   ];
 
 // Convert Home Assistant domains attributes to Matterbridge device types and clusterIds

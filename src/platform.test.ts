@@ -50,7 +50,7 @@ describe('HassPlatform', () => {
     matterbridgeDirectory: './jest/matterbridge',
     matterbridgePluginDirectory: './jest/plugins',
     systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '2.2.6',
+    matterbridgeVersion: '3.0.4',
     edge: true,
     log: mockLog,
     getDevices: jest.fn(() => {
@@ -169,10 +169,12 @@ describe('HassPlatform', () => {
       haPlatform.ha.connected = true;
       haPlatform.ha.devicesReceived = true;
       haPlatform.ha.entitiesReceived = true;
+      haPlatform.ha.areasReceived = true;
       haPlatform.ha.statesReceived = true;
       haPlatform.ha.subscribed = true;
       haPlatform.ha.hassDevices.clear();
       haPlatform.ha.hassEntities.clear();
+      haPlatform.ha.hassAreas.clear();
       haPlatform.ha.hassStates.clear();
     }
   });
@@ -194,68 +196,75 @@ describe('HassPlatform', () => {
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow('Host and token must be defined in the configuration');
   });
 
-  it('should initialize platform with with config name', () => {
+  it('should initialize platform with config name', async () => {
     mockConfig.host = 'http://homeassistant.local:8123';
     mockConfig.token = 'long-lived token';
     haPlatform = new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig);
     expect(mockLog.debug).toHaveBeenCalledWith(`MatterbridgeDynamicPlatform loaded`);
+
+    await new Promise<void>((resolve) => {
+      haPlatform.ha.once('error', (error) => {
+        if (error === 'Test error') resolve();
+      });
+      haPlatform.ha.emit('error', 'Test error');
+    });
   });
 
   it('should not initialize platform with wrong version', () => {
     mockMatterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow();
-    mockMatterbridge.matterbridgeVersion = '2.2.6';
+    mockMatterbridge.matterbridgeVersion = '3.0.4';
   });
 
   it('should validate with white and black list', () => {
     haPlatform.config.whiteList = ['white1', 'white2', 'white3'];
     haPlatform.config.blackList = ['black1', 'black2', 'black3'];
-    expect(haPlatform.validateDeviceWhiteBlackList('white1')).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('black2')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList(['white1', 'black2'])).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(false);
+    expect(haPlatform.validateDevice('white1')).toBe(true);
+    expect(haPlatform.validateDevice('black2')).toBe(false);
+    expect(haPlatform.validateDevice(['white1', 'black2'])).toBe(false);
+    expect(haPlatform.validateDevice('xDevice')).toBe(false);
+    expect(haPlatform.validateDevice('')).toBe(false);
   });
 
   it('should validate with white list', () => {
     haPlatform.config.whiteList = ['white1', 'white2', 'white3'];
     haPlatform.config.blackList = [];
-    expect(haPlatform.validateDeviceWhiteBlackList('white1')).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('black2')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList(['white1', 'black2'])).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(false);
+    expect(haPlatform.validateDevice('white1')).toBe(true);
+    expect(haPlatform.validateDevice('black2')).toBe(false);
+    expect(haPlatform.validateDevice(['white1', 'black2'])).toBe(true);
+    expect(haPlatform.validateDevice('xDevice')).toBe(false);
+    expect(haPlatform.validateDevice('')).toBe(false);
   });
 
   it('should validate with black list', () => {
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = ['black1', 'black2', 'black3'];
-    expect(haPlatform.validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('black1')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList('black2')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList('black3')).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList(['x', 'y', 'z'])).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList(['x', 'y', 'z', 'black3'])).toBe(false);
-    expect(haPlatform.validateDeviceWhiteBlackList('xDevice')).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(true);
+    expect(haPlatform.validateDevice('whiteDevice')).toBe(true);
+    expect(haPlatform.validateDevice('black1')).toBe(false);
+    expect(haPlatform.validateDevice('black2')).toBe(false);
+    expect(haPlatform.validateDevice('black3')).toBe(false);
+    expect(haPlatform.validateDevice(['x', 'y', 'z'])).toBe(true);
+    expect(haPlatform.validateDevice(['x', 'y', 'z', 'black3'])).toBe(false);
+    expect(haPlatform.validateDevice('xDevice')).toBe(true);
+    expect(haPlatform.validateDevice('')).toBe(true);
   });
 
   it('should validate with no white and black list', () => {
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = [];
-    expect(haPlatform.validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList(['whiteDevice', '123456'])).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('blackDevice')).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList(['blackDevice', '123456'])).toBe(true);
-    expect(haPlatform.validateDeviceWhiteBlackList('')).toBe(true);
+    expect(haPlatform.validateDevice('whiteDevice')).toBe(true);
+    expect(haPlatform.validateDevice(['whiteDevice', '123456'])).toBe(true);
+    expect(haPlatform.validateDevice('blackDevice')).toBe(true);
+    expect(haPlatform.validateDevice(['blackDevice', '123456'])).toBe(true);
+    expect(haPlatform.validateDevice('')).toBe(true);
   });
 
   it('should validate with entity black list', () => {
     haPlatform.config.entityBlackList = ['blackEntity'];
     haPlatform.config.deviceEntityBlackList = {};
-    expect(haPlatform.validateEntityBlackList('any', 'whiteEntity')).toBe(true);
-    expect(haPlatform.validateEntityBlackList('any', 'blackEntity')).toBe(false);
-    expect(haPlatform.validateEntityBlackList('any', '')).toBe(true);
+    expect(haPlatform.validateEntity('any', 'whiteEntity')).toBe(true);
+    expect(haPlatform.validateEntity('any', 'blackEntity')).toBe(false);
+    expect(haPlatform.validateEntity('any', '')).toBe(true);
 
     haPlatform.config.entityBlackList = [];
     haPlatform.config.deviceEntityBlackList = {};
@@ -264,15 +273,15 @@ describe('HassPlatform', () => {
   it('should validate with device entity black list and entity black list', () => {
     haPlatform.config.entityBlackList = ['blackEntity'];
     haPlatform.config.deviceEntityBlackList = { device1: ['blackEntityDevice1'] };
-    expect(haPlatform.validateEntityBlackList('any', 'whiteEntity')).toBe(true);
-    expect(haPlatform.validateEntityBlackList('any', 'blackEntity')).toBe(false);
-    expect(haPlatform.validateEntityBlackList('any', 'blackEntityDevice1')).toBe(true);
-    expect(haPlatform.validateEntityBlackList('any', '')).toBe(true);
+    expect(haPlatform.validateEntity('any', 'whiteEntity')).toBe(true);
+    expect(haPlatform.validateEntity('any', 'blackEntity')).toBe(false);
+    expect(haPlatform.validateEntity('any', 'blackEntityDevice1')).toBe(true);
+    expect(haPlatform.validateEntity('any', '')).toBe(true);
 
-    expect(haPlatform.validateEntityBlackList('device1', 'whiteEntity')).toBe(true);
-    expect(haPlatform.validateEntityBlackList('device1', 'blackEntity')).toBe(false);
-    expect(haPlatform.validateEntityBlackList('device1', 'blackEntityDevice1')).toBe(false);
-    expect(haPlatform.validateEntityBlackList('device1', '')).toBe(true);
+    expect(haPlatform.validateEntity('device1', 'whiteEntity')).toBe(true);
+    expect(haPlatform.validateEntity('device1', 'blackEntity')).toBe(false);
+    expect(haPlatform.validateEntity('device1', 'blackEntityDevice1')).toBe(false);
+    expect(haPlatform.validateEntity('device1', '')).toBe(true);
 
     haPlatform.config.entityBlackList = [];
     haPlatform.config.deviceEntityBlackList = {};
@@ -342,6 +351,11 @@ describe('HassPlatform', () => {
     expect(mockCallServiceAsync).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
     mockCallServiceAsync.mockClear();
+    await haPlatform.commandHandler(undefined, child2, undefined, undefined, 'unknown');
+    expect(mockCallServiceAsync).not.toHaveBeenCalled();
+    expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining(`Command handler: Matterbridge device not found`));
+
+    mockCallServiceAsync.mockClear();
     await haPlatform.commandHandler(device, child2, undefined, undefined, 'unknown');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
@@ -349,6 +363,46 @@ describe('HassPlatform', () => {
     );
     expect(mockCallServiceAsync).not.toHaveBeenCalled();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}unknown${rs}${wr} not supported`));
+  });
+
+  it('should call updateHandler', async () => {
+    expect(haPlatform).toBeDefined();
+    const device = new MatterbridgeEndpoint(bridgedNode, { uniqueStorageKey: 'dimmableDoubleOutlet' }, true);
+    expect(device).toBeDefined();
+    if (!device) return;
+
+    const child1 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_1', [dimmableOutlet], [], { endpointId: EndpointNumber(1) });
+    expect(child1).toBeDefined();
+    child1.number = EndpointNumber(1);
+
+    const child2 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_2', [dimmableOutlet], [], { endpointId: EndpointNumber(2) });
+    expect(child2).toBeDefined();
+    child2.number = EndpointNumber(2);
+
+    const child3 = device.addChildDeviceTypeWithClusterServer('light.light_light_3', [colorTemperatureLight], [], { endpointId: EndpointNumber(3) });
+    expect(child3).toBeDefined();
+    child3.number = EndpointNumber(3);
+
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    haPlatform.matterbridgeDevices.set('dimmableDoubleOutlet', device);
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler('notadevice', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(mockLog.debug).toHaveBeenCalledWith(`*Update handler: Matterbridge device notadevice not found`);
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler('dimmableDoubleOutlet', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(mockLog.debug).toHaveBeenCalledWith(`*Update handler: Endpoint notanentity for dimmableDoubleOutlet not found`);
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler('dimmableDoubleOutlet', 'switch.switch_switch_1', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(`${db}Received update event from Home Assistant device ${idn}${device?.deviceName}${rs}${db} entity ${CYAN}switch.switch_switch_1${db}`),
+    );
+
+    haPlatform.matterbridgeDevices.delete('dimmableDoubleOutlet');
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
   });
 
   it('should call onStart with reason', async () => {
@@ -371,20 +425,22 @@ describe('HassPlatform', () => {
   it('should receive events from ha', () => {
     haPlatform.ha.emit('connected', '2024.09.1');
     expect(mockLog.notice).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
-    haPlatform.ha.emit('disconnected');
+    haPlatform.ha.emit('disconnected', 'Jest test');
     expect(mockLog.warn).toHaveBeenCalledWith(`Disconnected from Home Assistant`);
     haPlatform.ha.emit('subscribed');
     expect(mockLog.info).toHaveBeenCalledWith(`Subscribed to Home Assistant events`);
     haPlatform.ha.emit('config', {} as unknown as HassConfig);
     expect(mockLog.info).toHaveBeenCalledWith(`Configuration received from Home Assistant`);
-    haPlatform.ha.emit('states', []);
-    expect(mockLog.info).toHaveBeenCalledWith(`States received from Home Assistant`);
     haPlatform.ha.emit('services', {});
     expect(mockLog.info).toHaveBeenCalledWith(`Services received from Home Assistant`);
+    haPlatform.ha.emit('states', []);
+    expect(mockLog.info).toHaveBeenCalledWith(`States received from Home Assistant`);
     haPlatform.ha.emit('devices', []);
     expect(mockLog.info).toHaveBeenCalledWith(`Devices received from Home Assistant`);
     haPlatform.ha.emit('entities', []);
     expect(mockLog.info).toHaveBeenCalledWith(`Entities received from Home Assistant`);
+    haPlatform.ha.emit('areas', []);
+    expect(mockLog.info).toHaveBeenCalledWith(`Areas received from Home Assistant`);
   });
 
   it('should register a Scene entity', async () => {
@@ -408,6 +464,12 @@ describe('HassPlatform', () => {
     );
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get('scene.turn_off_all_lights')).toBeDefined();
+    await haPlatform.updateHandler('scene.turn_off_all_lights', 'scene.turn_off_all_lights', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
   });
 
   it('should register a Script entity', async () => {
@@ -431,6 +493,12 @@ describe('HassPlatform', () => {
     );
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    expect(haPlatform.matterbridgeDevices.size).toBe(2);
+    expect(haPlatform.matterbridgeDevices.get('script.increase_brightness')).toBeDefined();
+    await haPlatform.updateHandler('script.increase_brightness', 'script.increase_brightness', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
   });
 
   it('should register an Automation entity', async () => {
@@ -454,6 +522,12 @@ describe('HassPlatform', () => {
     );
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.get('automation.turn_off_all_switches')).toBeDefined();
+    await haPlatform.updateHandler('automation.turn_off_all_switches', 'automation.turn_off_all_switches', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
   });
 
   it('should register a Switch device from ha', async () => {

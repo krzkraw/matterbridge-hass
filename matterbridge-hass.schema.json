@@ -15,9 +15,19 @@
       "readOnly": true
     },
     "host": {
-      "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://<IP-ADDRESS>:8123)",
+      "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://homeassistant:8123 or ws://<IP-ADDRESS>:8123). For ssl connections use wss:// (eg. wss://homeassistant.local:8123) and enable rejectUnauthorized or provide certificatePath.",
       "type": "string",
       "default": "ws://homeassistant.local:8123"
+    },
+    "certificatePath": {
+      "description": "Fully qualified path to the SSL ca certificate file. This is only needed if you use a self-signed certificate and rejectUnauthorized is enabled.",
+      "type": "string",
+      "default": "homeassistant.crt"
+    },
+    "rejectUnauthorized": {
+      "description": "Ignore SSL certificate errors. It allows to connect to Home Assistant with self-signed certificates.",
+      "type": "boolean",
+      "default": true
     },
     "token": {
       "description": "Home Assistant Long-Lived Access Token",
@@ -27,6 +37,11 @@
       "description": "Reconnect timeout in seconds",
       "type": "number",
       "default": 60
+    },
+    "reconnectRetries": {
+      "description": "Number of times to try to reconnect before giving up",
+      "type": "number",
+      "default": 10
     },
     "individualEntityWhiteList": {
       "description": "White list of individual entities without associated device to be exposed. It allows to select scenes, scripts, automations and input_boolean. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
@@ -88,13 +103,13 @@
         "selectDeviceEntityFrom": "name"
       }
     },
-    "serialPostfix": {
-      "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
+    "namePostfix": {
+      "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
       "type": "string",
       "default": ""
     },
-    "namePostfix": {
-      "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
+    "serialPostfix": {
+      "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
       "type": "string",
       "default": ""
     },

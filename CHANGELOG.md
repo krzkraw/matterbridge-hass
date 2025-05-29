@@ -8,6 +8,33 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
+## [0.0.11] - 2025-05-29
+
+### Added
+
+- [homeassistant]: Updated interfaces for Entities and States.
+- [homeassistant]: Updated Jest tests.
+- [areas]: Added HassArea interface and fetch areas.
+- [reconnectRetries]: Added reconnectRetries in the config.
+- [ssl]: Added the possibility to use ssl WebSocket connection to Home Assistant (i.e. wss://homeassistant:8123).
+- [ssl]: Added certificatePath to the config: enter the fully qualified path to the SSL ca certificate file. This is only needed if you use a self-signed certificate and rejectUnauthorized is enabled.
+- [ssl]: Added rejectUnauthorized to the config: it ignores SSL certificate validation errors if enabled. It allows to connect to Home Assistant with self-signed certificates.
+
+### Changed
+
+- [package]: Update package.
+- [package]: Update dependencies.
+- [package]: Requires matterbridge 3.0.4.
+- [platform]: Changed the timeout of the first connection to 30 seconds.
+
+### Fixed
+
+- [reconnect]: Fixed reconnection loop. Now when Home Assistant reboots, the connection is reeastablished correctly if reconnectTimeout and/or reconnectRetries are enabled.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.0.10] - 2025-04-04
 
 ### Added

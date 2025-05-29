@@ -16,6 +16,7 @@ import {
   colorTemperatureSwitch,
   temperatureSensor,
   optionsFor,
+  extendedColorLight,
 } from 'matterbridge';
 import { MutableDevice } from './mutableDevice';
 import { jest } from '@jest/globals';
@@ -230,12 +231,12 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addDeviceTypes('', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
     mutableDevice.addDeviceTypes('', onOffOutlet, dimmableOutlet);
-    mutableDevice.addDeviceTypes('', onOffLight, dimmableLight, colorTemperatureLight);
+    mutableDevice.addDeviceTypes('', onOffLight, dimmableLight, colorTemperatureLight, extendedColorLight);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
     mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
 
-    expect(mutableDevice.get().deviceTypes).toHaveLength(12);
+    expect(mutableDevice.get().deviceTypes).toHaveLength(13);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(3);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
 
