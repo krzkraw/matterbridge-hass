@@ -601,9 +601,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
     const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
-    if (!matterbridgeDevice) return;
+    if (!matterbridgeDevice) {
+      this.log.debug(`*Update handler: Matterbridge device ${deviceId} not found`);
+      return;
+    }
     const endpoint = matterbridgeDevice.getChildEndpointByName(entityId) || matterbridgeDevice.getChildEndpointByName(entityId.replaceAll('.', ''));
-    if (!endpoint) return;
+    if (!endpoint) {
+      this.log.debug(`*Update handler: Endpoint ${entityId} not found`);
+      return;
+    }
     matterbridgeDevice.log.info(
       `${db}Received update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
         `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,

@@ -827,7 +827,7 @@ describe('HomeAssistant with ssl', () => {
   it('should connect to Home Assistant with ssl', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, undefined, false);
 
-    jest.restoreAllMocks();
+    // jest.restoreAllMocks();
 
     await new Promise<void>((resolve) => {
       homeAssistant.once('connected', () => {
