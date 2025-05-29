@@ -8,7 +8,7 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
-## [0.0.11] - 2025-05-28
+## [0.0.11] - 2025-05-29
 
 ### Added
 
@@ -25,11 +25,11 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Update package.
 - [package]: Update dependencies.
 - [package]: Requires matterbridge 3.0.4.
-- [platfrom]: Changed the timeout of the first connection to 30 seconds.
+- [platform]: Changed the timeout of the first connection to 30 seconds.
 
 ### Fixed
 
-- [reconnect]: Fixed reconnection loop. Now when Home Assistan reboots, the connection is reastablished correctly if reconnectTimeout and/or reconnectRetries are enabled.
+- [reconnect]: Fixed reconnection loop. Now when Home Assistant reboots, the connection is reeastablished correctly if reconnectTimeout and/or reconnectRetries are enabled.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
