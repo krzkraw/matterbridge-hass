@@ -94,6 +94,8 @@ describe('HassPlatform', () => {
   let loggerLogSpy: jest.SpiedFunction<(level: LogLevel, message: string, ...parameters: any[]) => void>;
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
 
+  const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
+
   jest.spyOn(Matterbridge.prototype, 'addBridgedEndpoint').mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
     console.log(`Mocked addBridgedDevice: ${pluginName} ${device.name}`);
     return Promise.resolve();
@@ -953,9 +955,8 @@ describe('HassPlatform', () => {
     await haPlatform.onStart('Test reason');
 
     const mbDevice = haPlatform.matterbridgeDevices.get('426162cdc13e45802d5a132299630d21');
-    expect(mbDevice).toBeDefined();
     // console.error(haPlatform.matterbridgeDevices.keys());
-
+    expect(mbDevice).toBeDefined();
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
@@ -965,7 +966,6 @@ describe('HassPlatform', () => {
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${CYAN}${device.id}${db}`));
 
-    const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
     jest.clearAllMocks();
     for (const state of mockData.states) {
       if (haPlatform.ha.hassEntities.has(state.entity_id)) {
