@@ -24,6 +24,7 @@
 
 import {
   colorTemperatureLight,
+  contactSensor,
   coverDevice,
   DeviceTypeDefinition,
   dimmableLight,
@@ -51,7 +52,9 @@ import {
   LevelControl,
   DoorLock,
   ColorControl,
+  BooleanState,
 } from 'matterbridge/matter/clusters';
+
 import { HassState } from './homeAssistant.js';
 
 // Update Home Assistant state to Matterbridge device states
@@ -83,6 +86,9 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
 
     { domain: 'input_boolean', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
     { domain: 'input_boolean', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
+
+    { domain: 'binary_sensor', state: 'on', clusterId: BooleanState.Cluster.id, attribute: 'stateValue', value: true },
+    { domain: 'binary_sensor', state: 'off', clusterId: BooleanState.Cluster.id, attribute: 'stateValue', value: false },
   ];
 
 // Update Home Assistant attributes to Matterbridge device attributes
@@ -131,15 +137,17 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
   ];
 
 // Convert Home Assistant domains to Matterbridge device types and clusterIds
+// If the device type is null, no device type will be added. It will use hassDomainSensorsConverter to determine the device type and clusterId.
 // prettier-ignore
 export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
-    { domain: 'switch',   deviceType: onOffOutlet,      clusterId: OnOff.Cluster.id },
-    { domain: 'light',    deviceType: onOffLight,       clusterId: OnOff.Cluster.id },
-    { domain: 'lock',     deviceType: doorLockDevice,   clusterId: DoorLock.Cluster.id },
-    { domain: 'fan',      deviceType: fanDevice,        clusterId: FanControl.Cluster.id },
-    { domain: 'cover',    deviceType: coverDevice,      clusterId: WindowCovering.Cluster.id },
-    { domain: 'climate',  deviceType: thermostatDevice, clusterId: Thermostat.Cluster.id },
-    { domain: 'sensor',   deviceType: null,             clusterId: null },
+    { domain: 'switch',         deviceType: onOffOutlet,      clusterId: OnOff.Cluster.id },
+    { domain: 'light',          deviceType: onOffLight,       clusterId: OnOff.Cluster.id },
+    { domain: 'lock',           deviceType: doorLockDevice,   clusterId: DoorLock.Cluster.id },
+    { domain: 'fan',            deviceType: fanDevice,        clusterId: FanControl.Cluster.id },
+    { domain: 'cover',          deviceType: coverDevice,      clusterId: WindowCovering.Cluster.id },
+    { domain: 'climate',        deviceType: thermostatDevice, clusterId: Thermostat.Cluster.id },
+    { domain: 'binary_sensor',  deviceType: contactSensor,    clusterId: BooleanState.Cluster.id },
+    { domain: 'sensor',         deviceType: null,             clusterId: null },
   ];
 
 // Convert Home Assistant domains attributes to Matterbridge device types and clusterIds

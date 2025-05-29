@@ -12,6 +12,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
+- [domain]: Added domain binary_sensor. It creates a contactSensor with BooleanState cluster.
+
 ### Changed
 
 ### Fixed

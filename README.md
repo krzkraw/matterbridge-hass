@@ -42,6 +42,8 @@ Supported devices:
 
 - sensor (with deviceClass temperature/humidity/pressure/illuminance)
 
+- binary_sensor (with state on/off)
+
 Supported individual entities:
 
 - automation
