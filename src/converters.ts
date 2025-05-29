@@ -33,6 +33,7 @@ import {
   fanDevice,
   humiditySensor,
   lightSensor,
+  MatterbridgeEndpointCommands,
   occupancySensor,
   onOffLight,
   onOffOutlet,
@@ -183,7 +184,7 @@ export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass
 
 // Convert Home Assistant domains services to Matterbridge commands for device types
 // prettier-ignore
-export const hassCommandConverter: { command: string; domain: string; service: string; converter?: any }[] = [
+export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands; domain: string; service: string; converter?: any }[] = [
     { command: 'on',                      domain: 'switch', service: 'turn_on' },
     { command: 'off',                     domain: 'switch', service: 'turn_off' },
     { command: 'toggle',                  domain: 'switch', service: 'toggle' },

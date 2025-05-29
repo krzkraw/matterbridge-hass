@@ -1,4 +1,3 @@
-/* eslint-disable jest/no-commented-out-tests */
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -12,7 +11,16 @@ import { jest } from '@jest/globals';
 import { HassConfig, HassDevice, HassEntity, HassState, HomeAssistant } from './homeAssistant';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { BooleanState, FanControl, FanControlCluster, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
+import {
+  BooleanState,
+  BridgedDeviceBasicInformation,
+  BridgedDeviceBasicInformationCluster,
+  FanControl,
+  FanControlCluster,
+  IlluminanceMeasurement,
+  OccupancySensing,
+  WindowCovering,
+} from 'matterbridge/matter/clusters';
 
 const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
@@ -43,7 +51,7 @@ describe('HassPlatform', () => {
       // console.log('mockLog.info', message, parameters);
     }),
     debug: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.debug', message, parameters);
+      // console.error('mockLog.debug', message, parameters);
     }),
   } as unknown as AnsiLogger;
 
@@ -850,6 +858,13 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Update state ${CYAN}fan${wr}:${CYAN}unknownstate${wr} not supported for entity fan.fan_fan`));
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', expect.anything(), expect.anything());
+
+    const child = mbDevice?.getChildEndpointByName('fanfan_fan');
+    expect(child).toBeDefined();
+    // console.error('Event of FanCluster', child?.events['fanControl']['fanMode$Changed']['#observers']);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    // await mbDevice.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit({}, agent.context));
   });
 
   it('should register a Thermostat heat_cool device from ha', async () => {
@@ -1078,20 +1093,36 @@ describe('HassPlatform', () => {
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${contactSensorDevice.name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled(); // Duplicated device name
 
+    contactSensorEntityState.state = 'off';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', expect.anything(), expect.anything());
-    const state = {
-      'entity_id': contactSensorEntity.entity_id,
-      state: 'unknownstate',
-      last_changed: '',
-      last_reported: '',
-      last_updated: '',
-      attributes: { 'device_class': 'door' },
-    } as HassState;
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
 
     jest.clearAllMocks();
-    await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, state, state);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', expect.anything(), expect.anything());
+    contactSensorEntityState.state = 'on';
+    await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything());
+
+    jest.clearAllMocks();
+    const oldState = { ...contactSensorEntityState };
+    contactSensorEntityState.state = 'unavailable';
+    await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, oldState as HassState, contactSensorEntityState as HassState);
+    expect(setAttributeSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster.id, 'reachable', false, expect.anything());
+
+    jest.clearAllMocks();
+    oldState.state = 'unavailable';
+    contactSensorEntityState.state = 'off';
+    await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, oldState as HassState, contactSensorEntityState as HassState);
+    expect(setAttributeSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster.id, 'reachable', true, expect.anything());
+
+    jest.clearAllMocks();
+    contactSensorEntityState.attributes.device_class = 'cold';
+    await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything());
+
+    jest.clearAllMocks();
+    contactSensorEntityState.attributes.device_class = 'moisture';
+    await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything());
   });
 
   it('should register a motion sensor device from ha', async () => {
@@ -1112,55 +1143,58 @@ describe('HassPlatform', () => {
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${motionSensorDevice.name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled(); // Duplicated device name
 
+    motionSensorOccupancyEntityState.state = 'off';
     await haPlatform.updateHandler(
       motionSensorDevice.id,
       motionSensorOccupancyEntity.entity_id,
       motionSensorOccupancyEntityState as unknown as HassState,
       motionSensorOccupancyEntityState as unknown as HassState,
     );
-    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', expect.anything(), expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
+    motionSensorIlluminanceEntityState.state = 2500;
     await haPlatform.updateHandler(
       motionSensorDevice.id,
       motionSensorIlluminanceEntity.entity_id,
       motionSensorIlluminanceEntityState as unknown as HassState,
       motionSensorIlluminanceEntityState as unknown as HassState,
     );
-    expect(setAttributeSpy).toHaveBeenCalledWith(IlluminanceMeasurement.Cluster.id, 'measuredValue', expect.anything(), expect.anything());
-    let state = {
-      'entity_id': motionSensorOccupancyEntity.entity_id,
-      state: 'unknownstate',
-      last_changed: '',
-      last_reported: '',
-      last_updated: '',
-      attributes: { 'device_class': 'occupancy' },
-    } as HassState;
-    await haPlatform.updateHandler(motionSensorDevice.id, motionSensorOccupancyEntity.entity_id, state, state);
-    state = {
-      'entity_id': motionSensorIlluminanceEntity.entity_id,
-      state: 'unknownstate',
-      last_changed: '',
-      last_reported: '',
-      last_updated: '',
-      attributes: { 'state_class': 'measurement', 'device_class': 'illuminance' },
-    } as HassState;
-    await haPlatform.updateHandler(motionSensorDevice.id, motionSensorIlluminanceEntity.entity_id, state, state);
+    expect(setAttributeSpy).toHaveBeenCalledWith(IlluminanceMeasurement.Cluster.id, 'measuredValue', 33979, expect.anything());
+    (motionSensorIlluminanceEntityState.state as any) = 'unknownstate';
+    await haPlatform.updateHandler(
+      motionSensorDevice.id,
+      motionSensorOccupancyEntity.entity_id,
+      motionSensorIlluminanceEntityState as unknown as HassState,
+      motionSensorIlluminanceEntityState as unknown as HassState,
+    );
+    (motionSensorIlluminanceEntityState.attributes.device_class as any) = 'unknownclass';
+    await haPlatform.updateHandler(
+      motionSensorDevice.id,
+      motionSensorIlluminanceEntity.entity_id,
+      motionSensorIlluminanceEntityState as unknown as HassState,
+      motionSensorIlluminanceEntityState as unknown as HassState,
+    );
   });
 
   it('should call onConfigure', async () => {
+    haPlatform.bridgedHassDevices.set(switchDevice.id, switchDevice as unknown as HassDevice);
+    haPlatform.bridgedHassDevices.set(contactSensorDevice.id, contactSensorDevice as unknown as HassDevice);
+    haPlatform.bridgedHassDevices.set(motionSensorDevice.id, motionSensorDevice as unknown as HassDevice);
+
     await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}`);
+    // expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
   });
 
-  /*
-  it('should call callService', async () => {
-    await haPlatform.commandHandler(mockMatterbridgeDevice, mockEndpoint, undefined, undefined, 'on');
-    // expect(HomeAssistant.prototype.callService).toHaveBeenCalledWith('switch', 'turn_on', switchDeviceEntity.entity_id, undefined);
-    await haPlatform.commandHandler(mockMatterbridgeDevice, mockEndpoint, undefined, undefined, 'off');
-    // expect(HomeAssistant.prototype.callService).toHaveBeenCalledWith('switch', 'turn_off', switchDeviceEntity.entity_id, undefined);
-    await haPlatform.commandHandler(mockMatterbridgeDevice, mockEndpoint, undefined, undefined, 'toggle');
-    // expect(HomeAssistant.prototype.callService).toHaveBeenCalledWith('switch', 'toggle', switchDeviceEntity.entity_id, undefined);
+  it('should call onConfigure and throw an error', async () => {
+    jest.spyOn(HomeAssistantPlatform.prototype, 'updateHandler').mockImplementationOnce(() => {
+      throw new Error('Test error');
+    });
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}`);
+    // expect(mockLog.error).toHaveBeenCalledWith(`Error configuring platform: Test error`);
   });
-  */
 
   it('should call onChangeLoggerLevel and log a partial message', async () => {
     await haPlatform.onChangeLoggerLevel(LogLevel.DEBUG);

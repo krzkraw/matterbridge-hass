@@ -25,6 +25,7 @@
 import {
   bridgedNode,
   colorTemperatureLight,
+  extendedColorLight,
   Matterbridge,
   MatterbridgeColorControlServer,
   MatterbridgeDynamicPlatform,
@@ -37,7 +38,7 @@ import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify,
 import { deepEqual, isValidArray, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
-import { Thermostat, OnOff, ColorControl } from 'matterbridge/matter/clusters';
+import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 
 import path from 'node:path';
@@ -183,6 +184,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       });
 
     // Clean the selectDevice and selectEntity maps
+    await this.ready;
     await this.clearSelect();
 
     // Scan individual entities (domain automation, scene, script and helpers input_boolean) and create Matterbridge devices
@@ -359,7 +361,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const child = await mutableDevice.createChildEndpoint(entity.entity_id);
 
         // Special case for light domain: configure the color control cluster
-        if (domain === 'light' && mutableDevice.get(entity.entity_id).deviceTypes[0] === colorTemperatureLight) {
+        if (
+          domain === 'light' &&
+          (mutableDevice.get(entity.entity_id).deviceTypes[0].code === colorTemperatureLight.code ||
+            mutableDevice.get(entity.entity_id).deviceTypes[0].code === extendedColorLight.code)
+        ) {
           if (
             isValidArray(hassState.attributes['supported_color_modes']) &&
             !hassState.attributes['supported_color_modes'].includes('xy') &&
@@ -490,8 +496,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         if (hassCommands.length > 0) {
           hassCommands.forEach((hassCommand) => {
             this.log.debug(`- command: ${CYAN}${hassCommand.command}${db}`);
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             child.addCommandHandler(hassCommand.command, async (data) => {
               this.commandHandler(matterbridgeDevice, data.endpoint, data.request, data.attributes, hassCommand.command);
             });
@@ -633,6 +637,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (!endpoint) {
       this.log.debug(`*Update handler: Endpoint ${entityId} for ${deviceId} not found`);
       return;
+    }
+    // Set the device reachable attribute to false if the new state is unavailable
+    if (new_state.state === 'unavailable' && old_state.state !== 'unavailable') {
+      matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster.id, 'reachable', false, matterbridgeDevice.log);
+      return; // Skip the update if the device is unavailable
+    }
+    // Set the device reachable attribute to true if the new state is available
+    if (old_state.state === 'unavailable' && new_state.state !== 'unavailable') {
+      matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster.id, 'reachable', true, matterbridgeDevice.log);
     }
     matterbridgeDevice.log.info(
       `${db}Received update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
