@@ -14,6 +14,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 - [domain]: Added domain binary_sensor with deviceClass 'door'. It creates a contactSensor with BooleanState cluster.
 - [domain]: Added domain binary_sensor with deviceClass 'occupancy'. It creates an occupancySensor with OccupancySensing cluster.
+- [domain]: Added domain binary_sensor with deviceClass 'cold'. It creates an waterFreezeDetector with BooleanState cluster.
+- [domain]: Added domain binary_sensor with deviceClass 'moisture'. It creates an waterLeakDetector with BooleanState cluster.
 
 ### Changed
 

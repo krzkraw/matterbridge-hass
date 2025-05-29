@@ -38,6 +38,8 @@ import {
   onOffOutlet,
   temperatureSensor,
   thermostatDevice,
+  waterFreezeDetector,
+  waterLeakDetector,
 } from 'matterbridge';
 import { isValidArray, isValidNumber, isValidString } from 'matterbridge/utils';
 import { ClusterId } from 'matterbridge/matter/types';
@@ -173,8 +175,10 @@ export const hassDomainSensorsConverter: { domain: string; withStateClass: strin
 // Convert Home Assistant binary_sensor domains attributes to Matterbridge device types and clusterIds
 // prettier-ignore
 export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: any }[] = [
-    { domain: 'binary_sensor',    withDeviceClass: 'door',        deviceType: contactSensor,    clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? true : false) },
-    { domain: 'binary_sensor',    withDeviceClass: 'occupancy',   deviceType: occupancySensor,  clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',   converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
+    { domain: 'binary_sensor',    withDeviceClass: 'door',        deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? true : false) },
+    { domain: 'binary_sensor',    withDeviceClass: 'cold',        deviceType: waterFreezeDetector,  clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? false : true) },
+    { domain: 'binary_sensor',    withDeviceClass: 'moisture',    deviceType: waterLeakDetector,    clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? false : true) },
+    { domain: 'binary_sensor',    withDeviceClass: 'occupancy',   deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',   converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
   ];
 
 // Convert Home Assistant domains services to Matterbridge commands for device types

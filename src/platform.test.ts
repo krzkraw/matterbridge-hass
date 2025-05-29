@@ -12,7 +12,7 @@ import { jest } from '@jest/globals';
 import { HassConfig, HassDevice, HassEntity, HassState, HomeAssistant } from './homeAssistant';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { BooleanState, FanControl, FanControlCluster, WindowCovering } from 'matterbridge/matter/clusters';
+import { BooleanState, FanControl, FanControlCluster, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
 
 const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
@@ -1062,6 +1062,90 @@ describe('HassPlatform', () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled(); // Duplicated device name
   });
 
+  it('should register a contact sensor device from ha', async () => {
+    expect(haPlatform).toBeDefined();
+
+    haPlatform.ha.hassDevices.set(contactSensorDevice.id, contactSensorDevice as unknown as HassDevice);
+    haPlatform.ha.hassEntities.set(contactSensorEntity.entity_id, contactSensorEntity as unknown as HassEntity);
+    haPlatform.ha.hassStates.set(contactSensorEntityState.entity_id, contactSensorEntityState as unknown as HassState);
+
+    await haPlatform.onStart('Test reason');
+
+    const mbDevice = haPlatform.matterbridgeDevices.get('38ff72694f19502223744fbb8bfcdef9');
+    expect(mbDevice).toBeDefined();
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${contactSensorDevice.name}${rs}${nf} id ${CYAN}${contactSensorDevice.id}${nf}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${contactSensorDevice.name}${db}...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled(); // Duplicated device name
+
+    await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', expect.anything(), expect.anything());
+    const state = {
+      'entity_id': contactSensorEntity.entity_id,
+      state: 'unknownstate',
+      last_changed: '',
+      last_reported: '',
+      last_updated: '',
+      attributes: { 'device_class': 'door' },
+    } as HassState;
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, state, state);
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', expect.anything(), expect.anything());
+  });
+
+  it('should register a motion sensor device from ha', async () => {
+    expect(haPlatform).toBeDefined();
+
+    haPlatform.ha.hassDevices.set(motionSensorDevice.id, motionSensorDevice as unknown as HassDevice);
+    haPlatform.ha.hassEntities.set(motionSensorOccupancyEntity.entity_id, motionSensorOccupancyEntity as unknown as HassEntity);
+    haPlatform.ha.hassEntities.set(motionSensorIlluminanceEntity.entity_id, motionSensorIlluminanceEntity as unknown as HassEntity);
+    haPlatform.ha.hassStates.set(motionSensorOccupancyEntityState.entity_id, motionSensorOccupancyEntityState as unknown as HassState);
+    haPlatform.ha.hassStates.set(motionSensorIlluminanceEntityState.entity_id, motionSensorIlluminanceEntityState as unknown as HassState);
+
+    await haPlatform.onStart('Test reason');
+
+    const mbDevice = haPlatform.matterbridgeDevices.get('38fc72694c39502223744fbb8bfcdef0');
+    expect(mbDevice).toBeDefined();
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${motionSensorDevice.name}${rs}${nf} id ${CYAN}${motionSensorDevice.id}${nf}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${motionSensorDevice.name}${db}...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled(); // Duplicated device name
+
+    await haPlatform.updateHandler(
+      motionSensorDevice.id,
+      motionSensorOccupancyEntity.entity_id,
+      motionSensorOccupancyEntityState as unknown as HassState,
+      motionSensorOccupancyEntityState as unknown as HassState,
+    );
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', expect.anything(), expect.anything());
+    await haPlatform.updateHandler(
+      motionSensorDevice.id,
+      motionSensorIlluminanceEntity.entity_id,
+      motionSensorIlluminanceEntityState as unknown as HassState,
+      motionSensorIlluminanceEntityState as unknown as HassState,
+    );
+    expect(setAttributeSpy).toHaveBeenCalledWith(IlluminanceMeasurement.Cluster.id, 'measuredValue', expect.anything(), expect.anything());
+    let state = {
+      'entity_id': motionSensorOccupancyEntity.entity_id,
+      state: 'unknownstate',
+      last_changed: '',
+      last_reported: '',
+      last_updated: '',
+      attributes: { 'device_class': 'occupancy' },
+    } as HassState;
+    await haPlatform.updateHandler(motionSensorDevice.id, motionSensorOccupancyEntity.entity_id, state, state);
+    state = {
+      'entity_id': motionSensorIlluminanceEntity.entity_id,
+      state: 'unknownstate',
+      last_changed: '',
+      last_reported: '',
+      last_updated: '',
+      attributes: { 'state_class': 'measurement', 'device_class': 'illuminance' },
+    } as HassState;
+    await haPlatform.updateHandler(motionSensorDevice.id, motionSensorIlluminanceEntity.entity_id, state, state);
+  });
+
   it('should call onConfigure', async () => {
     await haPlatform.onConfigure();
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}`);
@@ -1265,24 +1349,62 @@ const coolDeviceEntityState = {
   },
 };
 
+const contactSensorDevice = {
+  'area_id': null,
+  'hw_version': '1.0.0',
+  'id': '38ff72694f19502223744fbb8bfcdef9',
+  'labels': [],
+  'manufacturer': 'Eve Systems',
+  'model': 'Eve door',
+  'model_id': null,
+  'name_by_user': null,
+  'name': 'Eve door contact',
+  'serial_number': '0x85483499',
+  'sw_version': '3.2.1',
+};
+const contactSensorEntity = {
+  'area_id': null,
+  'device_id': contactSensorDevice.id,
+  'entity_category': null,
+  'entity_id': 'binary_sensor.eve_door_contact',
+  'has_entity_name': true,
+  'icon': null,
+  'id': '767f48a9d7986368765fd272711eb8e7',
+  'labels': [],
+  'name': null,
+  'original_name': 'Door',
+  'platform': 'matter',
+};
+const contactSensorEntityState = {
+  'entity_id': contactSensorEntity.entity_id,
+  'state': 'on',
+  'attributes': {
+    'device_class': 'door',
+    'friendly_name': 'Eve door contact',
+  },
+  'last_changed': '2025-05-29T11:40:02.628762+00:00',
+  'last_reported': '2025-05-29T11:40:02.628762+00:00',
+  'last_updated': '2025-05-29T11:40:02.628762+00:00',
+};
+
 const motionSensorDevice = {
   'area_id': null,
   'hw_version': '1.0.0',
-  'id': '38fc72694f19502223744fbb8bfcdef0',
+  'id': '38fc72694c39502223744fbb8bfcdef0',
   'labels': [],
   'manufacturer': 'Eve Systems',
   'model': 'Eve motion',
   'model_id': null,
   'name_by_user': null,
-  'name': 'Eve motion',
+  'name': 'Eve motion occupancy illuminance',
   'serial_number': '0x85483499',
   'sw_version': '3.2.1',
 };
-const motionSensorEntity = {
+const motionSensorOccupancyEntity = {
   'area_id': null,
   'device_id': motionSensorDevice.id,
   'entity_category': null,
-  'entity_id': 'binary_sensor.eve_motion_occupancy',
+  'entity_id': 'binary_sensor.eve_motion_occupancy_x',
   'has_entity_name': true,
   'icon': null,
   'id': '767f48a9d7986368765fd272711eb8e5',
@@ -1291,12 +1413,37 @@ const motionSensorEntity = {
   'original_name': 'Occupancy',
   'platform': 'matter',
 };
-const motionSensorEntityState = {
-  'entity_id': motionSensorEntity.entity_id,
+const motionSensorOccupancyEntityState = {
+  'entity_id': motionSensorOccupancyEntity.entity_id,
   'state': 'on',
   'attributes': {
     'device_class': 'occupancy',
     'friendly_name': 'Eve motion Occupancy',
+  },
+  'last_changed': '2025-05-29T11:40:02.628762+00:00',
+  'last_reported': '2025-05-29T11:40:02.628762+00:00',
+  'last_updated': '2025-05-29T11:40:02.628762+00:00',
+};
+const motionSensorIlluminanceEntity = {
+  'area_id': null,
+  'device_id': motionSensorDevice.id,
+  'entity_category': null,
+  'entity_id': 'sensor.eve_motion_illuminance_x',
+  'has_entity_name': true,
+  'icon': null,
+  'id': '767f48a9d79863687621d272711eb8e9',
+  'labels': [],
+  'name': null,
+  'original_name': 'Illuminance',
+  'platform': 'matter',
+};
+const motionSensorIlluminanceEntityState = {
+  'entity_id': motionSensorIlluminanceEntity.entity_id,
+  'state': 480.5,
+  'attributes': {
+    'state_class': 'measurement',
+    'device_class': 'illuminance',
+    'friendly_name': 'Eve motion Illuminance',
   },
   'last_changed': '2025-05-29T11:40:02.628762+00:00',
   'last_reported': '2025-05-29T11:40:02.628762+00:00',
