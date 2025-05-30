@@ -895,13 +895,9 @@
     {
       "area_id": null,
       "configuration_url": null,
-      "config_entries": [
-        "01JRN4CFJJAMG7E4K13SXMWDE6"
-      ],
+      "config_entries": ["01JRN4CFJJAMG7E4K13SXMWDE6"],
       "config_entries_subentries": {
-        "01JRN4CFJJAMG7E4K13SXMWDE6": [
-          null
-        ]
+        "01JRN4CFJJAMG7E4K13SXMWDE6": [null]
       },
       "connections": [],
       "created_at": 1738948198.692463,
@@ -910,14 +906,8 @@
       "hw_version": "1.0.0",
       "id": "426162cdc13e45802d5a132299630d21",
       "identifiers": [
-        [
-          "matter",
-          "deviceid_CAD2FA0F285B2850-0000000000000045-38"
-        ],
-        [
-          "matter",
-          "serial_0x88030475"
-        ]
+        ["matter", "deviceid_CAD2FA0F285B2850-0000000000000045-38"],
+        ["matter", "serial_0x88030475"]
       ],
       "labels": [],
       "manufacturer": "Eve Systems",
@@ -7547,9 +7537,7 @@
       "hidden_by": null,
       "icon": null,
       "id": "2e66872dad44e494273c3d861b9ab2f5",
-      "labels": [
-        "matterbridge"
-      ],
+      "labels": ["matterbridge"],
       "modified_at": 1748600900.444626,
       "name": null,
       "options": {
@@ -7579,9 +7567,7 @@
       "hidden_by": null,
       "icon": null,
       "id": "df15be5f301cde60e610058d34680f7d",
-      "labels": [
-        "matterbridge"
-      ],
+      "labels": ["matterbridge"],
       "modified_at": 1748600910.384813,
       "name": null,
       "options": {
@@ -7596,6 +7582,86 @@
       "platform": "input_button",
       "translation_key": null,
       "unique_id": "button_helper"
+    }
+  ],
+  "areas": [
+    {
+      "aliases": [],
+      "area_id": "living_room",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": null,
+      "labels": [],
+      "name": "Living Room",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1725039966.373267,
+      "modified_at": 1725039966.373281
+    },
+    {
+      "aliases": [],
+      "area_id": "kitchen",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": null,
+      "labels": [],
+      "name": "Kitchen",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1725039966.373745,
+      "modified_at": 1725039966.373752
+    },
+    {
+      "aliases": [],
+      "area_id": "bedroom",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": null,
+      "labels": [],
+      "name": "Bedroom",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1725039966.374043,
+      "modified_at": 1725039966.37405
+    },
+    {
+      "aliases": [],
+      "area_id": "matterbridge_windows",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": "mdi:bridge",
+      "labels": [],
+      "name": "Matterbridge Windows",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1732658651.03674,
+      "modified_at": 1732658651.036755
+    },
+    {
+      "aliases": [],
+      "area_id": "matterbridge_add_on",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": "mdi:bridge",
+      "labels": [],
+      "name": "Matterbridge Add-on",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1732658697.580086,
+      "modified_at": 1732658697.580101
+    },
+    {
+      "aliases": [],
+      "area_id": "matterbridge_select",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": "mdi:bridge",
+      "labels": [],
+      "name": "Matterbridge select",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1748381702.532347,
+      "modified_at": 1748381702.532362
     }
   ],
   "states": [

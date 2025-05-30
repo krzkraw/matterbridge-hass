@@ -539,6 +539,46 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Areas received from Home Assistant`);
   });
 
+  it('should not register any devices and individual entities with filters', async () => {
+    expect(haPlatform).toBeDefined();
+
+    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
+    (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
+    (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
+    (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = 'NotExistingLabel';
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = '';
+  });
+
+  it('should not register any devices and individual entities with white lists', async () => {
+    expect(haPlatform).toBeDefined();
+
+    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
+    (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
+    (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
+    (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+
+    mockConfig.individualEntityWhiteList = ['No entities'];
+    mockConfig.whiteList = ['No devices'];
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+
+    mockConfig.individualEntityWhiteList = [];
+    mockConfig.whiteList = [];
+  });
+
   it('should register a Scene entity', async () => {
     expect(haPlatform).toBeDefined();
 
@@ -758,6 +798,15 @@ describe('HassPlatform', () => {
         await haPlatform.updateHandler(device.id, state.entity_id, state, state);
       }
     }
+
+    const mbdevice = haPlatform.matterbridgeDevices.get('85476b52c919e7d58a779155c476fdb0');
+    expect(mbdevice).toBeDefined();
+    if (!mbdevice) return;
+    const child = mbdevice.getChildEndpointByName('switchswitch_switch');
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.executeCommandHandler('on', {});
+    await child.executeCommandHandler('off', {});
   });
 
   it('should register a Light (on/off) device from ha', async () => {

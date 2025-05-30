@@ -633,9 +633,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       return;
     }
     mbDevice.log.info(
-      `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint.name}:${endpoint.number}${db}`,
+      `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint?.name}:${endpoint?.number}${db}`,
     );
-    const entityId = endpoint.number ? mbDevice.getChildEndpoint(endpoint.number)?.uniqueStorageKey : undefined;
+    const entityId = endpoint?.number ? mbDevice.getChildEndpoint(endpoint.number)?.uniqueStorageKey : undefined;
     if (!entityId) return;
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);

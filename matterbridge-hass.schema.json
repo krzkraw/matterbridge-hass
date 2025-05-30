@@ -44,12 +44,12 @@
       "default": 10
     },
     "filterByArea": {
-      "description": "Filter devices and entities by area. If enabled, only devices and entities in the selected areas will be exposed. If disabled, all devices and entities will be exposed.",
+      "description": "Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed.",
       "type": "string",
       "default": ""
     },
     "filterByLabel": {
-      "description": "Filter devices and entities by label. If enabled, only devices and entities with the selected labels will be exposed. If disabled, all devices and entities will be exposed.",
+      "description": "Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed.",
       "type": "string",
       "default": ""
     },
