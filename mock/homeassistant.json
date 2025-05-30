@@ -7582,6 +7582,64 @@
       "platform": "input_button",
       "translation_key": null,
       "unique_id": "button_helper"
+    },
+    {
+      "area_id": "matterbridge_select",
+      "categories": {},
+      "config_entry_id": null,
+      "config_subentry_id": null,
+      "created_at": 1748365340.423701,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "switch.my_template_switch",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": null,
+      "id": "54b8f61915fb50f5a343550aebcc87fb",
+      "labels": [
+        "matterbridge"
+      ],
+      "modified_at": 1748381713.934119,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": true
+        }
+      },
+      "original_name": "My Template Switch",
+      "platform": "template",
+      "translation_key": null,
+      "unique_id": "my_template_switch"
+    },
+    {
+      "area_id": "matterbridge_select",
+      "categories": {},
+      "config_entry_id": null,
+      "config_subentry_id": null,
+      "created_at": 1748515364.591934,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "light.my_rgbw_template_light",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": null,
+      "id": "554ba0ee966b70d418747685d932cea6",
+      "labels": [
+        "matterbridge"
+      ],
+      "modified_at": 1748515411.276583,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": true
+        }
+      },
+      "original_name": "My RGBW Template Light",
+      "platform": "template",
+      "translation_key": null,
+      "unique_id": "my_rgbw_template_light"
     }
   ],
   "areas": [
@@ -11598,6 +11656,48 @@
         "id": "01JWG1Q8FE207BM5MMNGCNQZ6S",
         "parent_id": null,
         "user_id": "8db35feb8252468e83db0e5ef66fea59"
+      }
+    },
+    {
+      "entity_id": "switch.my_template_switch",
+      "state": "off",
+      "attributes": {
+        "icon": "mdi:power-plug",
+        "friendly_name": "My Template Switch"
+      },
+      "last_changed": "2025-05-29T17:53:46.047670+00:00",
+      "last_reported": "2025-05-29T17:53:46.047670+00:00",
+      "last_updated": "2025-05-29T17:53:46.047670+00:00",
+      "context": {
+        "id": "01JWEJVENZGQPF62YNZR9P94KX",
+        "parent_id": null,
+        "user_id": "8db35feb8252468e83db0e5ef66fea59"
+      }
+    },
+    {
+      "entity_id": "light.my_rgbw_template_light",
+      "state": "off",
+      "attributes": {
+        "supported_color_modes": [
+          "rgbw"
+        ],
+        "color_mode": null,
+        "brightness": null,
+        "hs_color": null,
+        "rgb_color": null,
+        "xy_color": null,
+        "rgbw_color": null,
+        "icon": "mdi:led-strip-variant",
+        "friendly_name": "My RGBW Template Light",
+        "supported_features": 0
+      },
+      "last_changed": "2025-05-29T11:43:27.892264+00:00",
+      "last_reported": "2025-05-29T11:43:27.892264+00:00",
+      "last_updated": "2025-05-29T11:43:27.892264+00:00",
+      "context": {
+        "id": "01JWDXNDKW1YDTD67JMJDMXAX5",
+        "parent_id": null,
+        "user_id": null
       }
     }
   ],

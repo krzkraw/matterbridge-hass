@@ -56,7 +56,9 @@ Supported individual entities:
 
 - helpers of domain input_boolean/input_button
 
-These entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated automation, scene, or script. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean maintain the on / off state.
+- templates of domain switch
+
+These entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated automation, scene, or script. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean and the switch template maintain the on / off state.
 
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 

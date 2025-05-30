@@ -190,7 +190,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Scan individual entities (domain automation, scene, script and helpers input_boolean) and create Matterbridge devices
     for (const entity of Array.from(this.ha.hassEntities.values())) {
       const [domain, name] = entity.entity_id.split('.');
-      if (!['automation', 'scene', 'script', 'input_boolean', 'input_button'].includes(domain)) continue;
+      if (entity.platform === 'template') {
+        if (domain !== 'switch') continue;
+      } else {
+        if (!['automation', 'scene', 'script', 'input_boolean', 'input_button'].includes(domain)) continue;
+      }
       if (entity.device_id !== null) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} is a device entity. Skipping...`);
         continue;
@@ -241,6 +245,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       else if (domain === 'script') mutableDevice.composedType = `Hass Script`;
       else if (domain === 'input_boolean') mutableDevice.composedType = `Hass Boolean`;
       else if (domain === 'input_button') mutableDevice.composedType = `Hass Button`;
+      else if (domain === 'switch') mutableDevice.composedType = `Hass Template`;
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
       if (domain === 'automation')
         matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/automation/dashboard`;
@@ -248,10 +253,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/scene/dashboard`;
       else if (domain === 'script')
         matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/script/dashboard`;
-      else if (domain === 'input_boolean')
-        matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`;
-      else if (domain === 'input_button')
-        matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`;
+      else matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`;
       await mutableDevice.createClusters('');
 
       // Create the child endpoint with onOffOutlet and the OnOffCluster
@@ -267,16 +269,16 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         } else {
           await this.ha.callServiceAsync(domain, 'turn_on', entity.entity_id);
         }
-        if (domain !== 'input_boolean') {
-          // We revert the state after 500ms except for input_boolean
+        if (domain !== 'input_boolean' && domain !== 'switch') {
+          // We revert the state after 500ms except for input_boolean and switch template
           setTimeout(() => {
             child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log);
           }, 500);
         }
       });
       child.addCommandHandler('off', async () => {
-        // We update hass only for input_boolean
-        if (domain === 'input_boolean') await this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
+        // We don't revert only for input_boolean and switch template
+        if (domain === 'input_boolean' || domain === 'switch') await this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
       });
 
       this.log.debug(`Registering device ${dn}${entityName}${db}...`);
@@ -688,7 +690,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
     );
     const domain = entityId.split('.')[0];
-    if (['automation', 'scene', 'script'].includes(domain)) {
+    if (['automation', 'scene', 'script', 'input_button'].includes(domain)) {
       // No update for individual entities (automation, scene, script) only for input_boolean that maintains the state
       return;
     } else if (domain === 'sensor') {

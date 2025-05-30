@@ -553,6 +553,7 @@ describe('HassPlatform', () => {
     await haPlatform.onStart('Test reason');
 
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
     mockConfig.filterByArea = '';
@@ -763,6 +764,44 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     const child = device.getChildEndpointByName('input_buttonbutton_helper');
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.executeCommandHandler('on', {});
+    await child.executeCommandHandler('off', {});
+  });
+
+  it('should register an Switch template entity', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let entity: HassEntity | undefined;
+    (mockData.entities as HassEntity[]).forEach((e) => {
+      if (e.original_name === 'My Template Switch') entity = e;
+    });
+    expect(entity).toBeDefined();
+    if (!entity) return;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassStates.clear();
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(
+      `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}switch${nf} name ${CYAN}my_template_switch${nf}`,
+    );
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    expect(haPlatform.matterbridgeDevices.size).toBe(6);
+    expect(haPlatform.matterbridgeDevices.get('switch.my_template_switch')).toBeDefined();
+    await haPlatform.updateHandler('switch.my_template_switch', 'switch.my_template_switch', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
+
+    const device = haPlatform.matterbridgeDevices.get('switch.my_template_switch');
+    expect(device).toBeDefined();
+    if (!device) return;
+    const child = device.getChildEndpointByName('switchmy_template_switch');
     expect(child).toBeDefined();
     if (!child) return;
     await child.executeCommandHandler('on', {});
