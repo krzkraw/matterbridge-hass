@@ -8,7 +8,7 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
-## [0.0.12] - 2025-05-29
+## [0.0.12] - 2025-05-30
 
 ### Added
 
@@ -19,6 +19,8 @@ If you like this project and find it useful, please consider giving it a star on
 - [domain]: Added domain binary_sensor with deviceClass 'cold'. It creates an waterFreezeDetector with BooleanState cluster.
 - [domain]: Added domain binary_sensor with deviceClass 'moisture'. It creates an waterLeakDetector with BooleanState cluster.
 - [online]: Added online / offline setting based on unavailable state.
+- [filterByArea]: Added filter of individual entities and devices by Area.
+- [filterByLabel]: Added filter of individual entities and devices by Label.
 
 ### Changed
 

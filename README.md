@@ -22,6 +22,8 @@ Features:
 - The plugin can be used with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
 - The connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if the Home Assistant host is reachable.
 - The connection with Home Assistant can be also made with ssl WebSocket (i.e. wss://homeassistant:8123). Self signed certificates are also supported.
+- It is possible to filter individual entities and devices by Area.
+- It is possible to filter individual entities and devices by Label.
 - It is possible to select from a list the devices to include in the device white or black list.
 - It is possible to select from a list the entities to include in the entity white or black list.
 - It is possible to postfix the Matter device serialNumber or the Matter device name to avoid collision with other instances.

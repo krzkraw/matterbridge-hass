@@ -191,23 +191,37 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     for (const entity of Array.from(this.ha.hassEntities.values())) {
       const [domain, name] = entity.entity_id.split('.');
       if (!['automation', 'scene', 'script', 'input_boolean', 'input_button'].includes(domain)) continue;
-      if (entity.device_id !== null) continue;
+      if (entity.device_id !== null) {
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} is a device entity. Skipping...`);
+        continue;
+      }
       const entityName = entity.name ?? entity.original_name;
       if (!isValidString(entityName)) continue;
-      this.setSelectEntity(entity.entity_id, entityName, 'hub');
+      this.setSelectDevice(entity.id, entityName, undefined, 'hub');
+      this.setSelectEntity(entity.id, entityName, 'hub');
       if (
         isValidArray(this.config.individualEntityWhiteList, 1) &&
         !this.config.individualEntityWhiteList.includes(entityName) &&
         !this.config.individualEntityWhiteList.includes(entity.entity_id)
-      )
+      ) {
+        this.log.debug(`Individual entity ${CYAN}${entityName}${db} is not in the individualEntityWhiteList. Skipping...`);
         continue;
+      }
       if (
         isValidArray(this.config.individualEntityBlackList, 1) &&
         (this.config.individualEntityBlackList.includes(entityName) || this.config.individualEntityBlackList.includes(entity.entity_id))
-      )
+      ) {
+        this.log.debug(`Individual entity ${CYAN}${entityName}${db} is in the individualEntityBlackList. Skipping...`);
         continue;
+      }
       if (this.hasDeviceName(entityName)) {
         this.log.warn(`Individual entity ${CYAN}${entityName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
+        continue;
+      }
+      if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
+        this.log.debug(
+          `Individual entity ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
+        );
         continue;
       }
 
@@ -216,13 +230,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const mutableDevice = new MutableDevice(
         this.matterbridge,
         entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
-        isValidString(this.config.serialPostfix, 1, 3) ? entity.id.slice(0, 32 - this.config.serialPostfix.length) + this.config.serialPostfix : entity.id,
+        isValidString(this.config.serialPostfix, 1, 3) ? entity.id.slice(0, 32 - this.config.serialPostfix.length) + this.config.serialPostfix : entity.id.slice(0, 32),
         0xfff1,
         'HomeAssistant',
         domain,
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
-      mutableDevice.composedType = 'Hass Entity';
+      if (domain === 'automation') mutableDevice.composedType = `Hass Automation`;
+      else if (domain === 'scene') mutableDevice.composedType = `Hass Scene`;
+      else if (domain === 'script') mutableDevice.composedType = `Hass Script`;
+      else if (domain === 'input_boolean') mutableDevice.composedType = `Hass Boolean`;
+      else if (domain === 'input_button') mutableDevice.composedType = `Hass Button`;
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
       if (domain === 'automation')
         matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/automation/dashboard`;
@@ -278,6 +296,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.warn(`Device ${CYAN}${deviceName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
+      if (!this.isValidAreaLabel(device.area_id, device.labels)) {
+        this.log.debug(
+          `Device ${CYAN}${deviceName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
+        );
+        continue;
+      }
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
       // this.log.debug(`Lookup device ${CYAN}${device.name}${db} id ${CYAN}${device.id}${db}`);
 
@@ -285,7 +309,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const mutableDevice = new MutableDevice(
         this.matterbridge,
         deviceName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
-        isValidString(this.config.serialPostfix, 1, 3) ? device.id.slice(0, 29) + this.config.serialPostfix : device.id,
+        isValidString(this.config.serialPostfix, 1, 3) ? device.id.slice(0, 32 - this.config.serialPostfix.length) + this.config.serialPostfix : device.id.slice(0, 32),
         0xfff1,
         'HomeAssistant',
         device.model ?? 'Unknown',
@@ -642,12 +666,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
     const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
-      this.log.debug(`*Update handler: Matterbridge device ${deviceId} not found`);
+      this.log.debug(`Update handler: Matterbridge device ${deviceId} not found`);
       return;
     }
     const endpoint = matterbridgeDevice.getChildEndpointByName(entityId) || matterbridgeDevice.getChildEndpointByName(entityId.replaceAll('.', ''));
     if (!endpoint) {
-      this.log.debug(`*Update handler: Endpoint ${entityId} for ${deviceId} not found`);
+      this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} not found`);
       return;
     }
     // Set the device reachable attribute to false if the new state is unavailable
@@ -724,5 +748,29 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
       }
     }
+  }
+
+  /**
+   * Validate the area and label of a device or an entity against the configured filters.
+   * @param {string | null} areaId The area ID of the device / entity.
+   * @param {string[]} labels The labels of the device / entity.
+   * @returns True if the area and label are valid according to the filters, false otherwise.
+   */
+  isValidAreaLabel(areaId: string | null, labels: string[]): boolean {
+    let areaMatch = true;
+    let labelMatch = true;
+    if (isValidString(this.config.filterByArea, 1)) {
+      if (!areaId) return false;
+      areaMatch = false;
+      const area = this.ha.hassAreas.get(areaId);
+      if (!area) return false;
+      if (area.name === this.config.filterByArea) areaMatch = true;
+    }
+    if (isValidString(this.config.filterByLabel, 1)) {
+      if (labels.length === 0) return false;
+      labelMatch = false;
+      if (labels.includes(this.config.filterByLabel)) labelMatch = true;
+    }
+    return areaMatch && labelMatch;
   }
 }
