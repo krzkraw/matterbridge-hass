@@ -52,7 +52,7 @@ Supported individual entities:
 
 - script
 
-- helpers of domain input_boolean
+- helpers of domain input_boolean/input_button
 
 These entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated automation, scene, or script. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean maintain the on / off state.
 

@@ -190,7 +190,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Scan individual entities (domain automation, scene, script and helpers input_boolean) and create Matterbridge devices
     for (const entity of Array.from(this.ha.hassEntities.values())) {
       const [domain, name] = entity.entity_id.split('.');
-      if (!['automation', 'scene', 'script', 'input_boolean'].includes(domain)) continue;
+      if (!['automation', 'scene', 'script', 'input_boolean', 'input_button'].includes(domain)) continue;
+      if (entity.device_id !== null) continue;
       const entityName = entity.name ?? entity.original_name;
       if (!isValidString(entityName)) continue;
       this.setSelectEntity(entity.entity_id, entityName, 'hub');
@@ -221,7 +222,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         domain,
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
-      mutableDevice.composedType = 'HomeAssistant';
+      mutableDevice.composedType = 'Hass Entity';
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
       if (domain === 'automation')
         matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/automation/dashboard`;
@@ -231,6 +232,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/script/dashboard`;
       else if (domain === 'input_boolean')
         matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`;
+      else if (domain === 'input_button')
+        matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`;
       await mutableDevice.createClusters('');
 
       // Create the child endpoint with onOffOutlet and the OnOffCluster
@@ -239,7 +242,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const child = await mutableDevice.createChildEndpoint(entity.entity_id);
       await mutableDevice.createClusters(entity.entity_id);
       child.addCommandHandler('on', async () => {
-        await this.ha.callServiceAsync(domain, domain === 'automation' ? 'trigger' : 'turn_on', entity.entity_id);
+        if (domain === 'automation') {
+          await this.ha.callServiceAsync(domain, 'trigger', entity.entity_id);
+        } else if (domain === 'input_button') {
+          await this.ha.callServiceAsync(domain, 'press', entity.entity_id);
+        } else {
+          await this.ha.callServiceAsync(domain, 'turn_on', entity.entity_id);
+        }
         if (domain !== 'input_boolean') {
           // We revert the state after 500ms except for input_boolean
           setTimeout(() => {
@@ -282,7 +291,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         device.model ?? 'Unknown',
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
-      mutableDevice.composedType = 'HomeAssistant';
+      mutableDevice.composedType = 'Hass Device';
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
       matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/devices/device/${device.id}`;
 
@@ -366,6 +375,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           (mutableDevice.get(entity.entity_id).deviceTypes[0].code === colorTemperatureLight.code ||
             mutableDevice.get(entity.entity_id).deviceTypes[0].code === extendedColorLight.code)
         ) {
+          this.log.debug(
+            `= colorControl supported_color_modes: ${CYAN}${hassState.attributes['supported_color_modes']}${db} min_mireds: ${CYAN}${hassState.attributes['min_mireds']}${db} max_mireds: ${CYAN}${hassState.attributes['max_mireds']}${db}`,
+          );
           if (
             isValidArray(hassState.attributes['supported_color_modes']) &&
             !hassState.attributes['supported_color_modes'].includes('xy') &&
@@ -405,11 +417,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                     executeIfOff: false,
                   },
                   numberOfPrimaries: null,
-                  currentX: (hassState.attributes['xy_color'] as number | undefined) ?? 0,
-                  currentY: (hassState.attributes['xy_color'] as number | undefined) ?? 0,
-                  currentHue: (hassState.attributes['hs_color'] as number | undefined) ?? 0,
-                  currentSaturation: (hassState.attributes['hs_color'] as number | undefined) ?? 0,
-                  colorTemperatureMireds: (hassState.attributes['max_mireds'] as number | undefined) ?? 500,
+                  currentX: 0,
+                  currentY: 0,
+                  currentHue: 0,
+                  currentSaturation: 0,
+                  colorTemperatureMireds: (hassState.attributes['color_temp'] as number | undefined) ?? 250,
                   colorTempPhysicalMinMireds: (hassState.attributes['min_mireds'] as number | undefined) ?? 147,
                   colorTempPhysicalMaxMireds: (hassState.attributes['max_mireds'] as number | undefined) ?? 500,
                   coupleColorTempToLevelMinMireds: (hassState.attributes['min_mireds'] as number | undefined) ?? 147,
