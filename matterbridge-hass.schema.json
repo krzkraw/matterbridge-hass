@@ -54,7 +54,7 @@
       "default": ""
     },
     "individualEntityWhiteList": {
-      "description": "White list of individual entities without associated device to be exposed. It allows to select scenes, scripts, automations and input_boolean. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
+      "description": "White list of individual entities without associated device to be exposed. It allows to select scenes, scripts, automations, input_boolean and input_button. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
       "type": "array",
       "items": {
         "type": "string"
@@ -63,7 +63,7 @@
       "selectEntityFrom": "name"
     },
     "individualEntityBlackList": {
-      "description": "Black list of individual entities without associated device to not be exposed. It allows to select scenes, scripts, automations and input_boolean. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
+      "description": "Black list of individual entities without associated device to not be exposed. It allows to select scenes, scripts, automations, input_boolean and input_button. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
       "type": "array",
       "items": {
         "type": "string"
@@ -72,7 +72,7 @@
       "selectEntityFrom": "name"
     },
     "whiteList": {
-      "description": "Only the devices in the list will be exposed. Use the device name or the device id. If the list is empty, all the devices will be exposed.",
+      "description": "Only the devices in the list will be exposed. Use the device name or the device id. If the list is empty, all the devices will be exposed. This is only related to devices, not individual entities.",
       "type": "array",
       "items": {
         "type": "string"
@@ -81,7 +81,7 @@
       "selectFrom": "name"
     },
     "blackList": {
-      "description": "The devices in the list will not be exposed. Use the device name or the device id. If the list is empty, no devices will be excluded.",
+      "description": "The devices in the list will not be exposed. Use the device name or the device id. If the list is empty, no devices will be excluded. This is only related to devices, not individual entities.",
       "type": "array",
       "items": {
         "type": "string"
@@ -90,7 +90,7 @@
       "selectFrom": "name"
     },
     "entityBlackList": {
-      "description": "The entities in the list that belongs to a device will not be exposed (this doesn't black list the individual entities). Enter the entity name.",
+      "description": "The entities in the list that belongs to a device will not be exposed (this doesn't black list the individual entities). Enter the entity name. This is only related to device entities, not individual entities.",
       "type": "array",
       "items": {
         "type": "string"
@@ -99,7 +99,7 @@
       "ui:widget": "hidden"
     },
     "deviceEntityBlackList": {
-      "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the list add all the entity names you want to exclude for that device.",
+      "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the list add all the entity names you want to exclude for that device. This is only related to device entities, not individual entities.",
       "type": "object",
       "uniqueItems": true,
       "selectFrom": "name",

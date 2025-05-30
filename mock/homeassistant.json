@@ -7597,9 +7597,7 @@
       "hidden_by": null,
       "icon": null,
       "id": "54b8f61915fb50f5a343550aebcc87fb",
-      "labels": [
-        "matterbridge"
-      ],
+      "labels": ["matterbridge"],
       "modified_at": 1748381713.934119,
       "name": null,
       "options": {
@@ -7626,9 +7624,7 @@
       "hidden_by": null,
       "icon": null,
       "id": "554ba0ee966b70d418747685d932cea6",
-      "labels": [
-        "matterbridge"
-      ],
+      "labels": ["matterbridge"],
       "modified_at": 1748515411.276583,
       "name": null,
       "options": {
@@ -11678,9 +11674,7 @@
       "entity_id": "light.my_rgbw_template_light",
       "state": "off",
       "attributes": {
-        "supported_color_modes": [
-          "rgbw"
-        ],
+        "supported_color_modes": ["rgbw"],
         "color_mode": null,
         "brightness": null,
         "hs_color": null,

@@ -121,11 +121,7 @@ describe('HassPlatform', () => {
     return Promise.resolve();
   });
 
-  jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation((type: string, id?: number) => {
-    console.log(`Mocked fetch: ${type}`);
-  });
-
-  jest.spyOn(HomeAssistant.prototype, 'fetchAsync').mockImplementation((type: string, timeout = 5000) => {
+  jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation((type: string, timeout = 5000) => {
     console.log(`Mocked fetchAsync: ${type}`);
     if (type === 'config/device_registry/list') {
       return Promise.resolve(mockData.devices);
@@ -137,27 +133,14 @@ describe('HassPlatform', () => {
     return Promise.resolve(mockData.config);
   });
 
-  jest.spyOn(HomeAssistant.prototype, 'callService').mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}) => {
-    console.log(`Mocked callService: domain ${domain} service ${service} entityId ${entityId}`);
-  });
-
   const mockCallServiceAsync = jest
-    .spyOn(HomeAssistant.prototype, 'callServiceAsync')
+    .spyOn(HomeAssistant.prototype, 'callService')
     .mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}, id?: number) => {
       console.log(`Mocked callServiceAsync: domain ${domain} service ${service} entityId ${entityId}`);
       return Promise.resolve({});
     });
 
   beforeAll(() => {
-    /*
-    mockHomeAssistant = {
-      connect: jest.fn(),
-      close: jest.fn(),
-      fetchAsync: jest.fn(),
-      callService: jest.fn(),
-    } as unknown as HomeAssistant;
-    */
-
     mockMatterbridgeDevice = {
       deviceName: 'Switch',
     } as unknown as MatterbridgeEndpoint;

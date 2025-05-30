@@ -263,11 +263,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       await mutableDevice.createClusters(entity.entity_id);
       child.addCommandHandler('on', async () => {
         if (domain === 'automation') {
-          await this.ha.callServiceAsync(domain, 'trigger', entity.entity_id);
+          await this.ha.callService(domain, 'trigger', entity.entity_id);
         } else if (domain === 'input_button') {
-          await this.ha.callServiceAsync(domain, 'press', entity.entity_id);
+          await this.ha.callService(domain, 'press', entity.entity_id);
         } else {
-          await this.ha.callServiceAsync(domain, 'turn_on', entity.entity_id);
+          await this.ha.callService(domain, 'turn_on', entity.entity_id);
         }
         if (domain !== 'input_boolean' && domain !== 'switch') {
           // We revert the state after 500ms except for input_boolean and switch template
@@ -278,7 +278,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       });
       child.addCommandHandler('off', async () => {
         // We don't revert only for input_boolean and switch template
-        if (domain === 'input_boolean' || domain === 'switch') await this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
+        if (domain === 'input_boolean' || domain === 'switch') await this.ha.callService(domain, 'turn_off', entity.entity_id);
       });
 
       this.log.debug(`Registering device ${dn}${entityName}${db}...`);
@@ -568,8 +568,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                 matterbridgeDevice?.log.debug(
                   `Converter(${hassSubscribe.converter !== undefined}): ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`,
                 );
-                if (value !== null) this.ha.callServiceAsync(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
-                else this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
+                if (value !== null) this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
+                else this.ha.callService(domain, 'turn_off', entity.entity_id);
               },
               child.log,
             );
@@ -644,7 +644,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (hassCommand) {
       // console.log('Command:', command, 'Domain:', domain, 'HassCommand:', hassCommand, 'Request:', request, 'Attributes:', attributes);
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(request, attributes) : undefined;
-      await this.ha.callServiceAsync(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
+      await this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
     } else {
       mbDevice.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
     }
