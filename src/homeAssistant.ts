@@ -5,7 +5,7 @@
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @date 2024-09-14
- * @version 0.0.2
+ * @version 1.0.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -224,6 +224,8 @@ export type HomeAssistantPrimitive = string | number | bigint | boolean | object
 interface HomeAssistantEventEmitter {
   connected: [ha_version: HomeAssistantPrimitive];
   disconnected: [error: string];
+  socket_closed: [event: WebSocket.CloseEvent];
+  socket_opened: [event: WebSocket.Event];
   subscribed: [];
   started: [];
   config: [config: HassConfig];
@@ -301,7 +303,7 @@ export class HomeAssistant extends EventEmitter {
   /**
    * Creates an instance of the HomeAssistant class.
    *
-   * @param {string} url - The WebSocket URL for connecting to Home Assistant.
+   * @param {string} url - The WebSocket URL for connecting to Home Assistant (i.e. ws://localhost:8123 or wss://localhost:8123).
    * @param {string} accessToken - The access token for authenticating with Home Assistant.
    * @param {number} [reconnectTimeoutTime=60] - The timeout duration for reconnect attempts in seconds. Defaults to 60 seconds.
    * @param {number} [reconnectRetries=10] - The number of reconnection attempts to make before giving up. Defaults to 10 attempts.
@@ -356,8 +358,9 @@ export class HomeAssistant extends EventEmitter {
         throw new Error(`Invalid WebSocket URL: ${this.wsUrl}. It must start with ws:// or wss://`);
       }
 
-      this.ws.onopen = () => {
+      this.ws.onopen = (event: WebSocket.Event) => {
         this.log.debug('WebSocket connection established');
+        this.emit('socket_opened', event);
       };
 
       this.ws.onmessage = async (event: WebSocket.MessageEvent) => {
@@ -525,11 +528,11 @@ export class HomeAssistant extends EventEmitter {
       };
 
       this.ws.onclose = (event: WebSocket.CloseEvent) => {
-        const errorMessage = `WebSocket connection closed. Reason: ${event.reason} Code: ${event.code} Clean: ${event.wasClean} Type: ${event.type}`;
-        this.log.debug(errorMessage);
+        const closeMessage = `WebSocket connection closed. Reason: ${event.reason} Code: ${event.code} Clean: ${event.wasClean} Type: ${event.type}`;
+        this.log.debug(closeMessage);
         this.connected = false;
         this.stopPing();
-        this.emit('disconnected', errorMessage);
+        this.emit('socket_closed', event);
         this.startReconnect();
       };
     } catch (error) {
@@ -610,22 +613,26 @@ export class HomeAssistant extends EventEmitter {
   /**
    * Closes the WebSocket connection to Home Assistant and stops the ping interval.
    * Emits a 'disconnected' event.
+   * @returns {Promise<void>} - A Promise that resolves when the connection is closed.
    */
-  close() {
-    this.log.info('Closing Home Assistant connection...');
-    this.stopPing();
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.close(0x1000, 'Normal closure');
-    }
-    this.ws?.removeAllListeners();
-    this.ws = null;
-    this.connected = false;
-    this.emit('disconnected', 'WebSocket connection closed');
-    this.log.info('Home Assistant connection closed');
+  async close(): Promise<void> {
+    return new Promise((resolve) => {
+      this.log.info('Closing Home Assistant connection...');
+      this.stopPing();
+      if (this.reconnectTimeout) {
+        clearTimeout(this.reconnectTimeout);
+        this.reconnectTimeout = null;
+      }
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.close(0x1000, 'Normal closure');
+      }
+      this.ws?.removeAllListeners();
+      this.ws = null;
+      this.connected = false;
+      this.emit('disconnected', 'WebSocket connection closed');
+      this.log.info('Home Assistant connection closed');
+      resolve();
+    });
   }
 
   /**
@@ -635,6 +642,7 @@ export class HomeAssistant extends EventEmitter {
    * @param {number} [id] - The unique ID for the request. If not provided, it will be automatically generated.
    * @param {number} [timeout=5000] - The timeout in milliseconds to wait for a response. Default is 5000ms.
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
+   * @throws {Error} - Throws an error if not connected to Home Assistant or if the WebSocket is not open.
    *
    * @example
    * // Example usage:
@@ -660,8 +668,8 @@ export class HomeAssistant extends EventEmitter {
 
       const timer = setTimeout(() => {
         this.ws?.removeEventListener('message', handleMessage);
-        throw new Error(`FetchAsync api ${api} id ${requestId} did not complete before the timeout`);
-      }, timeout);
+        reject(`FetchAsync api ${api} id ${requestId} did not complete before the timeout`);
+      }, timeout).unref();
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
@@ -699,6 +707,7 @@ export class HomeAssistant extends EventEmitter {
    * @param {number} [id] - Optional unique ID for the request. If not provided, it will be auto-generated.
    * @param {number} [timeout=5000] - The timeout in milliseconds to wait for a response. Default is 5000ms.
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
+   * @throws {Error} - Throws an error if not connected to Home Assistant or if the WebSocket is not open.
    *
    * @example <caption>Example usage of the callService method.</caption>
    * await this.callService('switch', 'toggle', 'switch.living_room');
@@ -718,8 +727,8 @@ export class HomeAssistant extends EventEmitter {
 
       const timer = setTimeout(() => {
         this.ws?.removeEventListener('message', handleMessage);
-        throw new Error(`CallServiceAsync service ${domain}.${service} entity ${entityId} id ${requestId} did not complete before the timeout`);
-      }, timeout);
+        reject(`CallServiceAsync service ${domain}.${service} entity ${entityId} id ${requestId} did not complete before the timeout`);
+      }, timeout).unref();
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {

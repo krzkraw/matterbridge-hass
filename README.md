@@ -5,7 +5,7 @@
 [![Docker Version](https://img.shields.io/docker/v/luligu/matterbridge?label=docker%20version&sort=semver)](https://hub.docker.com/r/luligu/matterbridge)
 [![Docker Pulls](https://img.shields.io/docker/pulls/luligu/matterbridge.svg)](https://hub.docker.com/r/luligu/matterbridge)
 ![Node.js CI](https://github.com/Luligu/matterbridge-hass/actions/workflows/build-matterbridge-plugin.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/Jest%20coverage-95%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Jest%20coverage-97%25-brightgreen)
 
 [![power by](https://img.shields.io/badge/powered%20by-matterbridge-blue)](https://www.npmjs.com/package/matterbridge)
 [![power by](https://img.shields.io/badge/powered%20by-node--ansi--logger-blue)](https://www.npmjs.com/package/node-ansi-logger)
@@ -24,6 +24,7 @@ Features:
 - The connection with Home Assistant can be also made with ssl WebSocket (i.e. wss://homeassistant:8123). Self signed certificates are also supported.
 - It is possible to filter individual entities and devices by Area.
 - It is possible to filter individual entities and devices by Label.
+- It is possible to select from a list the individual entities to include in the individual entities white or black list.
 - It is possible to select from a list the devices to include in the device white or black list.
 - It is possible to select from a list the entities to include in the entity white or black list.
 - It is possible to postfix the Matter device serialNumber or the Matter device name to avoid collision with other instances.

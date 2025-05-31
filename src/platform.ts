@@ -619,7 +619,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await super.onShutdown(reason);
     this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
-    this.ha.close();
+    await this.ha.close();
     this.ha.removeAllListeners();
 
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();

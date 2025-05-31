@@ -15,6 +15,7 @@ import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
+import { error } from 'node:console';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -468,14 +469,14 @@ describe('HomeAssistant', () => {
     (homeAssistant as any).startPing();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Ping interval already started`);
     await new Promise<void>((resolve) => {
-      homeAssistant.on('disconnected', () => {
+      homeAssistant.on('socket_closed', () => {
         resolve();
       });
       client.close(undefined, 'Bye');
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket connection closed. Reason:  Code: 1005 Clean: true Type: close`);
     expect((homeAssistant as any).reconnectTimeout).not.toBeNull();
-    homeAssistant.close();
+    await homeAssistant.close();
     expect((homeAssistant as any).reconnectTimeout).toBeNull();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Closing Home Assistant connection...`);
     expect(homeAssistant.connected).toBe(false);
@@ -504,7 +505,7 @@ describe('HomeAssistant', () => {
       `WebSocket error connecting to Home Assistant: Error: Invalid WebSocket URL: http://localhost:8123. It must start with ws:// or wss://`,
     );
     expect(homeAssistant.connected).toBe(false);
-    homeAssistant.close();
+    await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
@@ -522,7 +523,7 @@ describe('HomeAssistant', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ./invalid/cert.pem...`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`WebSocket error connecting to Home Assistant: Error: ENOENT`));
     expect(homeAssistant.connected).toBe(false);
-    homeAssistant.close();
+    await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
@@ -541,7 +542,7 @@ describe('HomeAssistant', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `CA certificate loaded successfully`);
     // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`WebSocket error:`));
     expect(homeAssistant.connected).toBe(false);
-    homeAssistant.close();
+    await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
@@ -572,7 +573,7 @@ describe('HomeAssistant', () => {
 
     jest.clearAllMocks();
     await new Promise<void>((resolve) => {
-      homeAssistant.once('disconnected', () => {
+      homeAssistant.once('socket_closed', () => {
         resolve();
       });
       client.close(undefined, 'Bye');
@@ -609,7 +610,7 @@ describe('HomeAssistant', () => {
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket error: Test error type: error');
 
-    homeAssistant.close();
+    await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
@@ -648,7 +649,7 @@ describe('HomeAssistant', () => {
     (homeAssistant as any).pingInterval = setInterval(() => {}, 30000);
     (homeAssistant as any).pingTimeout = setTimeout(() => {}, 30000);
 
-    homeAssistant.close();
+    await homeAssistant.close();
     expect((homeAssistant as any).pingInterval).toBeNull();
     expect((homeAssistant as any).pingTimeout).toBeNull();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
@@ -698,9 +699,21 @@ describe('HomeAssistant with ssl', () => {
           socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: [] }));
         } else if (msg.type === 'subscribe_events') {
           socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true }));
+        } else if (msg.type === 'call_service' && msg.domain === 'notajson') {
+          socket.send('not a json');
+        } else if (msg.type === 'call_service' && msg.domain === 'nosuccess') {
+          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: 'nosuccess' }));
+        } else if (msg.type === 'call_service' && msg.domain === 'noresponse') {
+          // socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: 'noresponse' }));
         } else if (msg.type === 'call_service') {
           socket.send(JSON.stringify({ id: (homeAssistant as any).eventsSubscribeId, type: 'event', success: true, event: { event_type: 'call_service' } }));
           socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: {} }));
+        } else if (msg.type === 'notajson') {
+          socket.send('not a json');
+        } else if (msg.type === 'noresponse') {
+          // socket.send('not a json');
+        } else if (msg.type === 'nosuccess') {
+          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: 'nosuccess' }));
         }
       });
     });
@@ -781,6 +794,49 @@ describe('HomeAssistant with ssl', () => {
     expect((homeAssistant as any).pingTimeout).toBeNull();
   });
 
+  it('should get the config asyncronously from Home Assistant', async () => {
+    const config = await homeAssistant.fetch('get_config', undefined, 1000);
+    expect(config).toEqual({});
+  });
+
+  it('should throw the fetch from Home Assistant', async () => {
+    await expect(homeAssistant.fetch('notajson', undefined, 1000)).rejects.toThrow();
+  });
+
+  it('should throw for timeout the fetch from Home Assistant', async () => {
+    homeAssistant.once('error', (error) => {
+      expect(error).toBe('WebSocket response error: undefined');
+    });
+    await expect(homeAssistant.fetch('noresponse', undefined, 10)).rejects.toBe('FetchAsync api noresponse id 10 did not complete before the timeout');
+  });
+
+  it('should reject no success the fetch from Home Assistant', async () => {
+    homeAssistant.once('error', (error) => {
+      expect(error).toBe('WebSocket response error: undefined');
+    });
+    await expect(homeAssistant.fetch('nosuccess', undefined, 1000)).rejects.toBe('nosuccess');
+  });
+
+  it('should throw the callService from Home Assistant', async () => {
+    await expect(homeAssistant.callService('notajson', 'turn_on', 'myentityid')).rejects.toThrow();
+  });
+
+  it('should throw for timeout the callService from Home Assistant', async () => {
+    homeAssistant.once('error', (error) => {
+      expect(error).toBe('WebSocket response error: undefined');
+    });
+    await expect(homeAssistant.callService('noresponse', 'turn_on', 'myentityid', {}, undefined, 10)).rejects.toBe(
+      'CallServiceAsync service noresponse.turn_on entity myentityid id 13 did not complete before the timeout',
+    );
+  });
+
+  it('should reject no success the callService from Home Assistant', async () => {
+    homeAssistant.once('error', (error) => {
+      expect(error).toBe('WebSocket response error: undefined');
+    });
+    await expect(homeAssistant.callService('nosuccess', 'turn_on', 'myentityid')).rejects.toBe('nosuccess');
+  });
+
   it('should disconnect from Home Assistant with ssl', async () => {
     expect(homeAssistant.connected).toBe(true);
 
@@ -791,6 +847,20 @@ describe('HomeAssistant with ssl', () => {
       homeAssistant.close();
     });
 
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('startPing should log message if disconnect from Home Assistant with ssl', async () => {
+    expect(homeAssistant.connected).toBe(false);
+
+    jest.useFakeTimers();
+    (homeAssistant as any).startPing();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Starting ping interval...');
+    jest.advanceTimersByTime((homeAssistant as any).pingIntervalTime);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'WebSocket not open sending ping. Closing connection...');
+    jest.useRealTimers();
+
+    homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 });
