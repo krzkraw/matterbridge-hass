@@ -125,7 +125,7 @@ There are 2 different source of Matter devices coming from matterbridge-hass plu
 
 You find them in Home Assistant at http://localhost:8123/config/devices/dashboard.
 
-- Individual entities with domain scene, script, automation and input_boolean that use individualEntityWhiteList and individualEntityBlackList.
+- Individual entities with domain scene, script, automation and input_boolean, input_button helpers, switch template that use individualEntityWhiteList and individualEntityBlackList.
 
 You find these special entities in Home Assistant at http://localhost:8123/config/automation/dashboard, http://localhost:8123/config/scene/dashboard, http://localhost:8123/config/script/dashboard and http://localhost:8123/config/helpers.
 
