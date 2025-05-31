@@ -131,13 +131,13 @@ You find these special entities in Home Assistant at http://localhost:8123/confi
 
 You may need to set some config values in the frontend (wait that the plugin has been configured before changing the config):
 
-I suggest to always use the whiteList and individualEntityWhiteList adding each device you want to expose to Matter.
+I suggest to always use the filters by Area and Label or the whiteList and individualEntityWhiteList adding each individual entity or device you want to expose to Matter.
 
 If any device or individual entity creates issues put it in the blackList or in the individualEntityBlackList.
 
 ### host
 
-Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). It is better to use the IP if it is stable.
+Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). You can also use the IP if it is stable.
 
 ### token
 
