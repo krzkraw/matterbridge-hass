@@ -164,7 +164,7 @@ describe('HomeAssistant', () => {
 
   it('fetchAsync should log error for async if not connected to HomeAssistant', async () => {
     try {
-      await homeAssistant.fetch('get_states', undefined, 1000);
+      await homeAssistant.fetch('get_states', undefined);
     } catch (error) {
       expect(error.message).toBe('FetchAsync error: not connected to Home Assistant');
     }
@@ -172,7 +172,7 @@ describe('HomeAssistant', () => {
 
   it('callServiceAsync should log error for async if not connected to HomeAssistant', async () => {
     try {
-      await homeAssistant.callService('light', 'turn_on', 'myentityid', {}, undefined, 1000);
+      await homeAssistant.callService('light', 'turn_on', 'myentityid', {}, undefined);
     } catch (error) {
       expect(error.message).toBe('CallServiceAsync error: not connected to Home Assistant');
     }
@@ -181,7 +181,7 @@ describe('HomeAssistant', () => {
   it('fetchAsync should log error for async if ws is not connected to HomeAssistant', async () => {
     homeAssistant.connected = true;
     try {
-      await homeAssistant.fetch('get_states', undefined, 1000);
+      await homeAssistant.fetch('get_states', undefined);
     } catch (error) {
       expect(error.message).toBe('FetchAsync error: WebSocket not open');
     }
@@ -191,7 +191,7 @@ describe('HomeAssistant', () => {
   it('callServiceAsync should log error for async if ws is not connected to HomeAssistant', async () => {
     homeAssistant.connected = true;
     try {
-      await homeAssistant.callService('light', 'turn_on', 'myentityid', {}, undefined, 1000);
+      await homeAssistant.callService('light', 'turn_on', 'myentityid', {}, undefined);
     } catch (error) {
       expect(error.message).toBe('CallServiceAsync error: WebSocket not open');
     }
@@ -430,28 +430,28 @@ describe('HomeAssistant', () => {
 
   it('should get the entities asyncronously from Home Assistant', async () => {
     entity_registry_response.push({ entity_id: 'myentityid', device_id: 'mydeviceid' } as HassEntity);
-    const entities = await homeAssistant.fetch('config/entity_registry/list', undefined, 1000);
+    const entities = await homeAssistant.fetch('config/entity_registry/list', undefined);
     expect(entities).toEqual([{ entity_id: 'myentityid', device_id: 'mydeviceid' }]);
     entity_registry_response.splice(0, entity_registry_response.length); // Clear the response for next tests
   });
 
   it('should get the areas asyncronously from Home Assistant', async () => {
-    const areas = await homeAssistant.fetch('config/area_registry/list', undefined, 1000);
+    const areas = await homeAssistant.fetch('config/area_registry/list', undefined);
     expect(areas).toEqual([]);
   });
 
   it('should get the states asyncronously from Home Assistant', async () => {
-    const states = await homeAssistant.fetch('get_states', undefined, 1000);
+    const states = await homeAssistant.fetch('get_states', undefined);
     expect(states).toEqual([]);
   });
 
   it('should get the config asyncronously from Home Assistant', async () => {
-    const config = await homeAssistant.fetch('get_config', undefined, 1000);
+    const config = await homeAssistant.fetch('get_config', undefined);
     expect(config).toEqual({});
   });
 
   it('should get the services asyncronously from Home Assistant', async () => {
-    const services = await homeAssistant.fetch('get_services', undefined, 1000);
+    const services = await homeAssistant.fetch('get_services', undefined);
     expect(services).toEqual({});
   });
 
@@ -461,7 +461,7 @@ describe('HomeAssistant', () => {
   });
 
   it('should request async call_service with params from Home Assistant', async () => {
-    const response = await homeAssistant.callService('light', 'turn_on', 'myentityid', {}, undefined, 1000);
+    const response = await homeAssistant.callService('light', 'turn_on', 'myentityid', {}, undefined);
     expect(response).toEqual({});
   });
 
@@ -789,32 +789,41 @@ describe('HomeAssistant with ssl', () => {
     expect(homeAssistant.subscribed).toBe(true);
   });
 
+  it('should get and set responseTimeout', async () => {
+    homeAssistant.responseTimeout = 10000;
+    expect(homeAssistant.responseTimeout).toBe(10000);
+    homeAssistant.responseTimeout = 5000;
+    expect(homeAssistant.responseTimeout).toBe(5000);
+  });
+
   it('should have start pingpong', async () => {
     expect((homeAssistant as any).pingInterval).not.toBeNull();
     expect((homeAssistant as any).pingTimeout).toBeNull();
   });
 
   it('should get the config asyncronously from Home Assistant', async () => {
-    const config = await homeAssistant.fetch('get_config', undefined, 1000);
+    const config = await homeAssistant.fetch('get_config', undefined);
     expect(config).toEqual({});
   });
 
   it('should throw the fetch from Home Assistant', async () => {
-    await expect(homeAssistant.fetch('notajson', undefined, 1000)).rejects.toThrow();
+    await expect(homeAssistant.fetch('notajson', undefined)).rejects.toThrow();
   });
 
   it('should throw for timeout the fetch from Home Assistant', async () => {
+    homeAssistant.responseTimeout = 10; // Set a short timeout for testing
     homeAssistant.once('error', (error) => {
       expect(error).toBe('WebSocket response error: undefined');
     });
-    await expect(homeAssistant.fetch('noresponse', undefined, 10)).rejects.toBe('FetchAsync api noresponse id 10 did not complete before the timeout');
+    await expect(homeAssistant.fetch('noresponse', undefined)).rejects.toBe('FetchAsync api noresponse id 10 did not complete before the timeout');
+    homeAssistant.responseTimeout = 10000; // Restore the default timeout
   });
 
   it('should reject no success the fetch from Home Assistant', async () => {
     homeAssistant.once('error', (error) => {
       expect(error).toBe('WebSocket response error: undefined');
     });
-    await expect(homeAssistant.fetch('nosuccess', undefined, 1000)).rejects.toBe('nosuccess');
+    await expect(homeAssistant.fetch('nosuccess', undefined)).rejects.toBe('nosuccess');
   });
 
   it('should throw the callService from Home Assistant', async () => {
@@ -822,12 +831,14 @@ describe('HomeAssistant with ssl', () => {
   });
 
   it('should throw for timeout the callService from Home Assistant', async () => {
+    homeAssistant.responseTimeout = 10; // Set a short timeout for testing
     homeAssistant.once('error', (error) => {
       expect(error).toBe('WebSocket response error: undefined');
     });
-    await expect(homeAssistant.callService('noresponse', 'turn_on', 'myentityid', {}, undefined, 10)).rejects.toBe(
+    await expect(homeAssistant.callService('noresponse', 'turn_on', 'myentityid', {}, undefined)).rejects.toBe(
       'CallServiceAsync service noresponse.turn_on entity myentityid id 13 did not complete before the timeout',
     );
+    homeAssistant.responseTimeout = 10000; // Restore the default timeout
   });
 
   it('should reject no success the callService from Home Assistant', async () => {
@@ -861,6 +872,39 @@ describe('HomeAssistant with ssl', () => {
     jest.useRealTimers();
 
     homeAssistant.close();
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('should connectAsync to Home Assistant with ssl', async () => {
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, undefined, false);
+
+    // jest.restoreAllMocks();
+
+    await homeAssistant.connectAsync();
+    expect(homeAssistant.connected).toBe(true);
+    expect(homeAssistant.devicesReceived).toBe(false);
+    expect(homeAssistant.entitiesReceived).toBe(false);
+    expect(homeAssistant.statesReceived).toBe(false);
+    expect(homeAssistant.areasReceived).toBe(false);
+    expect(homeAssistant.configReceived).toBe(false);
+    expect(homeAssistant.servicesReceived).toBe(false);
+    expect(homeAssistant.subscribed).toBe(false);
+    expect(homeAssistant.hassDevices.size).toBe(0);
+    expect(homeAssistant.hassEntities.size).toBe(0);
+    expect(homeAssistant.hassStates.size).toBe(0);
+    expect(homeAssistant.hassAreas.size).toBe(0);
+    expect(homeAssistant.hassServices).toBeNull();
+    expect(homeAssistant.hassConfig).toBeNull();
+  });
+
+  it('should not connectAsync a second time to Home Assistant with ssl', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    await expect(homeAssistant.connectAsync()).rejects.toThrow('Already connected to Home Assistant');
+  });
+
+  it('should closeAsync to Home Assistant with ssl', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 });
