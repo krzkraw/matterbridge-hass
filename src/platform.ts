@@ -87,7 +87,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
 
     this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
-    this.config.serialPostfix = isValidString(this.config.serialPostfix, 1, 3) ? this.config.serialPostfix : '';
+    this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
     this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 0) ? config.reconnectTimeout : undefined;
     this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
     if (config.individualEntityWhiteList) delete config.individualEntityWhiteList;
@@ -231,7 +231,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const mutableDevice = new MutableDevice(
         this.matterbridge,
         entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
-        isValidString(this.config.serialPostfix, 1, 3) ? entity.id.slice(0, 32 - this.config.serialPostfix.length) + this.config.serialPostfix : entity.id.slice(0, 32),
+        isValidString(this.config.postfix, 1, 3) ? entity.id.slice(0, 32 - this.config.postfix.length) + this.config.postfix : entity.id.slice(0, 32),
         0xfff1,
         'HomeAssistant',
         domain,
@@ -320,7 +320,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const mutableDevice = new MutableDevice(
         this.matterbridge,
         deviceName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
-        isValidString(this.config.serialPostfix, 1, 3) ? device.id.slice(0, 32 - this.config.serialPostfix.length) + this.config.serialPostfix : device.id.slice(0, 32),
+        isValidString(this.config.postfix, 1, 3) ? device.id.slice(0, 32 - this.config.postfix.length) + this.config.postfix : device.id.slice(0, 32),
         0xfff1,
         'HomeAssistant',
         device.model ?? 'Unknown',
@@ -688,7 +688,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
     const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
-      this.log.debug(`Update handler: Matterbridge device ${deviceId} not found`);
+      this.log.debug(`Update handler: Matterbridge device ${deviceId} for ${entityId} not found`);
       return;
     }
     const endpoint = matterbridgeDevice.getChildEndpointByName(entityId) || matterbridgeDevice.getChildEndpointByName(entityId.replaceAll('.', ''));

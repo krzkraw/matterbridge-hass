@@ -28,6 +28,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 - [update]: Skip attributes update when state is off. Provisional!
 - [config]: Removed individualEntityWhiteList and individualEntityBlackList. Use the normal white and black lists.
+- [config]: Changed serialPostfix to postfix.
 
 ### Fixed
 

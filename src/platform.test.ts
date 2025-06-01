@@ -493,7 +493,7 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     await haPlatform.updateHandler('notadevice', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
-    expect(mockLog.debug).toHaveBeenCalledWith(`Update handler: Matterbridge device notadevice not found`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Update handler: Matterbridge device notadevice for notanentity not found`);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler('dimmableDoubleOutlet', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
