@@ -26,9 +26,16 @@ const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
   try {
     const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
+    return JSON.parse(data) as {
+      devices: HassDevice[];
+      entities: HassEntity[];
+      areas: HassArea[];
+      states: HassState[];
+      config: HassConfig;
+      services: HassServices;
+    };
   } catch (error) {
-    console.error('Error reading or parsing moassistan.json:', error);
+    console.error('Error reading or parsing homeassistant.json:', error);
     return null;
   }
 };
@@ -102,6 +109,9 @@ describe('HassPlatform', () => {
   let mockEndpoint: Endpoint;
 
   const mockData = readMockHomeAssistantFile();
+  if (!mockData) {
+    throw new Error('Failed to read or parse mock homeassistant.json file');
+  }
 
   let loggerLogSpy: jest.SpiedFunction<(level: LogLevel, message: string, ...parameters: any[]) => void>;
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;

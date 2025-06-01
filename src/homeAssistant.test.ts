@@ -530,7 +530,7 @@ describe('HomeAssistant', () => {
   });
 
   it('should not connect if wsUrl is wss:// and certificate are not correct', async () => {
-    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, './mock/homeassistant.crt');
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, path.join('certificates', 'matterbridge-hass-ca.crt'));
 
     await new Promise((resolve) => {
       homeAssistant.once('error', () => {
@@ -540,7 +540,7 @@ describe('HomeAssistant', () => {
       homeAssistant.connect();
     });
 
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ./mock/homeassistant.crt...`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from certificates\\matterbridge-hass-ca.crt...`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `CA certificate loaded successfully`);
     // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`WebSocket error:`));
     expect(homeAssistant.connected).toBe(false);
@@ -670,8 +670,8 @@ describe('HomeAssistant with ssl', () => {
 
   beforeAll(async () => {
     const serverOptions = {
-      cert: fs.readFileSync(path.join('mock', 'homeassistant.crt')),
-      key: fs.readFileSync(path.join('mock', 'homeassistant.key')),
+      cert: fs.readFileSync(path.join('certificates', 'homeassistant.crt')),
+      key: fs.readFileSync(path.join('certificates', 'homeassistant.key')),
     };
     httpsServer = https.createServer(serverOptions);
     server = new WebSocketServer({ server: httpsServer, path: apiPath });
@@ -753,7 +753,8 @@ describe('HomeAssistant with ssl', () => {
 
   it('client should connect', async () => {
     client = new WebSocket(wsUrl + apiPath, {
-      rejectUnauthorized: false,
+      ca: fs.readFileSync(path.join('certificates', 'matterbridge-hass-ca.crt')),
+      rejectUnauthorized: true,
     });
 
     expect(client).toBeInstanceOf(WebSocket);
@@ -974,7 +975,7 @@ describe('HomeAssistant with ssl', () => {
   });
 
   it('should close for timeout', async () => {
-    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, './mock/homeassistant.crt', false);
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, path.join('certificates', 'matterbridge-hass-ca.crt'), false);
     homeAssistant.on('error', () => {
       //
     });
@@ -1012,7 +1013,7 @@ describe('HomeAssistant with ssl', () => {
   });
 
   it('should connect to Home Assistant with ssl and CA certificate', async () => {
-    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, './mock/homeassistant.crt', false);
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, path.join('certificates', 'matterbridge-hass-ca.crt'), false);
     homeAssistant.on('error', () => {
       //
     });
@@ -1041,5 +1042,82 @@ describe('HomeAssistant with ssl', () => {
     }
 
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('should connect to Home Assistant with ssl and self-signed CA certificate', async () => {
+    // jest.restoreAllMocks();
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, path.join('certificates', 'matterbridge-hass-ca.crt'), true);
+
+    await homeAssistant.connect();
+
+    expect(homeAssistant.connected).toBe(true);
+    expect(homeAssistant.hassDevices.size).toBe(0);
+    expect(homeAssistant.hassEntities.size).toBe(0);
+    expect(homeAssistant.hassStates.size).toBe(0);
+    expect(homeAssistant.hassAreas.size).toBe(0);
+    expect(homeAssistant.hassServices).toBeNull();
+    expect(homeAssistant.hassConfig).toBeNull();
+
+    await homeAssistant.close(1000, 'Test close');
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  }, 10000);
+});
+
+describe('HomeAssistant parser', () => {
+  const readMockHomeAssistantFile = (filePath: string) => {
+    try {
+      const data = fs.readFileSync(filePath, 'utf8');
+      return JSON.parse(data) as {
+        devices: HassDevice[];
+        entities: HassEntity[];
+        areas: HassArea[];
+        states: HassState[];
+        config: HassConfig;
+        services: HassServices;
+      };
+    } catch (error) {
+      console.error(`Error reading or parsing ${filePath}:`, error);
+      return null;
+    }
+  };
+
+  // const data = readMockHomeAssistantFile(path.join('mock', 'homeassistant.json'));
+  const data = readMockHomeAssistantFile(path.join('mock', 'ts_homeassistant.json'));
+
+  it('should parse Home Assistant data', () => {
+    expect(data).toBeDefined();
+    if (!data) return;
+    expect(data.devices).toBeDefined();
+    expect(data.entities).toBeDefined();
+    expect(data.states).toBeDefined();
+    expect(data.areas).toBeDefined();
+    expect(data.services).toBeDefined();
+    expect(data.config).toBeDefined();
+    expect(data.devices.length).toBeGreaterThan(0);
+    expect(data.entities.length).toBeGreaterThan(0);
+    expect(data.states.length).toBeGreaterThan(0);
+    expect(data.areas.length).toBeGreaterThan(0);
+  });
+
+  it('should make a list of all HassDevice properties', () => {
+    jest.restoreAllMocks();
+    expect(data).toBeDefined();
+    if (!data) return;
+    const properties = new Set<string>();
+    for (const device of data.devices) {
+      expect(device).toBeDefined();
+      expect(device.id).toBeDefined();
+      expect(device.name).toBeDefined();
+      Object.entries(device).forEach(([key, value]) => {
+        properties.add(key);
+      });
+    }
+    let output = 'HassDevice properties:';
+    Array.from(properties)
+      .sort()
+      .forEach((property) => {
+        output += `\n- ${property}`;
+      });
+    console.log(output);
   });
 });

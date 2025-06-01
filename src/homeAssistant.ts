@@ -35,10 +35,11 @@ export interface HassDevice {
   area_id: string | null;
   configuration_url: string | null;
   config_entries: string[]; // List of config entry IDs
+  config_entries_subentries: Record<string, unknown[]>; // Map of config entry IDs to subentries
   connections: [string, string][]; // Array of connection types and identifiers
   created_at: number; // Timestamp of when the device was created
   disabled_by: string | null;
-  entry_type: string | null;
+  entry_type: string | null; // Type of entry (e.g., "service" or null)
   hw_version: string | null; // Hardware version
   identifiers: [string, string][]; // Identifiers for the device
   labels: string[];
@@ -63,7 +64,7 @@ export interface HassEntity {
   area_id: string | null;               // The area ID this entity belongs to
   categories: object;                   // Categories of the entity
   config_entry_id: string;              // The config entry this entity belongs to
-  created_at: string;                   // Timestamp of when the entity was created
+  created_at: number;                   // Timestamp of when the entity was created or 0
   device_id: string | null;             // The ID of the device this entity is associated with (e.g., "14231f5b82717f1d9e2f71d354120331")
   disabled_by: string | null;           // Whether the entity is disabled and by whom
   entity_category: string | null;       // The category of the entity
@@ -72,7 +73,7 @@ export interface HassEntity {
   icon: string | null;                  // Optional icon associated with the entity
   id: string;                           // Unique ID of the entity (e.g., "368c6fd2f264aba2242e0658612c250e")
   labels: string[];                     // Labels associated with the entity
-  modified_at: string;                  // Timestamp of last modification
+  modified_at: number;                  // Timestamp of last modification or 0
   name: string | null;                  // Friendly name of the entity
   options: Record<string, HomeAssistantPrimitive> | null; // Additional options for the entity
   original_name: string | null;         // The original name of the entity (set by the integration)
