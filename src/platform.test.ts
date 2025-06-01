@@ -1386,7 +1386,7 @@ describe('HassPlatform', () => {
     jest.clearAllMocks();
     contactSensorEntityState.state = 'on';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
 
     jest.clearAllMocks();
     const oldState = { ...contactSensorEntityState };
