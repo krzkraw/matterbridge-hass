@@ -8,7 +8,7 @@ import { AnsiLogger, BLUE, db, dn, hk, idn, LogLevel, nf, or, rs, YELLOW, CYAN, 
 import { Endpoint } from 'matterbridge/matter';
 import { HomeAssistantPlatform } from './platform';
 import { jest } from '@jest/globals';
-import { HassArea, HassConfig, HassDevice, HassEntity, HassState, HomeAssistant } from './homeAssistant';
+import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
@@ -121,7 +121,27 @@ describe('HassPlatform', () => {
     return Promise.resolve();
   });
 
-  jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation((type: string, timeout = 5000) => {
+  const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
+    console.log(`Mocked connect`);
+    return Promise.resolve();
+  });
+
+  const closeSpy = jest.spyOn(HomeAssistant.prototype, 'close').mockImplementation(() => {
+    console.log(`Mocked close`);
+    return Promise.resolve();
+  });
+
+  const subscribeSpy = jest.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation(() => {
+    console.log(`Mocked subscribe`);
+    return Promise.resolve();
+  });
+
+  const fetchData = jest.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(() => {
+    console.log(`Mocked fetchData`);
+    return Promise.resolve();
+  });
+
+  const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation((type: string, timeout = 5000) => {
     console.log(`Mocked fetchAsync: ${type}`);
     if (type === 'config/device_registry/list') {
       return Promise.resolve(mockData.devices);
@@ -133,7 +153,7 @@ describe('HassPlatform', () => {
     return Promise.resolve(mockData.config);
   });
 
-  const mockCallServiceAsync = jest
+  const callServiceSpy = jest
     .spyOn(HomeAssistant.prototype, 'callService')
     .mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}, id?: number) => {
       console.log(`Mocked callServiceAsync: domain ${domain} service ${service} entityId ${entityId}`);
@@ -165,11 +185,8 @@ describe('HassPlatform', () => {
     jest.clearAllMocks();
     if (haPlatform) {
       haPlatform.ha.connected = true;
-      haPlatform.ha.devicesReceived = true;
-      haPlatform.ha.entitiesReceived = true;
-      haPlatform.ha.areasReceived = true;
-      haPlatform.ha.statesReceived = true;
-      haPlatform.ha.subscribed = true;
+      haPlatform.ha.hassConfig = {} as HassConfig;
+      haPlatform.ha.hassServices = {} as HassServices;
       haPlatform.ha.hassDevices.clear();
       haPlatform.ha.hassEntities.clear();
       haPlatform.ha.hassAreas.clear();
@@ -398,14 +415,14 @@ describe('HassPlatform', () => {
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}on${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
     );
-    expect(mockCallServiceAsync).toHaveBeenCalledWith('switch', 'turn_on', 'switch.switch_switch_1', undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_on', 'switch.switch_switch_1', undefined);
 
     await haPlatform.commandHandler(device, child2, undefined, undefined, 'off');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}off${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
     );
-    expect(mockCallServiceAsync).toHaveBeenCalledWith('switch', 'turn_off', 'switch.switch_switch_2', undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_off', 'switch.switch_switch_2', undefined);
 
     await haPlatform.commandHandler(device, child3, { level: 100 }, undefined, 'moveToLevel');
     expect(loggerLogSpy).toHaveBeenCalledWith(
@@ -413,7 +430,7 @@ describe('HassPlatform', () => {
       expect.stringContaining(`${db}Received matter command ${ign}moveToLevel${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
     );
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevel${rs}${wr} not supported`));
-    expect(mockCallServiceAsync).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
     await haPlatform.commandHandler(device, child3, { level: 100 }, undefined, 'moveToLevelWithOnOff');
     expect(loggerLogSpy).toHaveBeenCalledWith(
@@ -421,35 +438,35 @@ describe('HassPlatform', () => {
       expect.stringContaining(`${db}Received matter command ${ign}moveToLevelWithOnOff${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
     );
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevelWithOnOff${rs}${wr} not supported`));
-    expect(mockCallServiceAsync).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
     await haPlatform.commandHandler(device, child3, { colorTemperatureMireds: 300 }, undefined, 'moveToColorTemperature');
-    expect(mockCallServiceAsync).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp: 300 }));
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp: 300 }));
 
     await haPlatform.commandHandler(device, child3, { colorX: 0.5, colorY: 0.5 }, undefined, 'moveToColor');
-    expect(mockCallServiceAsync).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ xy_color: [0.5, 0.5] }));
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ xy_color: [0.5, 0.5] }));
 
     await haPlatform.commandHandler(device, child3, { hue: 50 }, { currentSaturation: { value: 50 } }, 'moveToHue');
-    expect(mockCallServiceAsync).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
     await haPlatform.commandHandler(device, child3, { saturation: 50 }, { currentHue: { value: 50 } }, 'moveToSaturation');
-    expect(mockCallServiceAsync).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
     await haPlatform.commandHandler(device, child3, { hue: 50, saturation: 50 }, undefined, 'moveToHueAndSaturation');
-    expect(mockCallServiceAsync).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
-    mockCallServiceAsync.mockClear();
+    callServiceSpy.mockClear();
     await haPlatform.commandHandler(undefined, child2, undefined, undefined, 'unknown');
-    expect(mockCallServiceAsync).not.toHaveBeenCalled();
+    expect(callServiceSpy).not.toHaveBeenCalled();
     expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining(`Command handler: Matterbridge device not found`));
 
-    mockCallServiceAsync.mockClear();
+    callServiceSpy.mockClear();
     await haPlatform.commandHandler(device, child2, undefined, undefined, 'unknown');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}unknown${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
     );
-    expect(mockCallServiceAsync).not.toHaveBeenCalled();
+    expect(callServiceSpy).not.toHaveBeenCalled();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}unknown${rs}${wr} not supported`));
   });
 

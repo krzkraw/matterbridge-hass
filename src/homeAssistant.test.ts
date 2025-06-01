@@ -123,6 +123,7 @@ describe('HomeAssistant', () => {
 
     await new Promise((resolve) => {
       server.close(() => {
+        console.log('WebSocket server closed');
         resolve(undefined);
       });
     });
@@ -133,7 +134,7 @@ describe('HomeAssistant', () => {
     expect(client).toBeInstanceOf(WebSocket);
 
     return new Promise((resolve) => {
-      client.on('open', () => {
+      client.once('open', () => {
         console.log('WebSocket client connected');
         resolve(undefined);
       });
@@ -162,50 +163,56 @@ describe('HomeAssistant', () => {
     expect(homeAssistant).toBeInstanceOf(HomeAssistant);
   });
 
-  it('fetchAsync should log error for async if not connected to HomeAssistant', async () => {
+  it('fetch should log error if not connected to HomeAssistant', async () => {
     try {
-      await homeAssistant.fetch('get_states', undefined);
+      await homeAssistant.fetch('get_states');
     } catch (error) {
-      expect(error.message).toBe('FetchAsync error: not connected to Home Assistant');
+      expect(error.message).toBe('Fetch error: not connected to Home Assistant');
     }
   });
 
-  it('callServiceAsync should log error for async if not connected to HomeAssistant', async () => {
+  it('callService should log error if not connected to HomeAssistant', async () => {
     try {
-      await homeAssistant.callService('light', 'turn_on', 'myentityid', {}, undefined);
+      await homeAssistant.callService('light', 'turn_on', 'myentityid', {});
     } catch (error) {
-      expect(error.message).toBe('CallServiceAsync error: not connected to Home Assistant');
+      expect(error.message).toBe('CallService error: not connected to Home Assistant');
     }
   });
 
-  it('fetchAsync should log error for async if ws is not connected to HomeAssistant', async () => {
+  it('fetch should log error if ws is not connected to HomeAssistant', async () => {
     homeAssistant.connected = true;
     try {
-      await homeAssistant.fetch('get_states', undefined);
+      await homeAssistant.fetch('get_states');
     } catch (error) {
-      expect(error.message).toBe('FetchAsync error: WebSocket not open');
+      expect(error.message).toBe('Fetch error: WebSocket not open');
     }
     homeAssistant.connected = false;
   });
 
-  it('callServiceAsync should log error for async if ws is not connected to HomeAssistant', async () => {
+  it('callService should log error if ws is not connected to HomeAssistant', async () => {
     homeAssistant.connected = true;
     try {
-      await homeAssistant.callService('light', 'turn_on', 'myentityid', {}, undefined);
+      await homeAssistant.callService('light', 'turn_on', 'myentityid', {});
     } catch (error) {
-      expect(error.message).toBe('CallServiceAsync error: WebSocket not open');
+      expect(error.message).toBe('CallService error: WebSocket not open');
     }
     homeAssistant.connected = false;
   });
 
   it('should establish a WebSocket connection to Home Assistant', async () => {
+    let opened = false;
+    homeAssistant.once('socket_opened', () => {
+      opened = true;
+    });
+
     await new Promise<void>((resolve) => {
-      homeAssistant.once('started', () => {
+      homeAssistant.once('connected', () => {
         resolve();
       });
       homeAssistant.connect();
     });
 
+    expect(opened).toBe(true);
     expect(homeAssistant.connected).toBe(true);
     expect(homeAssistant.ws).not.toBeNull();
     expect((homeAssistant as any).reconnectTimeoutTime).toBe(120 * 1000);
@@ -220,87 +227,10 @@ describe('HomeAssistant', () => {
     client = Array.from(server.clients)[0];
   });
 
-  it('should not establish a new WebSocket connection to Home Assistant', async () => {
-    homeAssistant.connect();
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Already connected to Home Assistant`);
-  });
-
   it('should log error if cannot parse message from Home Assistant', async () => {
     client.send('invalid message');
-    await wait(1000);
+    await wait(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: SyntaxError: Unexpected token`));
-  });
-
-  it('should log error if result messages from Home Assistant has success false', async () => {
-    homeAssistant.once('error', (error) => {
-      expect(error).toBe('WebSocket response error: unknown error');
-    });
-    client.send(JSON.stringify({ type: 'result', success: false }));
-    await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket response error: WebSocket response error: unknown error`);
-  });
-
-  it('should update the devices from Home Assistant', async () => {
-    client.send(JSON.stringify({ type: 'result', id: (homeAssistant as any).devicesFetchId, success: true, result: [{ id: 'mydeviceid', name: 'My Device' }] }));
-    await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 devices.`);
-    expect(homeAssistant.hassDevices.get('mydeviceid')).toBeDefined();
-    expect(homeAssistant.hassDevices.get('mydeviceid')?.name).toBe('My Device');
-    homeAssistant.hassDevices.clear(); // Clear the devices for next tests
-  });
-
-  it('should update the entities from Home Assistant', async () => {
-    client.send(JSON.stringify({ type: 'result', id: (homeAssistant as any).entitiesFetchId, success: true, result: [{ entity_id: 'myentityid', device_id: 'mydeviceid' }] }));
-    await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 entities.`);
-    expect(homeAssistant.hassEntities.get('myentityid')).toBeDefined();
-    expect(homeAssistant.hassEntities.get('myentityid')?.device_id).toBe('mydeviceid');
-    homeAssistant.hassEntities.clear(); // Clear the entities for next tests
-  });
-
-  it('should update the areas from Home Assistant', async () => {
-    client.send(JSON.stringify({ type: 'result', id: (homeAssistant as any).areasFetchId, success: true, result: [{ area_id: 'myareaid', name: 'My Area' }] }));
-    await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 areas.`);
-    expect(homeAssistant.hassAreas.get('myareaid')).toBeDefined();
-    expect(homeAssistant.hassAreas.get('myareaid')?.name).toBe('My Area');
-    homeAssistant.hassAreas.clear(); // Clear the areas for next tests
-  });
-
-  it('should update the states from Home Assistant', async () => {
-    client.send(JSON.stringify({ type: 'result', id: (homeAssistant as any).statesFetchId, success: true, result: [{ entity_id: 'myentityid', state: 'on' }] }));
-    await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 states.`);
-    expect(homeAssistant.hassStates.get('myentityid')).toBeDefined();
-    expect(homeAssistant.hassStates.get('myentityid')?.state).toBe('on');
-    homeAssistant.hassStates.clear(); // Clear the states for next tests
-  });
-
-  it('should update the config from Home Assistant', async () => {
-    client.send(JSON.stringify({ type: 'result', id: (homeAssistant as any).configFetchId, success: true, result: { some_config: 'value' } }));
-    await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received config.`);
-    expect(homeAssistant.hassConfig).toEqual({ some_config: 'value' });
-  });
-
-  it('should update the services from Home Assistant', async () => {
-    client.send(JSON.stringify({ type: 'result', id: (homeAssistant as any).servicesFetchId, success: true, result: { some_service: 'value' } }));
-    await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received services.`);
-    expect(homeAssistant.hassServices).toEqual({ some_service: 'value' });
-  });
-
-  it('should subscribe to events from Home Assistant', async () => {
-    client.send(JSON.stringify({ type: 'result', id: (homeAssistant as any).eventsSubscribeId, success: true }));
-    await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Subscribed to events.`);
-    expect(homeAssistant.subscribed).toBe(true);
-  });
-
-  it('should log unknown result from Home Assistant', async () => {
-    client.send(JSON.stringify({ type: 'result', id: -1, success: true }));
-    await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Unknown result received id -1`);
   });
 
   it('should log react to pong from Home Assistant', async () => {
@@ -377,6 +307,18 @@ describe('HomeAssistant', () => {
     device_registry_response.splice(0, device_registry_response.length); // Clear the response for next tests
   });
 
+  it('should fail parsing device_registry_updated event messages from Home Assistant', async () => {
+    device_registry_response.push({ id: 'mydeviceid', name: 'My Device' } as HassDevice);
+    const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(() => {
+      return Promise.reject(new Error('Failed to fetch registry'));
+    });
+    client.send(JSON.stringify({ type: 'event', event: { event_type: 'device_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    await wait(100);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}device_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
+    fetchSpy.mockRestore();
+    device_registry_response.splice(0, device_registry_response.length); // Clear the response for next tests
+  });
+
   it('should parse entity_registry_updated event messages from Home Assistant', async () => {
     entity_registry_response.push({ entity_id: 'myentityid', device_id: 'mydeviceid' } as HassEntity);
     await new Promise<void>((resolve) => {
@@ -389,6 +331,18 @@ describe('HomeAssistant', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 entities.`);
     expect(homeAssistant.hassEntities.get('myentityid')).toBeDefined();
     expect(homeAssistant.hassEntities.get('myentityid')?.device_id).toBe('mydeviceid');
+    entity_registry_response.splice(0, entity_registry_response.length); // Clear the response for next tests
+  });
+
+  it('should fail parsing entity_registry_updated event messages from Home Assistant', async () => {
+    entity_registry_response.push({ entity_id: 'myentityid', device_id: 'mydeviceid' } as HassEntity);
+    const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(() => {
+      return Promise.reject(new Error('Failed to fetch registry'));
+    });
+    client.send(JSON.stringify({ type: 'event', event: { event_type: 'entity_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    await wait(100);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}entity_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
+    fetchSpy.mockRestore();
     entity_registry_response.splice(0, entity_registry_response.length); // Clear the response for next tests
   });
 
@@ -407,6 +361,18 @@ describe('HomeAssistant', () => {
     area_registry_response.splice(0, area_registry_response.length); // Clear the response for next tests
   });
 
+  it('should fail parsing area_registry_updated event messages from Home Assistant', async () => {
+    area_registry_response.push({ area_id: 'myareaid', name: 'My Area' } as HassArea);
+    const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(() => {
+      return Promise.reject(new Error('Failed to fetch registry'));
+    });
+    client.send(JSON.stringify({ type: 'event', event: { event_type: 'area_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    await wait(100);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}area_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
+    fetchSpy.mockRestore();
+    area_registry_response.splice(0, area_registry_response.length); // Clear the response for next tests
+  });
+
   it('should log error if unknown event messages from Home Assistant', async () => {
     client.send(JSON.stringify({ type: 'event', event: { event_type: 'unknown' } }));
     await wait(100);
@@ -415,9 +381,51 @@ describe('HomeAssistant', () => {
 
   it('should react to pong from websocket', async () => {
     expect((homeAssistant as any).pingTimeout).toBeNull();
-    client.pong();
-    await wait(100);
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('pong', () => {
+        resolve();
+      });
+      client.pong();
+    });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket pong received`);
+    expect((homeAssistant as any).pingTimeout).toBeNull();
+  });
+
+  it('should react to pong from websocket and reset ping timeout', async () => {
+    expect((homeAssistant as any).pingTimeout).toBeNull();
+    (homeAssistant as any).pingTimeout = setTimeout(() => {}, 10000);
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('pong', () => {
+        resolve();
+      });
+      client.pong();
+    });
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket pong received`);
+    expect((homeAssistant as any).pingTimeout).toBeNull();
+  });
+
+  it('should react to ping from websocket', async () => {
+    expect((homeAssistant as any).pingTimeout).toBeNull();
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('ping', () => {
+        resolve();
+      });
+      client.ping();
+    });
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket ping received`);
+    expect((homeAssistant as any).pingTimeout).toBeNull();
+  });
+
+  it('should react to ping from websocket and reset ping timeout', async () => {
+    expect((homeAssistant as any).pingTimeout).toBeNull();
+    (homeAssistant as any).pingTimeout = setTimeout(() => {}, 10000);
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('ping', () => {
+        resolve();
+      });
+      client.ping();
+    });
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket ping received`);
     expect((homeAssistant as any).pingTimeout).toBeNull();
   });
 
@@ -430,28 +438,28 @@ describe('HomeAssistant', () => {
 
   it('should get the entities asyncronously from Home Assistant', async () => {
     entity_registry_response.push({ entity_id: 'myentityid', device_id: 'mydeviceid' } as HassEntity);
-    const entities = await homeAssistant.fetch('config/entity_registry/list', undefined);
+    const entities = await homeAssistant.fetch('config/entity_registry/list');
     expect(entities).toEqual([{ entity_id: 'myentityid', device_id: 'mydeviceid' }]);
     entity_registry_response.splice(0, entity_registry_response.length); // Clear the response for next tests
   });
 
   it('should get the areas asyncronously from Home Assistant', async () => {
-    const areas = await homeAssistant.fetch('config/area_registry/list', undefined);
+    const areas = await homeAssistant.fetch('config/area_registry/list');
     expect(areas).toEqual([]);
   });
 
   it('should get the states asyncronously from Home Assistant', async () => {
-    const states = await homeAssistant.fetch('get_states', undefined);
+    const states = await homeAssistant.fetch('get_states');
     expect(states).toEqual([]);
   });
 
   it('should get the config asyncronously from Home Assistant', async () => {
-    const config = await homeAssistant.fetch('get_config', undefined);
+    const config = await homeAssistant.fetch('get_config');
     expect(config).toEqual({});
   });
 
   it('should get the services asyncronously from Home Assistant', async () => {
-    const services = await homeAssistant.fetch('get_services', undefined);
+    const services = await homeAssistant.fetch('get_services');
     expect(services).toEqual({});
   });
 
@@ -461,20 +469,23 @@ describe('HomeAssistant', () => {
   });
 
   it('should request async call_service with params from Home Assistant', async () => {
-    const response = await homeAssistant.callService('light', 'turn_on', 'myentityid', {}, undefined);
+    const response = await homeAssistant.callService('light', 'turn_on', 'myentityid', {});
     expect(response).toEqual({});
   });
 
-  it('should close the WebSocket connection to Home Assistant on error', async () => {
+  it('should not start ping if already started', async () => {
     (homeAssistant as any).startPing();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Ping interval already started`);
+  });
+
+  it('should close the WebSocket connection to Home Assistant on error', async () => {
     await new Promise<void>((resolve) => {
       homeAssistant.on('socket_closed', () => {
         resolve();
       });
       client.close(undefined, 'Bye');
     });
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket connection closed. Reason:  Code: 1005 Clean: true Type: close`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket connection closed. Code: 1005 Reason: `);
     expect((homeAssistant as any).reconnectTimeout).not.toBeNull();
     await homeAssistant.close();
     expect((homeAssistant as any).reconnectTimeout).toBeNull();
@@ -491,19 +502,7 @@ describe('HomeAssistant', () => {
 
   it('should not connect if wsUrl is not ws:// or wss://', async () => {
     homeAssistant = new HomeAssistant('http://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries);
-
-    await new Promise((resolve) => {
-      homeAssistant.once('error', () => {
-        homeAssistant.close();
-        resolve(undefined);
-      });
-      homeAssistant.connect();
-    });
-
-    expect(loggerLogSpy).toHaveBeenCalledWith(
-      LogLevel.DEBUG,
-      `WebSocket error connecting to Home Assistant: Error: Invalid WebSocket URL: http://localhost:8123. It must start with ws:// or wss://`,
-    );
+    await expect(homeAssistant.connect()).rejects.toThrow('Invalid WebSocket URL: http://localhost:8123. It must start with ws:// or wss://');
     expect(homeAssistant.connected).toBe(false);
     await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
@@ -511,17 +510,8 @@ describe('HomeAssistant', () => {
 
   it('should not connect if wsUrl is wss:// and certificate are not present', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, './invalid/cert.pem');
-
-    await new Promise((resolve) => {
-      homeAssistant.once('error', () => {
-        homeAssistant.close();
-        resolve(undefined);
-      });
-      homeAssistant.connect();
-    });
-
+    await expect(homeAssistant.connect()).rejects.toThrow();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ./invalid/cert.pem...`);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`WebSocket error connecting to Home Assistant: Error: ENOENT`));
     expect(homeAssistant.connected).toBe(false);
     await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
@@ -552,7 +542,7 @@ describe('HomeAssistant', () => {
     jest.useFakeTimers();
 
     await new Promise<void>((resolve) => {
-      homeAssistant.once('started', () => {
+      homeAssistant.once('connected', () => {
         resolve();
       });
       homeAssistant.connect();
@@ -578,7 +568,7 @@ describe('HomeAssistant', () => {
       });
       client.close(undefined, 'Bye');
     });
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket connection closed. Reason:  Code: 1005 Clean: true Type: close');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket connection closed. Code: 1005 Reason: ');
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.NOTICE, `Reconnecting in 120 seconds...`);
     expect((homeAssistant as any).reconnectTimeout).not.toBeNull();
     expect((homeAssistant as any).reconnectRetries).toBe(reconnectRetries);
@@ -593,7 +583,7 @@ describe('HomeAssistant', () => {
     jest.useRealTimers();
 
     await new Promise<void>((resolve) => {
-      homeAssistant.once('started', () => {
+      homeAssistant.once('connected', () => {
         resolve();
       });
     });
@@ -602,13 +592,12 @@ describe('HomeAssistant', () => {
 
     jest.clearAllMocks();
     await new Promise<void>((resolve) => {
-      const errorHandler = () => {
+      homeAssistant.once('error', () => {
         resolve();
-      };
-      homeAssistant.once('error', errorHandler);
+      });
       homeAssistant.ws?.emit('error', new Error('Test error'));
     });
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket error: Test error type: error');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket error: Error: Test error');
 
     await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
@@ -622,7 +611,7 @@ describe('HomeAssistant', () => {
     jest.useFakeTimers();
 
     await new Promise((resolve) => {
-      homeAssistant.once('started', () => {
+      homeAssistant.once('connected', () => {
         resolve(undefined);
       });
       homeAssistant.connect();
@@ -683,6 +672,8 @@ describe('HomeAssistant with ssl', () => {
         console.log('WebSocket ssl server received a message:', msg);
         if (msg.type === 'auth' && msg.access_token === accessToken) {
           socket.send(JSON.stringify({ type: 'auth_ok' }));
+        } else if (msg.type === 'auth' && msg.access_token === 'notajson') {
+          socket.send('auth_ok');
         } else if (msg.type === 'ping') {
           socket.send(JSON.stringify({ id: msg.id, type: 'pong', success: true, result: {} }));
         } else if (msg.type === 'get_config') {
@@ -704,14 +695,14 @@ describe('HomeAssistant with ssl', () => {
         } else if (msg.type === 'call_service' && msg.domain === 'nosuccess') {
           socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: 'nosuccess' }));
         } else if (msg.type === 'call_service' && msg.domain === 'noresponse') {
-          // socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: 'noresponse' }));
+          // Do not send any response
         } else if (msg.type === 'call_service') {
           socket.send(JSON.stringify({ id: (homeAssistant as any).eventsSubscribeId, type: 'event', success: true, event: { event_type: 'call_service' } }));
           socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: {} }));
         } else if (msg.type === 'notajson') {
           socket.send('not a json');
         } else if (msg.type === 'noresponse') {
-          // socket.send('not a json');
+          // Do nothing, simulate no response
         } else if (msg.type === 'nosuccess') {
           socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: 'nosuccess' }));
         }
@@ -720,7 +711,7 @@ describe('HomeAssistant with ssl', () => {
 
     await new Promise<void>((resolve) => {
       httpsServer.listen(8123, () => {
-        console.log(`🛰️  Test WSS server running on port 8123`);
+        console.log(`WSS server running on port 8123`);
         resolve();
       });
     });
@@ -736,11 +727,13 @@ describe('HomeAssistant with ssl', () => {
     }
     await new Promise<void>((resolve) => {
       server.close(() => {
+        console.log('WebSocket ssl server closed');
         resolve();
       });
     });
     await new Promise<void>((resolve) => {
       httpsServer.close(() => {
+        console.log('HTTPS server closed');
         resolve();
       });
     });
@@ -765,28 +758,42 @@ describe('HomeAssistant with ssl', () => {
   it('client should close', async () => {
     expect(client).toBeInstanceOf(WebSocket);
 
-    return new Promise<void>((resolve) => {
+    await new Promise<void>((resolve) => {
       client.once('close', () => {
         console.log('WebSocket client closed');
         resolve();
       });
       client.close();
     });
+    expect(client.readyState).toBe(WebSocket.CLOSED);
+  });
+
+  it('should not connect to Home Assistant with ssl', async () => {
+    homeAssistant = new HomeAssistant('wss://localhost:8123', 'notajson', reconnectTimeoutTime, reconnectRetries, undefined, false);
+
+    try {
+      await homeAssistant.connect();
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toContain('Error parsing WebSocket message');
+    }
+
+    expect(homeAssistant.connected).toBe(false);
+    await homeAssistant.close();
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
   it('should connect to Home Assistant with ssl', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, undefined, false);
 
-    // jest.restoreAllMocks();
-
     await new Promise<void>((resolve) => {
-      homeAssistant.once('started', () => {
+      homeAssistant.once('connected', () => {
         resolve();
       });
       homeAssistant.connect();
     });
 
-    expect(homeAssistant.subscribed).toBe(true);
+    expect(homeAssistant.connected).toBe(true);
   });
 
   it('should get and set responseTimeout', async () => {
@@ -802,12 +809,12 @@ describe('HomeAssistant with ssl', () => {
   });
 
   it('should get the config asyncronously from Home Assistant', async () => {
-    const config = await homeAssistant.fetch('get_config', undefined);
+    const config = await homeAssistant.fetch('get_config');
     expect(config).toEqual({});
   });
 
   it('should throw the fetch from Home Assistant', async () => {
-    await expect(homeAssistant.fetch('notajson', undefined)).rejects.toThrow();
+    await expect(homeAssistant.fetch('notajson')).rejects.toThrow();
   });
 
   it('should throw for timeout the fetch from Home Assistant', async () => {
@@ -815,7 +822,7 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.once('error', (error) => {
       expect(error).toBe('WebSocket response error: undefined');
     });
-    await expect(homeAssistant.fetch('noresponse', undefined)).rejects.toBe('FetchAsync api noresponse id 10 did not complete before the timeout');
+    await expect(homeAssistant.fetch('noresponse')).rejects.toThrow('Fetch api noresponse id 3 did not complete before the timeout');
     homeAssistant.responseTimeout = 10000; // Restore the default timeout
   });
 
@@ -823,7 +830,7 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.once('error', (error) => {
       expect(error).toBe('WebSocket response error: undefined');
     });
-    await expect(homeAssistant.fetch('nosuccess', undefined)).rejects.toBe('nosuccess');
+    await expect(homeAssistant.fetch('nosuccess')).rejects.toThrow();
   });
 
   it('should throw the callService from Home Assistant', async () => {
@@ -835,8 +842,8 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.once('error', (error) => {
       expect(error).toBe('WebSocket response error: undefined');
     });
-    await expect(homeAssistant.callService('noresponse', 'turn_on', 'myentityid', {}, undefined)).rejects.toBe(
-      'CallServiceAsync service noresponse.turn_on entity myentityid id 13 did not complete before the timeout',
+    await expect(homeAssistant.callService('noresponse', 'turn_on', 'myentityid', {})).rejects.toThrow(
+      'CallService service noresponse.turn_on entity myentityid id 6 did not complete before the timeout',
     );
     homeAssistant.responseTimeout = 10000; // Restore the default timeout
   });
@@ -845,7 +852,7 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.once('error', (error) => {
       expect(error).toBe('WebSocket response error: undefined');
     });
-    await expect(homeAssistant.callService('nosuccess', 'turn_on', 'myentityid')).rejects.toBe('nosuccess');
+    await expect(homeAssistant.callService('nosuccess', 'turn_on', 'myentityid')).rejects.toThrow();
   });
 
   it('should disconnect from Home Assistant with ssl', async () => {
@@ -875,20 +882,10 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
-  it('should connectAsync to Home Assistant with ssl', async () => {
+  it('should connectAsync to Home Assistant with ssl and rejectUnauthorized=false', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, undefined, false);
-
-    // jest.restoreAllMocks();
-
-    await homeAssistant.connectAsync();
+    await homeAssistant.connect();
     expect(homeAssistant.connected).toBe(true);
-    expect(homeAssistant.devicesReceived).toBe(false);
-    expect(homeAssistant.entitiesReceived).toBe(false);
-    expect(homeAssistant.statesReceived).toBe(false);
-    expect(homeAssistant.areasReceived).toBe(false);
-    expect(homeAssistant.configReceived).toBe(false);
-    expect(homeAssistant.servicesReceived).toBe(false);
-    expect(homeAssistant.subscribed).toBe(false);
     expect(homeAssistant.hassDevices.size).toBe(0);
     expect(homeAssistant.hassEntities.size).toBe(0);
     expect(homeAssistant.hassStates.size).toBe(0);
@@ -899,12 +896,112 @@ describe('HomeAssistant with ssl', () => {
 
   it('should not connectAsync a second time to Home Assistant with ssl', async () => {
     expect(homeAssistant.connected).toBe(true);
-    await expect(homeAssistant.connectAsync()).rejects.toThrow('Already connected to Home Assistant');
+    await expect(homeAssistant.connect()).rejects.toThrow('Already connected to Home Assistant');
+  });
+
+  it('should fetch data from Home Assistant', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    await homeAssistant.fetchData();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Fetching initial data from Home Assistant...');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Initial data fetched successfully.');
+  });
+
+  it('should subscribe to Home Assistant', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    await homeAssistant.subscribe();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Subscribing to events...');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Subscribed to events.');
   });
 
   it('should closeAsync to Home Assistant with ssl', async () => {
     expect(homeAssistant.connected).toBe(true);
     await homeAssistant.close();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, 'Closing Home Assistant connection...');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, 'Home Assistant connection closed');
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('should not connectAsync if wsUrl is wss:// and certificate are not present', async () => {
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, './invalid/cert.pem');
+    homeAssistant.on('error', () => {
+      //
+    });
+
+    try {
+      await homeAssistant.connect();
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toContain('WebSocket error connecting to Home Assistant: Error: ENOENT');
+    }
+
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ./invalid/cert.pem...`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`WebSocket error connecting to Home Assistant: Error: ENOENT`));
+    expect(homeAssistant.connected).toBe(false);
+    await homeAssistant.close();
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('should close for timeout', async () => {
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, './mock/homeassistant.crt', false);
+
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('connected', () => {
+        resolve();
+      });
+      homeAssistant.connect();
+    });
+
+    expect(homeAssistant.connected).toBe(true);
+    expect(homeAssistant.hassDevices.size).toBe(0);
+    expect(homeAssistant.hassEntities.size).toBe(0);
+    expect(homeAssistant.hassStates.size).toBe(0);
+    expect(homeAssistant.hassAreas.size).toBe(0);
+    expect(homeAssistant.hassServices).toBeNull();
+    expect(homeAssistant.hassConfig).toBeNull();
+
+    // jest.restoreAllMocks();
+
+    homeAssistant.responseTimeout = 1; // Set a short timeout for testing
+    try {
+      await homeAssistant.close(1000, 'Test close');
+    } catch (error) {
+      //
+    }
+    homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+  });
+
+  it('should connect to Home Assistant with ssl and CA certificate', async () => {
+    homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, './mock/homeassistant.crt', false);
+    homeAssistant.on('error', () => {
+      //
+    });
+
+    try {
+      await homeAssistant.connect();
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+    }
+
+    expect(homeAssistant.connected).toBe(true);
+    expect(homeAssistant.hassDevices.size).toBe(0);
+    expect(homeAssistant.hassEntities.size).toBe(0);
+    expect(homeAssistant.hassStates.size).toBe(0);
+    expect(homeAssistant.hassAreas.size).toBe(0);
+    expect(homeAssistant.hassServices).toBeNull();
+    expect(homeAssistant.hassConfig).toBeNull();
+
+    // jest.restoreAllMocks();
+
+    /*
+    await new Promise<void>((resolve) => {
+      httpsServer.close(() => {
+        console.log('HTTPS server closed');
+        resolve();
+      });
+    });
+    */
+
+    await homeAssistant.close(1000, 'Test close');
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 });

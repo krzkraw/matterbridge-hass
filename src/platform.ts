@@ -160,9 +160,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await fs.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
-    this.ha.connect();
+    try {
+      await this.ha.connect();
+      await this.ha.fetchData();
+      await this.ha.subscribe();
+    } catch (error) {
+      this.log.error(`Error connecting to Home Assistant: ${error}`);
+    }
     const check = () => {
-      return this.ha.connected && this.ha.devicesReceived && this.ha.entitiesReceived && this.ha.subscribed;
+      return this.ha.connected && this.ha.hassConfig !== null && this.ha.hassServices !== null;
     };
     await waiter('Home Assistant connected', check, true, 30000, 1000); // Wait for 30 seconds with 1 second interval and throw error if not connected
 
@@ -619,7 +625,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await super.onShutdown(reason);
     this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
-    await this.ha.close();
+    try {
+      await this.ha.close();
+      this.log.info('Home Assistant connection closed');
+    } catch (error) {
+      this.log.error(`Error closing Home Assistant connection: ${error}`);
+    }
     this.ha.removeAllListeners();
 
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
