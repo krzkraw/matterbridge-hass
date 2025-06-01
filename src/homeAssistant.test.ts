@@ -540,7 +540,7 @@ describe('HomeAssistant', () => {
       homeAssistant.connect();
     });
 
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from certificates\\matterbridge-hass-ca.crt...`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ${path.join('certificates', 'matterbridge-hass-ca.crt')}...`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `CA certificate loaded successfully`);
     // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`WebSocket error:`));
     expect(homeAssistant.connected).toBe(false);
