@@ -90,6 +90,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.serialPostfix = isValidString(this.config.serialPostfix, 1, 3) ? this.config.serialPostfix : '';
     this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 0) ? config.reconnectTimeout : undefined;
     this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
+    if (config.individualEntityWhiteList) delete config.individualEntityWhiteList;
+    if (config.individualEntityBlackList) delete config.individualEntityBlackList;
 
     this.ha = new HomeAssistant(
       config.host,
@@ -206,27 +208,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       const entityName = entity.name ?? entity.original_name;
-      if (!isValidString(entityName)) continue;
+      if (!isValidString(entityName, 1)) {
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
+        continue;
+      }
       this.setSelectDevice(entity.id, entityName, undefined, 'hub');
-      this.setSelectEntity(entityName, entity.id, 'hub');
-      if (
-        isValidArray(this.config.individualEntityWhiteList, 1) &&
-        !this.config.individualEntityWhiteList.includes(entityName) &&
-        !this.config.individualEntityWhiteList.includes(entity.entity_id) &&
-        !this.config.individualEntityWhiteList.includes(entity.id)
-      ) {
-        this.log.debug(`Individual entity ${CYAN}${entityName}${db} is not in the individualEntityWhiteList. Skipping...`);
-        continue;
-      }
-      if (
-        isValidArray(this.config.individualEntityBlackList, 1) &&
-        (this.config.individualEntityBlackList.includes(entityName) ||
-          this.config.individualEntityBlackList.includes(entity.entity_id) ||
-          this.config.individualEntityBlackList.includes(entity.id))
-      ) {
-        this.log.debug(`Individual entity ${CYAN}${entityName}${db} is in the individualEntityBlackList. Skipping...`);
-        continue;
-      }
+      this.setSelectEntity(entityName, entity.entity_id, 'hub');
+      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
       if (this.hasDeviceName(entityName)) {
         this.log.warn(`Individual entity ${CYAN}${entityName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
@@ -301,8 +289,20 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     for (const device of Array.from(this.ha.hassDevices.values())) {
       const deviceName = device.name_by_user ?? device.name;
       const entitiesCount = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length;
-      if (deviceName && entitiesCount > 0) this.setSelectDevice(device.id, deviceName, undefined, 'hub');
-      if (!isValidString(deviceName, 1) || !this.validateDevice([deviceName, device.id], true)) continue;
+      if (device.entry_type === 'service') {
+        this.log.debug(`Device ${CYAN}${deviceName}${db} is a service. Skipping...`);
+        continue;
+      }
+      if (!isValidString(deviceName, 1)) {
+        this.log.debug(`Device ${CYAN}${deviceName}${db} has not valid name. Skipping...`);
+        continue;
+      }
+      if (entitiesCount === 0) {
+        this.log.debug(`Device ${CYAN}${deviceName}${db} has no entities. Skipping...`);
+        continue;
+      }
+      this.setSelectDevice(device.id, deviceName, undefined, 'hub');
+      if (!this.validateDevice([deviceName, device.id], true)) continue;
       if (this.hasDeviceName(deviceName)) {
         this.log.warn(`Device ${CYAN}${deviceName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
@@ -333,7 +333,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Scan entities that belong to this device for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
-        if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
         const domain = entity.entity_id.split('.')[0];
 
         // Get the device state
@@ -347,7 +346,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const hassDomains = hassDomainConverter.filter((d) => d.domain === domain);
         if (hassDomains.length > 0) {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}`);
-          this.setSelectDeviceEntity(device.id, entity.entity_id, entity.name ?? entity.original_name ?? '', 'component');
+          const entityName = entity.name ?? entity.original_name ?? deviceName;
+          if (!isValidString(entityName, 1)) {
+            this.log.debug(`Entity ${CYAN}${entity.entity_id}${db} has not valid name. Skipping...`);
+            continue;
+          }
+          this.setSelectDeviceEntity(device.id, entity.entity_id, entityName, 'component');
+          this.setSelectEntity(entityName, entity.entity_id, 'component');
+          if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
           hassDomains.forEach((hassDomain) => {
             if (hassDomain.deviceType) mutableDevice.addDeviceTypes(entity.entity_id, hassDomain.deviceType);
             if (hassDomain.clusterId) mutableDevice.addClusterServerIds(entity.entity_id, hassDomain.clusterId);

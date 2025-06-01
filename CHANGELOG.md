@@ -22,11 +22,12 @@ If you like this project and find it useful, please consider giving it a star on
 - [online]: Added online / offline setting based on unavailable state.
 - [filterByArea]: Added filter of individual entities and devices by Area.
 - [filterByLabel]: Added filter of individual entities and devices by Label.
-- [HomeAssistant]: Bump HomeAssistant class to v. 1.0.0. Fully async and promise based.
+- [HomeAssistant]: Bump HomeAssistant class to v. 1.0.2. Fully async and promise based.
 
 ### Changed
 
 - [update]: Skip attributes update when state is off. Provisional!
+- [config]: Removed individualEntityWhiteList and individualEntityBlackList. Use the normal white and black lists.
 
 ### Fixed
 

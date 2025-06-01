@@ -60,7 +60,8 @@
         "type": "string"
       },
       "uniqueItems": true,
-      "selectEntityFrom": "name"
+      "selectEntityFrom": "name",
+      "ui:widget": "hidden"
     },
     "individualEntityBlackList": {
       "description": "Black list of individual entities without associated device to not be exposed. It allows to select scenes, scripts, automations, input_boolean and input_button helpers and switch templates. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
@@ -69,10 +70,11 @@
         "type": "string"
       },
       "uniqueItems": true,
-      "selectEntityFrom": "name"
+      "selectEntityFrom": "name",
+      "ui:widget": "hidden"
     },
     "whiteList": {
-      "description": "Only the devices in the list will be exposed. Use the device name or the device id. If the list is empty, all the devices will be exposed. This is only related to devices, not individual entities.",
+      "description": "Only the devices and individual entities in the list will be exposed. Use the name or the id. If the list is empty, all the devices and individual entities will be exposed.",
       "type": "array",
       "items": {
         "type": "string"
@@ -81,7 +83,7 @@
       "selectFrom": "name"
     },
     "blackList": {
-      "description": "The devices in the list will not be exposed. Use the device name or the device id. If the list is empty, no devices will be excluded. This is only related to devices, not individual entities.",
+      "description": "The devices and individual entities in the list will not be exposed. Use the name or the id. If the list is empty, no devices and individual entities will be excluded.",
       "type": "array",
       "items": {
         "type": "string"
@@ -96,6 +98,7 @@
         "type": "string"
       },
       "uniqueItems": true,
+      "selectEntityFrom": "name",
       "ui:widget": "hidden"
     },
     "deviceEntityBlackList": {
