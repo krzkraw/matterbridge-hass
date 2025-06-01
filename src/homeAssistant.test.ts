@@ -15,7 +15,6 @@ import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
-import { error } from 'node:console';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -233,8 +232,21 @@ describe('HomeAssistant', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: SyntaxError: Unexpected token`));
   });
 
-  it('should log react to pong from Home Assistant', async () => {
+  it('should parse message from Home Assistant with binary=true', async () => {
+    client.send('invalid message', { binary: true });
+    await wait(100);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: SyntaxError: Unexpected token`));
+  });
+
+  it('should parse message from Home Assistant with binary=false', async () => {
+    client.send('invalid message', { binary: false });
+    await wait(100);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: SyntaxError: Unexpected token`));
+  });
+
+  it('should react to pong from Home Assistant', async () => {
     expect((homeAssistant as any).pingTimeout).toBeNull();
+    (homeAssistant as any).pingTimeout = setTimeout(() => {}, 10000);
     await new Promise<void>((resolve) => {
       homeAssistant.once('pong', () => {
         resolve();
@@ -906,6 +918,16 @@ describe('HomeAssistant with ssl', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Initial data fetched successfully.');
   });
 
+  it('should fetch data from Home Assistant and fail', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    jest.spyOn(homeAssistant, 'fetch').mockImplementationOnce(() => {
+      return Promise.reject(new Error('Failed to fetch data'));
+    });
+    await homeAssistant.fetchData();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Fetching initial data from Home Assistant...');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error fetching initial data: Error: Failed to fetch data');
+  });
+
   it('should subscribe to Home Assistant', async () => {
     expect(homeAssistant.connected).toBe(true);
     await homeAssistant.subscribe();
@@ -913,7 +935,17 @@ describe('HomeAssistant with ssl', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Subscribed to events.');
   });
 
-  it('should closeAsync to Home Assistant with ssl', async () => {
+  it('should subscribe to Home Assistant and fail', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    jest.spyOn(homeAssistant, 'fetch').mockImplementationOnce(() => {
+      return Promise.reject(new Error('Failed to fetch data'));
+    });
+    await homeAssistant.subscribe();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Subscribing to events...');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error subscribing to events: Error: Failed to fetch data');
+  });
+
+  it('should close with Home Assistant with ssl', async () => {
     expect(homeAssistant.connected).toBe(true);
     await homeAssistant.close();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, 'Closing Home Assistant connection...');
@@ -921,7 +953,7 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
-  it('should not connectAsync if wsUrl is wss:// and certificate are not present', async () => {
+  it('should not connect if wsUrl is wss:// and certificate are not present', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, './invalid/cert.pem');
     homeAssistant.on('error', () => {
       //
@@ -943,6 +975,9 @@ describe('HomeAssistant with ssl', () => {
 
   it('should close for timeout', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, './mock/homeassistant.crt', false);
+    homeAssistant.on('error', () => {
+      //
+    });
 
     await new Promise<void>((resolve) => {
       homeAssistant.once('connected', () => {
@@ -960,12 +995,18 @@ describe('HomeAssistant with ssl', () => {
     expect(homeAssistant.hassConfig).toBeNull();
 
     // jest.restoreAllMocks();
+    expect(homeAssistant.ws).toBeDefined();
+    if (!homeAssistant.ws) return;
+    jest.spyOn(homeAssistant.ws, 'close').mockImplementationOnce((code?: number, data?: string | Buffer) => {
+      // Simulate a close event with a short timeout
+    });
 
     homeAssistant.responseTimeout = 1; // Set a short timeout for testing
     try {
       await homeAssistant.close(1000, 'Test close');
     } catch (error) {
-      //
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toContain('Close did not complete before the timeout of 1 ms');
     }
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
@@ -990,18 +1031,15 @@ describe('HomeAssistant with ssl', () => {
     expect(homeAssistant.hassServices).toBeNull();
     expect(homeAssistant.hassConfig).toBeNull();
 
-    // jest.restoreAllMocks();
+    const close = homeAssistant.close(1000, 'Test close');
+    homeAssistant.ws?.emit('error', new Error('Test error'));
+    try {
+      await close;
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toContain('Close received error event while closing connection to Home Assistant');
+    }
 
-    /*
-    await new Promise<void>((resolve) => {
-      httpsServer.close(() => {
-        console.log('HTTPS server closed');
-        resolve();
-      });
-    });
-    */
-
-    await homeAssistant.close(1000, 'Test close');
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 });

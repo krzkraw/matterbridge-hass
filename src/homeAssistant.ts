@@ -5,7 +5,7 @@
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @date 2024-09-14
- * @version 1.0.1
+ * @version 1.0.2
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -603,20 +603,20 @@ export class HomeAssistant extends EventEmitter {
       };
 
       const timer = setTimeout(() => {
-        const message = `Close() did not complete before the timeout of ${this._responseTimeout} ms`;
+        const message = `Close did not complete before the timeout of ${this._responseTimeout} ms`;
         this.log.debug(message);
         cleanup();
         return reject(new Error(message));
       }, this._responseTimeout).unref();
 
       const onClose = () => {
-        this.log.debug('Close() received closed event from Home Assistant');
+        this.log.debug('Close received closed event from Home Assistant');
         cleanup();
         return resolve();
       };
 
       const onError = () => {
-        const message = 'Close() received error event while closing connection to Home Assistant';
+        const message = 'Close received error event while closing connection to Home Assistant';
         this.log.debug(message);
         cleanup();
         return reject(new Error(message));
@@ -629,10 +629,10 @@ export class HomeAssistant extends EventEmitter {
       }
 
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.log.debug('Close() websocket is open, closing...');
+        this.log.debug('Close websocket is open, closing...');
         this.ws.close(code, reason);
       } else {
-        this.log.debug('Close() websocket is not open, resolving...');
+        this.log.debug('Close websocket is not open, resolving...');
         cleanup();
         return resolve();
       }
