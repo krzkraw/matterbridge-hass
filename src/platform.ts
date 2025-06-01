@@ -208,18 +208,21 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const entityName = entity.name ?? entity.original_name;
       if (!isValidString(entityName)) continue;
       this.setSelectDevice(entity.id, entityName, undefined, 'hub');
-      this.setSelectEntity(entity.id, entityName, 'hub');
+      this.setSelectEntity(entityName, entity.id, 'hub');
       if (
         isValidArray(this.config.individualEntityWhiteList, 1) &&
         !this.config.individualEntityWhiteList.includes(entityName) &&
-        !this.config.individualEntityWhiteList.includes(entity.entity_id)
+        !this.config.individualEntityWhiteList.includes(entity.entity_id) &&
+        !this.config.individualEntityWhiteList.includes(entity.id)
       ) {
         this.log.debug(`Individual entity ${CYAN}${entityName}${db} is not in the individualEntityWhiteList. Skipping...`);
         continue;
       }
       if (
         isValidArray(this.config.individualEntityBlackList, 1) &&
-        (this.config.individualEntityBlackList.includes(entityName) || this.config.individualEntityBlackList.includes(entity.entity_id))
+        (this.config.individualEntityBlackList.includes(entityName) ||
+          this.config.individualEntityBlackList.includes(entity.entity_id) ||
+          this.config.individualEntityBlackList.includes(entity.id))
       ) {
         this.log.debug(`Individual entity ${CYAN}${entityName}${db} is in the individualEntityBlackList. Skipping...`);
         continue;

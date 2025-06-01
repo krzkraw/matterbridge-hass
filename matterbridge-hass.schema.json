@@ -54,7 +54,7 @@
       "default": ""
     },
     "individualEntityWhiteList": {
-      "description": "White list of individual entities without associated device to be exposed. It allows to select scenes, scripts, automations, input_boolean and input_button. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
+      "description": "White list of individual entities without associated device to be exposed. It allows to select scenes, scripts, automations, input_boolean, input_button helpers and switch templates. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
       "type": "array",
       "items": {
         "type": "string"
@@ -63,7 +63,7 @@
       "selectEntityFrom": "name"
     },
     "individualEntityBlackList": {
-      "description": "Black list of individual entities without associated device to not be exposed. It allows to select scenes, scripts, automations, input_boolean and input_button. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
+      "description": "Black list of individual entities without associated device to not be exposed. It allows to select scenes, scripts, automations, input_boolean and input_button helpers and switch templates. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
       "type": "array",
       "items": {
         "type": "string"
