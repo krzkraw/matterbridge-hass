@@ -19,8 +19,8 @@ If you like this project and find it useful, please consider giving it a star on
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'vibration'. It creates a contactSensor with BooleanState cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'motion'. It creates an occupancySensor with OccupancySensing cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'occupancy'. It creates an occupancySensor with OccupancySensing cluster.
-- [binary_sensor]: Added domain binary_sensor with deviceClass 'cold'. It creates an waterFreezeDetector with BooleanState cluster.
-- [binary_sensor]: Added domain binary_sensor with deviceClass 'moisture'. It creates an waterLeakDetector with BooleanState cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'cold'. It creates a waterFreezeDetector with BooleanState cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'moisture'. It creates a waterLeakDetector with BooleanState cluster.
 - [online]: Added online / offline setting based on unavailable state.
 - [filterByArea]: Added filter of individual entities and devices by Area.
 - [filterByLabel]: Added filter of individual entities and devices by Label.
