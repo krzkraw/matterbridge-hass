@@ -1085,7 +1085,6 @@ describe('HomeAssistant parser', () => {
   const data = readMockHomeAssistantFile(path.join('mock', 'ts_homeassistant.json'));
 
   it('should parse Home Assistant data', () => {
-    expect(data).toBeDefined();
     if (!data) return;
     expect(data.devices).toBeDefined();
     expect(data.entities).toBeDefined();
@@ -1099,21 +1098,124 @@ describe('HomeAssistant parser', () => {
     expect(data.areas.length).toBeGreaterThan(0);
   });
 
-  it('should make a list of all HassDevice properties', () => {
-    jest.restoreAllMocks();
-    expect(data).toBeDefined();
+  it('should test HassDevice properties', () => {
     if (!data) return;
     const properties = new Set<string>();
     for (const device of data.devices) {
       expect(device).toBeDefined();
       expect(device.id).toBeDefined();
-      expect(device.name).toBeDefined();
+      expect(device.id).not.toBeNull();
+      expect(device.id).toHaveLength(32);
+      expect(device.name).not.toBeNull();
+      expect(device.created_at).toBeGreaterThanOrEqual(0);
+      expect(device.modified_at).toBeGreaterThanOrEqual(0);
       Object.entries(device).forEach(([key, value]) => {
         properties.add(key);
       });
     }
     let output = 'HassDevice properties:';
     Array.from(properties)
+      .sort()
+      .forEach((property) => {
+        output += `\n- ${property}`;
+      });
+    consoleLogSpy.mockRestore();
+    console.log(output);
+  });
+
+  it('should test HassEntity properties', () => {
+    if (!data) return;
+    const properties = new Set<string>();
+    for (const entity of data.entities) {
+      expect(entity).toBeDefined();
+      expect(entity.id).toBeDefined();
+      expect(entity.id).not.toBeNull();
+      expect(entity.id).toHaveLength(32);
+      expect(entity.entity_id).toBeDefined();
+      expect(entity.entity_id).not.toBeNull();
+      expect(entity.unique_id).toBeDefined();
+      expect(entity.unique_id).not.toBeNull();
+      expect(entity.device_id).toBeDefined();
+      expect(entity.platform).toBeDefined();
+      expect(entity.platform).not.toBeNull();
+      expect(entity.config_entry_id).toBeDefined();
+
+      Object.entries(entity).forEach(([key, value]) => {
+        properties.add(key);
+      });
+    }
+    let output = 'HassEntity properties:';
+    Array.from(properties)
+      .sort()
+      .forEach((property) => {
+        output += `\n- ${property}`;
+      });
+    consoleLogSpy.mockRestore();
+    console.log(output);
+  });
+
+  it('should test HassArea properties', () => {
+    if (!data) return;
+    const properties = new Set<string>();
+    for (const area of data.areas) {
+      expect(area).toBeDefined();
+      expect(area.area_id).toBeDefined();
+      expect(area.area_id).not.toBeNull();
+      expect(area.name).not.toBeNull();
+
+      Object.entries(area).forEach(([key, value]) => {
+        properties.add(key);
+      });
+    }
+    let output = 'HassArea properties:';
+    Array.from(properties)
+      .sort()
+      .forEach((property) => {
+        output += `\n- ${property}`;
+      });
+    consoleLogSpy.mockRestore();
+    console.log(output);
+  });
+  it('should test HassState properties', () => {
+    if (!data) return;
+    const properties = new Set<string>();
+    const attributeProperties = new Set<string>();
+    for (const state of data.states) {
+      expect(state).toBeDefined();
+      expect(state.entity_id).toBeDefined();
+      expect(state.entity_id).not.toBeNull();
+      expect(state.state).toBeDefined();
+      expect(state.state).not.toBeNull();
+      expect(state.attributes).toBeDefined();
+      expect(state.attributes).not.toBeNull();
+      expect(state.last_changed).toBeDefined();
+      expect(state.last_changed).not.toBeNull();
+      expect(state.last_reported).toBeDefined();
+      expect(state.last_reported).not.toBeNull();
+      expect(state.last_updated).toBeDefined();
+      expect(state.last_updated).not.toBeNull();
+      expect(state.context).toBeDefined();
+      expect(state.context).not.toBeNull();
+      expect(state.attributes).toBeDefined();
+      expect(state.attributes).not.toBeNull();
+      Object.entries(state.attributes).forEach(([key, value]) => {
+        attributeProperties.add(key);
+      });
+
+      Object.entries(state).forEach(([key, value]) => {
+        properties.add(key);
+      });
+    }
+    let output = 'HassState properties:';
+    Array.from(properties)
+      .sort()
+      .forEach((property) => {
+        output += `\n- ${property}`;
+      });
+    consoleLogSpy.mockRestore();
+    console.log(output);
+    output = 'HassState attributes properties:';
+    Array.from(attributeProperties)
       .sort()
       .forEach((property) => {
         output += `\n- ${property}`;

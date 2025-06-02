@@ -30,29 +30,30 @@ import WebSocket from 'ws';
 /**
  * Interface representing a Home Assistant device.
  */
+// prettier-ignore
 export interface HassDevice {
-  id: string;
-  area_id: string | null;
-  configuration_url: string | null;
-  config_entries: string[]; // List of config entry IDs
-  config_entries_subentries: Record<string, unknown[]>; // Map of config entry IDs to subentries
-  connections: [string, string][]; // Array of connection types and identifiers
-  created_at: number; // Timestamp of when the device was created
-  disabled_by: string | null;
-  entry_type: string | null; // Type of entry (e.g., "service" or null)
-  hw_version: string | null; // Hardware version
-  identifiers: [string, string][]; // Identifiers for the device
-  labels: string[];
-  manufacturer: string | null; // Manufacturer of the device (e.g., "Shelly")
-  model: string | null; // Model of the device (e.g., "Shelly 1")
-  model_id: string | null; // Model ID of the device (e.g., "SNSW-001P16EU")
-  modified_at: number; // Timestamp of last modification
-  name: string | null; // Device name
-  name_by_user: string | null; // Name set by the user
-  primary_config_entry: string; // Primary config entry ID
-  serial_number: string | null; // Serial number of the device
-  sw_version: string | null; // Software version
-  via_device_id: string | null; // Device ID of the parent device (if applicable)
+  id: string;                                             // Unique ID of the device (e.g., "14231f5b82717f1d9e2f71d354120331")
+  area_id: string | null;                                 // Area ID this device belongs to
+  configuration_url: string | null;                       // URL for device configuration
+  config_entries: string[];                               // List of config entry IDs
+  config_entries_subentries: Record<string, unknown[]>;   // Map of config entry IDs to subentries
+  connections: [string, string][];                        // Array of connection types and identifiers
+  created_at: number;                                     // Timestamp of when the device was created
+  disabled_by: string | null;                             // Whether the device is disabled and by whom (e.g., "user" or "integration")
+  entry_type: string | null;                              // Type of entry (e.g., "service" or null)
+  hw_version: string | null;                              // Hardware version
+  identifiers: [string, string][];                        // Identifiers for the device
+  labels: string[];                                       // Labels associated with the device
+  manufacturer: string | null;                            // Manufacturer of the device (e.g., "Shelly")
+  model: string | null;                                   // Model of the device (e.g., "Shelly 1")
+  model_id: string | null;                                // Model ID of the device (e.g., "SNSW-001P16EU")
+  modified_at: number;                                    // Timestamp of last modification
+  name: string | null;                                    // Device name
+  name_by_user: string | null;                            // Name set by the user
+  primary_config_entry: string;                           // Primary config entry ID
+  serial_number: string | null;                           // Serial number of the device
+  sw_version: string | null;                              // Software version
+  via_device_id: string | null;                           // Device ID of the parent device (if applicable)
 }
 
 /**
@@ -60,27 +61,27 @@ export interface HassDevice {
  */
 // prettier-ignore
 export interface HassEntity {
-  entity_id: string;                    // Unique ID of the entity (e.g., "light.living_room")
-  area_id: string | null;               // The area ID this entity belongs to
-  categories: object;                   // Categories of the entity
-  config_entry_id: string;              // The config entry this entity belongs to
-  created_at: number;                   // Timestamp of when the entity was created or 0
-  device_id: string | null;             // The ID of the device this entity is associated with (e.g., "14231f5b82717f1d9e2f71d354120331")
-  disabled_by: string | null;           // Whether the entity is disabled and by whom
-  entity_category: string | null;       // The category of the entity
-  has_entity_name: boolean;             // Whether the entity has a name
-  hidden_by: string | null;             // Whether the entity is hidden and by whom
-  icon: string | null;                  // Optional icon associated with the entity
-  id: string;                           // Unique ID of the entity (e.g., "368c6fd2f264aba2242e0658612c250e")
-  labels: string[];                     // Labels associated with the entity
-  modified_at: number;                  // Timestamp of last modification or 0
-  name: string | null;                  // Friendly name of the entity
-  options: Record<string, HomeAssistantPrimitive> | null; // Additional options for the entity
-  original_name: string | null;         // The original name of the entity (set by the integration)
-  platform: string;                     // Platform or integration the entity belongs to (e.g., "shelly")
-  unique_id: string;                    // Unique ID of the entity
-  config_subentry_id: string | null;
-  translation_key: string | null;
+  id: string;                                                 // Unique ID of the entity (e.g., "368c6fd2f264aba2242e0658612c250e")
+  entity_id: string;                                          // Unique ID of the entity (e.g., "light.living_room")
+  area_id: string | null;                                     // The area ID this entity belongs to
+  categories: object;                                         // Categories of the entity
+  config_entry_id: string | null;                             // The config entry this entity belongs to
+  config_subentry_id: string | null;                          // The config subentry this entity belongs to
+  created_at: number;                                         // Timestamp of when the entity was created or 0
+  device_id: string | null;                                   // The ID of the device this entity is associated with (e.g., "14231f5b82717f1d9e2f71d354120331" or null)
+  disabled_by: string | null;                                 // Whether the entity is disabled and by whom
+  entity_category: string | null;                             // The category of the entity
+  has_entity_name: boolean;                                   // Whether the entity has a name (name and original_name can be null even if true)
+  hidden_by: string | null;                                   // Whether the entity is hidden and by whom
+  icon: string | null;                                        // Optional icon associated with the entity
+  labels: string[];                                           // Labels associated with the entity
+  modified_at: number;                                        // Timestamp of last modification or 0
+  name: string | null;                                        // Friendly name of the entity
+  options: Record<string, HomeAssistantPrimitive> | null;     // Additional options for the entity
+  original_name: string | null;                               // The original name of the entity (set by the integration)
+  platform: string;                                           // Platform or integration the entity belongs to (e.g., "shelly")
+  translation_key: string | null;                             // Translation key for the entity (used for localization)
+  unique_id: string;                                          // Unique ID of the entity
 }
 
 /**
@@ -89,15 +90,15 @@ export interface HassEntity {
 export interface HassArea {
   aliases: string[];
   area_id: string;
+  created_at: number;
   floor_id: string | null;
   humidity_entity_id: string | null;
   icon: string | null;
   labels: string[];
+  modified_at: number;
   name: string;
   picture: string | null;
   temperature_entity_id: string | null;
-  created_at: number;
-  modified_at: number;
 }
 
 /**
@@ -118,7 +119,7 @@ export interface HassState {
   last_changed: string;
   last_reported: string;
   last_updated: string;
-  attributes: HassStateAttributes & Record<string, HomeAssistantPrimitive>;
+  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes & Record<string, HomeAssistantPrimitive>;
   context: HassContext;
 }
 
@@ -136,6 +137,49 @@ export interface HassStateAttributes {
   device_class?: string;
   state_class?: string;
   restored?: boolean;
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant light entity's state.
+ */
+export interface HassStateLightAttributes {
+  effect_list?: string[]; // List of effects available for the light
+  effect?: string | null; // Current effect of the light
+  supported_color_modes?: string[]; // List of supported color modes (e.g., "onoff", "brightness", "color_temp", "xy", "hs", "rgb", "rgbw", "rgbww")
+  color_mode?: string | null; // Current color mode of the light (e.g., "onoff", "brightness", "color_temp", "xy", "hs", "rgb", "rgbw", "rgbww")
+  brightness?: number | null;
+  color_temp?: number | null;
+  min_mireds?: number | null;
+  max_mireds?: number | null;
+  color_temp_kelvin?: number | null;
+  min_color_temp_kelvin?: number | null;
+  max_color_temp_kelvin?: number | null;
+  xy_color?: [number, number] | null; // XY color values
+  hs_color?: [number, number] | null; // Hue and saturation color values
+  rgb_color?: [number, number, number] | null; // RGB color values
+  rgbw_color?: [number, number, number, number] | null; // RGBW color values
+  rgbww_color?: [number, number, number, number, number] | null; // RGBWW color values
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant fan entity's state.
+ */
+export interface HassStateFanAttributes {
+  preset_modes?: string[]; // List of supported fan modes (e.g., "low", "medium", "high", "auto")
+  preset_mode?: string; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity (e.g., "on", "off")
+  percentage?: number; // Current speed setting
+  percentage_step?: number; // Current speed of the fan entity
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant climate entity's state.
+ */
+export interface HassStateClimateAttributes {
+  hvac_modes?: string[]; // List of supported HVAC modes (e.g., "off", "heat", "cool", "heat_cool", "auto", "dry", "fan_only")
+  temperature?: number; // Current temperature setting
+  current_temperature?: number; // Current temperature of the climate entity
+  fan_modes?: string[]; // List of supported fan modes (e.g., "auto", "low", "medium", "high")
+  fan_mode?: string | null; // Fan mode (e.g., "auto")
 }
 
 /**
