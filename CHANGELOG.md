@@ -17,6 +17,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [switch]: Added domain switch for template individual entities.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'door'. It creates a contactSensor with BooleanState cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'vibration'. It creates a contactSensor with BooleanState cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'motion'. It creates an occupancySensor with OccupancySensing cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'occupancy'. It creates an occupancySensor with OccupancySensing cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'cold'. It creates an waterFreezeDetector with BooleanState cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'moisture'. It creates an waterLeakDetector with BooleanState cluster.
