@@ -22,28 +22,32 @@
  * limitations under the License. *
  */
 
+// Node.js imports
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
+
+// @matter imports
+import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation } from 'matterbridge/matter/clusters';
+import { ClusterRegistry } from 'matterbridge/matter/types';
+
+// Matterbridge imports
 import {
-  bridgedNode,
-  colorTemperatureLight,
-  extendedColorLight,
   Matterbridge,
+  PlatformConfig,
   MatterbridgeColorControlServer,
   MatterbridgeDynamicPlatform,
   MatterbridgeEndpoint,
   MatterbridgeThermostatServer,
+  bridgedNode,
+  colorTemperatureLight,
+  extendedColorLight,
   onOffOutlet,
-  PlatformConfig,
 } from 'matterbridge';
-import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk } from 'matterbridge/logger';
+import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
-import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation } from 'matterbridge/matter/clusters';
-import { ClusterRegistry } from 'matterbridge/matter/types';
-
-import path from 'node:path';
-import { promises as fs } from 'node:fs';
-
+// Plugin imports
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea } from './homeAssistant.js';
 import { MutableDevice, getClusterServerObj } from './mutableDevice.js';
 import {
@@ -188,7 +192,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug('Payload successfully written to homeassistant.json');
       })
       .catch((error) => {
-        this.log.error('Error writing payload to file:', error);
+        this.log.error(`Error writing payload to file: ${error}`);
       });
 
     // Clean the selectDevice and selectEntity maps
@@ -368,49 +372,54 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Add device types and clusterIds for supported attributes of the current entity state
         this.log.debug(`- state ${debugStringify(hassState)}`);
 
-        // Look for supported attributes of the current entity state
+        // Look for supported attributes of the current entity
         for (const [key, value] of Object.entries(hassState.attributes)) {
           this.log.debug(`- attribute ${CYAN}${key}${db} value ${typeof value === 'object' && value ? debugStringify(value) : value}`);
-          const hassDomainAttributes = hassDomainAttributeConverter.filter((d) => d.domain === domain && d.with === key);
-          hassDomainAttributes.forEach((hassDomainAttribute) => {
-            this.log.debug(`+ attribute device ${CYAN}${hassDomainAttribute.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainAttribute.clusterId)?.name}${db}`);
-            mutableDevice.addDeviceTypes(entity.entity_id, hassDomainAttribute.deviceType);
-            mutableDevice.addClusterServerIds(entity.entity_id, hassDomainAttribute.clusterId);
-          });
+          hassDomainAttributeConverter
+            .filter((d) => d.domain === domain && d.withAttribute === key)
+            .forEach((hassDomainAttribute) => {
+              this.log.debug(
+                `+ attribute device ${CYAN}${hassDomainAttribute.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainAttribute.clusterId)?.name}${db}`,
+              );
+              mutableDevice.addDeviceTypes(entity.entity_id, hassDomainAttribute.deviceType);
+              mutableDevice.addClusterServerIds(entity.entity_id, hassDomainAttribute.clusterId);
+            });
         }
 
-        // Look for supported sensors of the current entity state
-        const hassDomainSensors = hassDomainSensorsConverter.filter((d) => d.domain === domain);
-        hassDomainSensors.forEach((hassDomainSensor) => {
-          this.log.debug(`- sensor ${CYAN}${hassDomainSensor.domain}${db} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass}`);
-          if (hassState.attributes['state_class'] === hassDomainSensor.withStateClass && hassState.attributes['device_class'] === hassDomainSensor.withDeviceClass) {
-            this.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
-            mutableDevice.addDeviceTypes(entity.entity_id, hassDomainSensor.deviceType);
-            mutableDevice.addClusterServerIds(entity.entity_id, hassDomainSensor.clusterId);
-            if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(entity.entity_id, hassState.attributes['friendly_name']);
-          }
-        });
+        // Look for supported sensors of the current entity
+        hassDomainSensorsConverter
+          .filter((d) => d.domain === domain)
+          .forEach((hassDomainSensor) => {
+            this.log.debug(`- sensor ${CYAN}${hassDomainSensor.domain}${db} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass}`);
+            if (hassState.attributes['state_class'] === hassDomainSensor.withStateClass && hassState.attributes['device_class'] === hassDomainSensor.withDeviceClass) {
+              this.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
+              mutableDevice.addDeviceTypes(entity.entity_id, hassDomainSensor.deviceType);
+              mutableDevice.addClusterServerIds(entity.entity_id, hassDomainSensor.clusterId);
+              if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(entity.entity_id, hassState.attributes['friendly_name']);
+            }
+          });
 
-        // Look for supported binary_sensors of the current entity state
-        const hassDomainBinarySensors = hassDomainBinarySensorsConverter.filter((d) => d.domain === domain);
-        hassDomainBinarySensors.forEach((hassDomainBinarySensor) => {
-          this.log.debug(`- binary_sensor ${CYAN}${hassDomainBinarySensor.domain}${db} deviceClass ${hassDomainBinarySensor.withDeviceClass}`);
-          if (hassState.attributes['device_class'] === hassDomainBinarySensor.withDeviceClass) {
-            this.log.debug(
-              `+ binary_sensor device ${CYAN}${hassDomainBinarySensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainBinarySensor.clusterId)?.name}${db}`,
-            );
-            mutableDevice.addDeviceTypes(entity.entity_id, hassDomainBinarySensor.deviceType);
-            mutableDevice.addClusterServerIds(entity.entity_id, hassDomainBinarySensor.clusterId);
-            if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(entity.entity_id, hassState.attributes['friendly_name']);
-          }
-        });
+        // Look for supported binary_sensors of the current entity
+        hassDomainBinarySensorsConverter
+          .filter((d) => d.domain === domain)
+          .forEach((hassDomainBinarySensor) => {
+            this.log.debug(`- binary_sensor ${CYAN}${hassDomainBinarySensor.domain}${db} deviceClass ${hassDomainBinarySensor.withDeviceClass}`);
+            if (hassState.attributes['device_class'] === hassDomainBinarySensor.withDeviceClass) {
+              this.log.debug(
+                `+ binary_sensor device ${CYAN}${hassDomainBinarySensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainBinarySensor.clusterId)?.name}${db}`,
+              );
+              mutableDevice.addDeviceTypes(entity.entity_id, hassDomainBinarySensor.deviceType);
+              mutableDevice.addClusterServerIds(entity.entity_id, hassDomainBinarySensor.clusterId);
+              if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(entity.entity_id, hassState.attributes['friendly_name']);
+            }
+          });
 
         // Create a child endpoint for the entity if we found supported domains and attributes
         if (!mutableDevice.has(entity.entity_id)) continue;
         this.log.info(`Creating endpoint ${CYAN}${entity.entity_id}${nf} for device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
         const child = await mutableDevice.createChildEndpoint(entity.entity_id);
 
-        // Special case for light domain: configure the color control cluster
+        // Special case for light domain: configure the color control cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
         if (
           domain === 'light' &&
           (mutableDevice.get(entity.entity_id).deviceTypes[0].code === colorTemperatureLight.code ||
@@ -476,7 +485,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
         }
 
-        // Special case for climate domain: configure the thermostat cluster
+        // Special case for climate domain: configure the thermostat cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
         if (domain === 'climate') {
           if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat_cool')) {
             mutableDevice.addClusterServerObjs(
@@ -610,18 +619,22 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   override async onConfigure() {
     await super.onConfigure();
-    this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}`);
+    this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}...`);
     try {
       for (const state of Array.from(this.ha.hassStates.values())) {
         const entity = this.ha.hassEntities.get(state.entity_id);
         const deviceId = entity?.device_id;
         if (deviceId && this.bridgedHassDevices.has(deviceId)) {
-          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${db} for device ${CYAN}${deviceId}${db}` /* , state*/);
+          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${db} for device ${CYAN}${deviceId}${db}`);
           this.updateHandler(deviceId, state.entity_id, state, state);
+        } else {
+          this.log.debug(`Configuring state on individual entities ${CYAN}${state.entity_id}${db}`);
+          this.updateHandler(null, state.entity_id, state, state);
         }
       }
+      this.log.info(`Configured platform ${idn}${this.config.name}${rs}${nf}`);
     } catch (error) {
-      this.log.error(`Error configuring platform: ${error}`);
+      this.log.error(`Error configuring platform ${idn}${this.config.name}${rs}${er}: ${error}`);
     }
   }
 
@@ -673,14 +686,30 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   /*
-  subscribeHandler(deviceId: string, entityId: string, child: MatterbridgeDevice, clusterId: ClusterId, attribute: string, newValue: any, oldValue: any) {
+  subscribeHandler(
+    child: MatterbridgeEndpoint,
+    entity: HassEntity,
+    hassSubscribe: {
+      domain: string;
+      service: string;
+      with: string;
+      clusterId: ClusterId;
+      attribute: string;
+      converter?: any;
+    },
+    newValue: any,
+    oldValue: any,
+    context: ActionContext,
+  ) {
+    // Skip offline updates and unchanged values
+    if (context.offline === true || (typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) return;
     child.log.info(
-      `${db}Subscribed attribute ${hk}${ClusterRegistry.get(clusterId)?.name}${db}:${hk}${attribute}${db} on endpoint ${or}${child?.name}${db}:${or}${child?.number}${db} ` +
+      `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${child.maybeId}${db}:${or}${child.maybeNumber}${db} ` +
         `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
     );
     const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
-    if (value !== null) this.ha.callServiceAsync(domain, 'turn_on', entity.entity_id, { [hassSubscribe.with]: value });
-    else this.ha.callServiceAsync(domain, 'turn_off', entity.entity_id);
+    if (value !== null) this.ha.callService(hassSubscribe.domain, 'turn_on', entity.entity_id, { [hassSubscribe.with]: value });
+    else this.ha.callService(hassSubscribe.domain, 'turn_off', entity.entity_id);
     child.log.debug(
       `*Converter(${hassSubscribe.converter !== undefined}): ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`,
     );

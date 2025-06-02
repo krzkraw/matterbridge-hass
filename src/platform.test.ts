@@ -4,7 +4,7 @@
 import { bridgedNode, colorTemperatureLight, dimmableOutlet, Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
-import { AnsiLogger, BLUE, db, dn, hk, idn, LogLevel, nf, or, rs, YELLOW, CYAN, ign, wr, debugStringify } from 'matterbridge/logger';
+import { AnsiLogger, BLUE, db, dn, hk, idn, LogLevel, nf, or, rs, YELLOW, CYAN, ign, wr, debugStringify, er } from 'matterbridge/logger';
 import { Endpoint } from 'matterbridge/matter';
 import { HomeAssistantPlatform } from './platform';
 import { jest } from '@jest/globals';
@@ -520,6 +520,17 @@ describe('HassPlatform', () => {
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
   });
 
+  it('should fail calling onStart with reason', async () => {
+    connectSpy.mockImplementationOnce(() => {
+      console.log(`Mocked connect failure`);
+      return Promise.reject(new Error('Connection failed'));
+    });
+    expect(haPlatform).toBeDefined();
+    await haPlatform.onStart('Test reason');
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Error connecting to Home Assistant: Error: Connection failed`);
+  });
+
   it('should call onStart with reason', async () => {
     expect(haPlatform).toBeDefined();
     await haPlatform.onStart('Test reason');
@@ -527,6 +538,20 @@ describe('HassPlatform', () => {
     await wait(1000);
     expect(mockLog.debug).toHaveBeenCalledWith(`Payload successfully written to homeassistant.json`);
   });
+
+  // eslint-disable-next-line jest/no-commented-out-tests
+  /*
+  it('should call onStart with reason and fail save payload', async () => {
+    expect(haPlatform).toBeDefined();
+    jest.spyOn(fs, 'writeFile').mockImplementationOnce(() => {
+      throw new Error('Failed to write file');
+    });
+    await haPlatform.onStart('Test reason');
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    await wait(1000);
+    expect(mockLog.error).toHaveBeenCalledWith(`Error writing payload to file: Error: Failed to write file`);
+  });
+  */
 
   it('should receive events from ha', () => {
     haPlatform.ha.emit('connected', '2024.09.1');
@@ -1168,9 +1193,12 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
+    const mbDevice = haPlatform.matterbridgeDevices.get('3898c5aa5d1c14b05406b7007d8d347f');
+    expect(mbDevice).toBeDefined();
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
     expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}Thermostat${db}:${CYAN}systemMode${db} check ${CYAN}true${db}`);
+    // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Subscribed endpoint`));
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
@@ -1183,6 +1211,13 @@ describe('HassPlatform', () => {
         await haPlatform.updateHandler(device.id, state.entity_id, state, state);
       }
     }
+
+    await wait(1000); // wait for the thermostat to be configured
+    const child = mbDevice?.getChildEndpointByName('climatethermostat_thermostat');
+    expect(child).toBeDefined();
+    console.error('Event of ThermostatCluster', child?.events['thermostat']);
+    console.error('Event of ThermostatCluster:systemMode$Changed', child?.events['thermostat']['systemMode$Changed']);
+    console.error('Observers of ThermostatCluster', child?.events['thermostat']['systemMode$Changed']['#observers']);
   });
 
   it('should register a Thermostat heat device from ha', async () => {
@@ -1465,21 +1500,37 @@ describe('HassPlatform', () => {
     haPlatform.bridgedHassDevices.set(switchDevice.id, switchDevice as unknown as HassDevice);
     haPlatform.bridgedHassDevices.set(contactSensorDevice.id, contactSensorDevice as unknown as HassDevice);
     haPlatform.bridgedHassDevices.set(motionSensorDevice.id, motionSensorDevice as unknown as HassDevice);
+    haPlatform.ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity as unknown as HassEntity);
+    haPlatform.ha.hassEntities.set(contactSensorEntity.entity_id, contactSensorEntity as unknown as HassEntity);
+    haPlatform.ha.hassEntities.set(motionSensorOccupancyEntity.entity_id, motionSensorOccupancyEntity as unknown as HassEntity);
+    haPlatform.ha.hassStates.set(switchDeviceEntityState.entity_id, switchDeviceEntityState as unknown as HassState);
+    haPlatform.ha.hassStates.set(contactSensorEntityState.entity_id, contactSensorEntityState as unknown as HassState);
+    haPlatform.ha.hassStates.set(motionSensorOccupancyEntityState.entity_id, motionSensorOccupancyEntityState as unknown as HassState);
 
     await haPlatform.onConfigure();
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for async operations to complete
-    expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}`);
-    // expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
+    expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Configured platform ${idn}${mockConfig.name}${rs}${nf}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
   });
 
   it('should call onConfigure and throw an error', async () => {
     jest.spyOn(HomeAssistantPlatform.prototype, 'updateHandler').mockImplementationOnce(() => {
       throw new Error('Test error');
     });
+    haPlatform.bridgedHassDevices.set(switchDevice.id, switchDevice as unknown as HassDevice);
+    haPlatform.bridgedHassDevices.set(contactSensorDevice.id, contactSensorDevice as unknown as HassDevice);
+    haPlatform.bridgedHassDevices.set(motionSensorDevice.id, motionSensorDevice as unknown as HassDevice);
+    haPlatform.ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity as unknown as HassEntity);
+    haPlatform.ha.hassEntities.set(contactSensorEntity.entity_id, contactSensorEntity as unknown as HassEntity);
+    haPlatform.ha.hassEntities.set(motionSensorOccupancyEntity.entity_id, motionSensorOccupancyEntity as unknown as HassEntity);
+    haPlatform.ha.hassStates.set(switchDeviceEntityState.entity_id, switchDeviceEntityState as unknown as HassState);
+    haPlatform.ha.hassStates.set(contactSensorEntityState.entity_id, contactSensorEntityState as unknown as HassState);
+    haPlatform.ha.hassStates.set(motionSensorOccupancyEntityState.entity_id, motionSensorOccupancyEntityState as unknown as HassState);
     await haPlatform.onConfigure();
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for async operations to complete
-    expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}`);
-    // expect(mockLog.error).toHaveBeenCalledWith(`Error configuring platform: Test error`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Error configuring platform ${idn}${mockConfig.name}${rs}${er}: Error: Test error`);
   });
 
   it('should call onChangeLoggerLevel and log a partial message', async () => {
