@@ -8,7 +8,7 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
-## [0.0.12] - 2025-06-01
+## [0.0.12] - 2025-06-02
 
 ### Added
 
@@ -16,6 +16,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [input_button]: Added domain input_button for individual entities.
 - [switch]: Added domain switch for template individual entities.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'door'. It creates a contactSensor with BooleanState cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'vibration'. It creates a contactSensor with BooleanState cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'occupancy'. It creates an occupancySensor with OccupancySensing cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'cold'. It creates an waterFreezeDetector with BooleanState cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'moisture'. It creates an waterLeakDetector with BooleanState cluster.

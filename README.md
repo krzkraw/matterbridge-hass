@@ -45,7 +45,7 @@ Supported devices:
 
 - sensor (with deviceClass temperature/humidity/pressure/illuminance)
 
-- binary_sensor (with deviceClass door/occupancy/cold/moisture)
+- binary_sensor (with deviceClass door/vibration/motion/occupancy/cold/moisture)
 
 Supported individual entities:
 
