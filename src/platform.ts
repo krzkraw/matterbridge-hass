@@ -578,16 +578,22 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               hassSubscribe.clusterId,
               hassSubscribe.attribute,
               (newValue: any, oldValue: any, context) => {
-                if (context.offline === true) return; // Skip offline updates
+                if (context.offline === true) {
+                  matterbridgeDevice?.log.debug(
+                    `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
+                      `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} changed for an offline update`,
+                  );
+                  return; // Skip offline updates
+                }
                 if ((typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) {
                   matterbridgeDevice?.log.debug(
                     `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-                      `on endpoint ${or}${child?.name}${db}:${or}${child?.number}${db} not changed`,
+                      `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} not changed`,
                   );
                   return;
                 }
                 matterbridgeDevice?.log.info(
-                  `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${child?.name}${db}:${or}${child?.number}${db} ` +
+                  `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} ` +
                     `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
                 );
                 const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;

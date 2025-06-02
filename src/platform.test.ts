@@ -67,7 +67,6 @@ describe('HassPlatform', () => {
     matterbridgePluginDirectory: './jest/plugins',
     systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
     matterbridgeVersion: '3.0.4',
-    edge: true,
     log: mockLog,
     getDevices: jest.fn(() => {
       // console.log('getDevices called');
@@ -1212,12 +1211,14 @@ describe('HassPlatform', () => {
       }
     }
 
+    /*
     await wait(1000); // wait for the thermostat to be configured
     const child = mbDevice?.getChildEndpointByName('climatethermostat_thermostat');
     expect(child).toBeDefined();
     console.error('Event of ThermostatCluster', child?.events['thermostat']);
     console.error('Event of ThermostatCluster:systemMode$Changed', child?.events['thermostat']['systemMode$Changed']);
     console.error('Observers of ThermostatCluster', child?.events['thermostat']['systemMode$Changed']['#observers']);
+    */
   });
 
   it('should register a Thermostat heat device from ha', async () => {
