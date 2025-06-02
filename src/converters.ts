@@ -180,6 +180,7 @@ export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass
     { domain: 'binary_sensor',    withDeviceClass: 'cold',        deviceType: waterFreezeDetector,  clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? true : false) },
     { domain: 'binary_sensor',    withDeviceClass: 'moisture',    deviceType: waterLeakDetector,    clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? true : false) },
     { domain: 'binary_sensor',    withDeviceClass: 'occupancy',   deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',   converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
+    { domain: 'binary_sensor',    withDeviceClass: 'motion',      deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',   converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
   ];
 
 // Convert Home Assistant domains services to Matterbridge commands for device types

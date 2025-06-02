@@ -424,6 +424,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             !hassState.attributes['supported_color_modes'].includes('xy') &&
             !hassState.attributes['supported_color_modes'].includes('hs') &&
             !hassState.attributes['supported_color_modes'].includes('rgb') &&
+            !hassState.attributes['supported_color_modes'].includes('rgbw') &&
+            !hassState.attributes['supported_color_modes'].includes('rgbww') &&
             hassState.attributes['supported_color_modes'].includes('color_temp')
           ) {
             mutableDevice.addClusterServerObjs(
@@ -436,7 +438,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                   executeIfOff: false,
                 },
                 numberOfPrimaries: null,
-                colorTemperatureMireds: (hassState.attributes['max_mireds'] as number | undefined) ?? 500,
+                colorTemperatureMireds: (hassState.attributes['max_mireds'] as number | undefined) ?? 250,
                 colorTempPhysicalMinMireds: (hassState.attributes['min_mireds'] as number | undefined) ?? 147,
                 colorTempPhysicalMaxMireds: (hassState.attributes['max_mireds'] as number | undefined) ?? 500,
                 coupleColorTempToLevelMinMireds: (hassState.attributes['min_mireds'] as number | undefined) ?? 147,
