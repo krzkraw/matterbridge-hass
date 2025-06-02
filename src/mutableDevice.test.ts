@@ -66,7 +66,6 @@ describe('MutableDevice', () => {
     matterbridgePluginDirectory: './jest/plugins',
     systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
     matterbridgeVersion: '2.1.0',
-    edge: true,
     log: mockLog,
     getDevices: jest.fn(() => {
       // console.log('getDevices called');
@@ -130,7 +129,6 @@ describe('MutableDevice', () => {
   });
 
   it('should create a mutableDevice', async () => {
-    mockMatterbridge.edge = false;
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     expect(mutableDevice).toBeInstanceOf(MutableDevice);
     expect((mutableDevice as any).matterbridge).toBe(mockMatterbridge);
@@ -141,22 +139,6 @@ describe('MutableDevice', () => {
     const device = await mutableDevice.create();
     expect(device).toBeDefined();
     expect(device).toBeInstanceOf(MatterbridgeEndpoint);
-    mockMatterbridge.edge = false;
-  });
-
-  it('should create a mutableDevice on edge', async () => {
-    mockMatterbridge.edge = true;
-    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
-    expect(mutableDevice).toBeInstanceOf(MutableDevice);
-    expect((mutableDevice as any).matterbridge).toBe(mockMatterbridge);
-    expect(mutableDevice.deviceName).toBe('Test Device');
-    expect(mutableDevice.composedType).toBeUndefined();
-
-    mutableDevice.addDeviceTypes('', bridgedNode);
-    const device = await mutableDevice.create();
-    expect(device).toBeDefined();
-    expect(device).toBeInstanceOf(MatterbridgeEndpoint);
-    mockMatterbridge.edge = false;
   });
 
   it('should add a BridgedDeviceBasicInformationCluster', async () => {

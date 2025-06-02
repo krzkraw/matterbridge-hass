@@ -3,6 +3,7 @@ import { FanControl, Thermostat } from 'matterbridge/matter/clusters';
 import {
   hassCommandConverter,
   hassDomainAttributeConverter,
+  hassDomainBinarySensorsConverter,
   hassDomainConverter,
   hassDomainSensorsConverter,
   hassSubscribeConverter,
@@ -113,6 +114,15 @@ describe('HassPlatform', () => {
       if (converter.domain === 'sensor' && converter.withStateClass === 'measurement') {
         expect(converter.converter(0)).not.toBe(null);
         expect(converter.converter(undefined)).toBe(null);
+      }
+    });
+  });
+  it('should verify the hassDomainBinarySensorsConverter convertes', () => {
+    hassDomainBinarySensorsConverter.forEach((converter) => {
+      expect(converter.domain.length).toBeGreaterThan(0);
+      if (converter.domain === 'binary_sensor') {
+        expect(converter.converter('on')).not.toBe(null);
+        expect(converter.converter('off')).not.toBe(null);
       }
     });
   });

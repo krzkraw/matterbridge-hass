@@ -891,6 +891,35 @@
       "serial_number": "0x29252164",
       "sw_version": "1.0.0",
       "via_device_id": "d4a13a20b1b1f2c2962f84f3ffe29df4"
+    },
+    {
+      "area_id": null,
+      "configuration_url": null,
+      "config_entries": ["01JRN4CFJJAMG7E4K13SXMWDE6"],
+      "config_entries_subentries": {
+        "01JRN4CFJJAMG7E4K13SXMWDE6": [null]
+      },
+      "connections": [],
+      "created_at": 1738948198.692463,
+      "disabled_by": null,
+      "entry_type": null,
+      "hw_version": "1.0.0",
+      "id": "426162cdc13e45802d5a132299630d21",
+      "identifiers": [
+        ["matter", "deviceid_CAD2FA0F285B2850-0000000000000045-38"],
+        ["matter", "serial_0x88030475"]
+      ],
+      "labels": [],
+      "manufacturer": "Eve Systems",
+      "model": "Eve door",
+      "model_id": null,
+      "modified_at": 1746738708.007739,
+      "name_by_user": null,
+      "name": "Eve door",
+      "primary_config_entry": "01JRN4CFJJAMG7E4K13SXMWDE6",
+      "serial_number": "0x88030475",
+      "sw_version": "1.2.8",
+      "via_device_id": "5334a32b7542ff9442468329b794b60c"
     }
   ],
   "entities": [
@@ -7466,6 +7495,227 @@
       "platform": "matter",
       "translation_key": "flow",
       "unique_id": "CAD2FA0F285B2850-000000000000001F-12-13-FlowSensor-1028-0"
+    },
+    {
+      "area_id": null,
+      "categories": {},
+      "config_entry_id": "01JRN4CFJJAMG7E4K13SXMWDE6",
+      "config_subentry_id": null,
+      "created_at": 1744469393.615769,
+      "device_id": "426162cdc13e45802d5a132299630d21",
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "binary_sensor.eve_door_door",
+      "has_entity_name": true,
+      "hidden_by": null,
+      "icon": null,
+      "id": "fbe1a88053838baec33e715669f4fe8a",
+      "labels": [],
+      "modified_at": 1746738709.798224,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": true
+        }
+      },
+      "original_name": "Door",
+      "platform": "matter",
+      "translation_key": null,
+      "unique_id": "CAD2FA0F285B2850-0000000000000045-38-38-ContactSensor-69-0"
+    },
+    {
+      "area_id": "matterbridge_select",
+      "categories": {},
+      "config_entry_id": null,
+      "config_subentry_id": null,
+      "created_at": 1738861902.589696,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "input_boolean.boolean_helper",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": null,
+      "id": "2e66872dad44e494273c3d861b9ab2f5",
+      "labels": ["matterbridge"],
+      "modified_at": 1748600900.444626,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": false
+        },
+        "collection": {
+          "hash": "7fb5c65776177a7877b0ecf705e00ef2"
+        }
+      },
+      "original_name": "Boolean helper",
+      "platform": "input_boolean",
+      "translation_key": null,
+      "unique_id": "toggle_helper"
+    },
+    {
+      "area_id": "matterbridge_select",
+      "categories": {},
+      "config_entry_id": null,
+      "config_subentry_id": null,
+      "created_at": 1738861889.725676,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "input_button.button_helper",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": null,
+      "id": "df15be5f301cde60e610058d34680f7d",
+      "labels": ["matterbridge"],
+      "modified_at": 1748600910.384813,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": false
+        },
+        "collection": {
+          "hash": "6f00a0ce84439eaaf2ea013f0a708dfe"
+        }
+      },
+      "original_name": "Button helper",
+      "platform": "input_button",
+      "translation_key": null,
+      "unique_id": "button_helper"
+    },
+    {
+      "area_id": "matterbridge_select",
+      "categories": {},
+      "config_entry_id": null,
+      "config_subentry_id": null,
+      "created_at": 1748365340.423701,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "switch.my_template_switch",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": null,
+      "id": "54b8f61915fb50f5a343550aebcc87fb",
+      "labels": ["matterbridge"],
+      "modified_at": 1748381713.934119,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": true
+        }
+      },
+      "original_name": "My Template Switch",
+      "platform": "template",
+      "translation_key": null,
+      "unique_id": "my_template_switch"
+    },
+    {
+      "area_id": "matterbridge_select",
+      "categories": {},
+      "config_entry_id": null,
+      "config_subentry_id": null,
+      "created_at": 1748515364.591934,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "light.my_rgbw_template_light",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": null,
+      "id": "554ba0ee966b70d418747685d932cea6",
+      "labels": ["matterbridge"],
+      "modified_at": 1748515411.276583,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": true
+        }
+      },
+      "original_name": "My RGBW Template Light",
+      "platform": "template",
+      "translation_key": null,
+      "unique_id": "my_rgbw_template_light"
+    }
+  ],
+  "areas": [
+    {
+      "aliases": [],
+      "area_id": "living_room",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": null,
+      "labels": [],
+      "name": "Living Room",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1725039966.373267,
+      "modified_at": 1725039966.373281
+    },
+    {
+      "aliases": [],
+      "area_id": "kitchen",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": null,
+      "labels": [],
+      "name": "Kitchen",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1725039966.373745,
+      "modified_at": 1725039966.373752
+    },
+    {
+      "aliases": [],
+      "area_id": "bedroom",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": null,
+      "labels": [],
+      "name": "Bedroom",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1725039966.374043,
+      "modified_at": 1725039966.37405
+    },
+    {
+      "aliases": [],
+      "area_id": "matterbridge_windows",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": "mdi:bridge",
+      "labels": [],
+      "name": "Matterbridge Windows",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1732658651.03674,
+      "modified_at": 1732658651.036755
+    },
+    {
+      "aliases": [],
+      "area_id": "matterbridge_add_on",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": "mdi:bridge",
+      "labels": [],
+      "name": "Matterbridge Add-on",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1732658697.580086,
+      "modified_at": 1732658697.580101
+    },
+    {
+      "aliases": [],
+      "area_id": "matterbridge_select",
+      "floor_id": null,
+      "humidity_entity_id": null,
+      "icon": "mdi:bridge",
+      "labels": [],
+      "name": "Matterbridge select",
+      "picture": null,
+      "temperature_entity_id": null,
+      "created_at": 1748381702.532347,
+      "modified_at": 1748381702.532362
     }
   ],
   "states": [
@@ -11352,6 +11602,94 @@
       "last_updated": "2024-11-03T13:47:07.073094+00:00",
       "context": {
         "id": "01JBS4F1Y1FE4JJ1NYJVNEW665",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "binary_sensor.eve_door_door",
+      "state": "off",
+      "attributes": {
+        "device_class": "door",
+        "friendly_name": "Eve door Door"
+      },
+      "last_changed": "2025-05-29T06:55:35.153253+00:00",
+      "last_reported": "2025-05-29T06:55:35.153253+00:00",
+      "last_updated": "2025-05-29T06:55:35.153253+00:00",
+      "context": {
+        "id": "01JWDD69QHPY9TMEWTPG60HCG8",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "input_boolean.boolean_helper",
+      "state": "off",
+      "attributes": {
+        "editable": true,
+        "friendly_name": "Boolean helper"
+      },
+      "last_changed": "2025-05-30T10:28:10.196209+00:00",
+      "last_reported": "2025-05-30T10:28:10.196209+00:00",
+      "last_updated": "2025-05-30T10:28:10.196209+00:00",
+      "context": {
+        "id": "01JWGBR8TM1XC87SE30H1ZC7JX",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "input_button.button_helper",
+      "state": "2025-05-30T07:32:51.311019+00:00",
+      "attributes": {
+        "editable": true,
+        "friendly_name": "Button helper"
+      },
+      "last_changed": "2025-05-30T07:32:51.311147+00:00",
+      "last_reported": "2025-05-30T07:32:51.311147+00:00",
+      "last_updated": "2025-05-30T07:32:51.311147+00:00",
+      "context": {
+        "id": "01JWG1Q8FE207BM5MMNGCNQZ6S",
+        "parent_id": null,
+        "user_id": "8db35feb8252468e83db0e5ef66fea59"
+      }
+    },
+    {
+      "entity_id": "switch.my_template_switch",
+      "state": "off",
+      "attributes": {
+        "icon": "mdi:power-plug",
+        "friendly_name": "My Template Switch"
+      },
+      "last_changed": "2025-05-29T17:53:46.047670+00:00",
+      "last_reported": "2025-05-29T17:53:46.047670+00:00",
+      "last_updated": "2025-05-29T17:53:46.047670+00:00",
+      "context": {
+        "id": "01JWEJVENZGQPF62YNZR9P94KX",
+        "parent_id": null,
+        "user_id": "8db35feb8252468e83db0e5ef66fea59"
+      }
+    },
+    {
+      "entity_id": "light.my_rgbw_template_light",
+      "state": "off",
+      "attributes": {
+        "supported_color_modes": ["rgbw"],
+        "color_mode": null,
+        "brightness": null,
+        "hs_color": null,
+        "rgb_color": null,
+        "xy_color": null,
+        "rgbw_color": null,
+        "icon": "mdi:led-strip-variant",
+        "friendly_name": "My RGBW Template Light",
+        "supported_features": 0
+      },
+      "last_changed": "2025-05-29T11:43:27.892264+00:00",
+      "last_reported": "2025-05-29T11:43:27.892264+00:00",
+      "last_updated": "2025-05-29T11:43:27.892264+00:00",
+      "context": {
+        "id": "01JWDXNDKW1YDTD67JMJDMXAX5",
         "parent_id": null,
         "user_id": null
       }

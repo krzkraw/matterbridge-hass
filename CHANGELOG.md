@@ -8,6 +8,38 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
+## [0.1.0] - 2025-06-02
+
+### Added
+
+- [npm]: The dev of matterbridge-hass is published with tag **dev** on **npm** each day at 00:00 UTC if there is a new commit.
+- [input_button]: Added domain input_button for individual entities.
+- [switch]: Added domain switch for template individual entities.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'door'. It creates a contactSensor with BooleanState cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'vibration'. It creates a contactSensor with BooleanState cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'motion'. It creates an occupancySensor with OccupancySensing cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'occupancy'. It creates an occupancySensor with OccupancySensing cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'cold'. It creates a waterFreezeDetector with BooleanState cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'moisture'. It creates a waterLeakDetector with BooleanState cluster.
+- [online]: Added online / offline setting based on unavailable state.
+- [filterByArea]: Added filter of individual entities and devices by Area.
+- [filterByLabel]: Added filter of individual entities and devices by Label.
+- [HomeAssistant]: Bump HomeAssistant class to v. 1.0.2. Fully async and promise based.
+
+### Changed
+
+- [update]: Skip attributes update when state is off. Provisional!
+- [config]: Removed individualEntityWhiteList and individualEntityBlackList. Use the normal white and black lists.
+- [config]: Changed serialPostfix to postfix.
+
+### Fixed
+
+- [colorControl]: Fixed possibly missed attributes in the cluster creation (#39).
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.0.11] - 2025-05-29
 
 ### Added

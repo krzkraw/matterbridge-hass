@@ -42,22 +42,22 @@ jobs:
         working-directory: ../matterbridge
         run: npm link
 
-      - name: Install dependencies
+      - name: Install plugin dependencies
         run: npm ci
 
       - name: Link matterbridge in the project
         run: npm link matterbridge
 
-      - name: Lint the project
+      - name: Lint the plugin
         run: npm run lint
 
-      - name: Test the project
+      - name: Test the plugin
         run: npm run test
 
-      - name: Build the project
+      - name: Build the plugin
         run: npm run build
 
-      - name: Publish to npm
+      - name: Publish the plugin to npm
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

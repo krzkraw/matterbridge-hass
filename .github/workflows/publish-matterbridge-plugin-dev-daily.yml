@@ -59,7 +59,7 @@ jobs:
       - name: Bump to date-stamped dev version (no git tag)
         run: npm version "${{ env.DEV_TAG }}" --no-git-tag-version
 
-      - name: Lint & test & build
+      - name: Lint & test & build the plugin
         run: |
           npm ci
           npm link matterbridge
@@ -104,7 +104,7 @@ jobs:
             echo "should_publish=true"  >> $GITHUB_OUTPUT
           fi
 
-      - name: Publish to npm under ‘dev’ tag
+      - name: Publish the plugin to npm under ‘dev’ tag
         if: steps.check_new.outputs.should_publish  == 'true'
         run: npm publish --tag dev
         env:

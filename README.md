@@ -5,7 +5,7 @@
 [![Docker Version](https://img.shields.io/docker/v/luligu/matterbridge?label=docker%20version&sort=semver)](https://hub.docker.com/r/luligu/matterbridge)
 [![Docker Pulls](https://img.shields.io/docker/pulls/luligu/matterbridge.svg)](https://hub.docker.com/r/luligu/matterbridge)
 ![Node.js CI](https://github.com/Luligu/matterbridge-hass/actions/workflows/build-matterbridge-plugin.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/Jest%20coverage-93%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Jest%20coverage-97%25-brightgreen)
 
 [![power by](https://img.shields.io/badge/powered%20by-matterbridge-blue)](https://www.npmjs.com/package/matterbridge)
 [![power by](https://img.shields.io/badge/powered%20by-node--ansi--logger-blue)](https://www.npmjs.com/package/node-ansi-logger)
@@ -22,8 +22,11 @@ Features:
 - The plugin can be used with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
 - The connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if the Home Assistant host is reachable.
 - The connection with Home Assistant can be also made with ssl WebSocket (i.e. wss://homeassistant:8123). Self signed certificates are also supported.
-- It is possible to select from a list the devices to include in the device white or black list.
-- It is possible to select from a list the entities to include in the entity white or black list.
+- It is possible to filter individual entities and devices by Area.
+- It is possible to filter individual entities and devices by Label.
+- It is possible to select from a list the individual entities to include in the white or black list. Select by name, id or entity_id.
+- It is possible to select from a list the devices to include in the white or black list. Select by name or id.
+- It is possible to select from a list the entities to include in the device entity black list.
 - It is possible to postfix the Matter device serialNumber or the Matter device name to avoid collision with other instances.
 
 Supported devices:
@@ -42,6 +45,8 @@ Supported devices:
 
 - sensor (with deviceClass temperature/humidity/pressure/illuminance)
 
+- binary_sensor (with deviceClass door/vibration/motion/occupancy/cold/moisture)
+
 Supported individual entities:
 
 - automation
@@ -50,9 +55,11 @@ Supported individual entities:
 
 - script
 
-- helpers of domain input_boolean
+- helpers of domain input_boolean and input_button
 
-These entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated automation, scene, or script. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean maintain the on / off state.
+- templates of domain switch
+
+These entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated automation, scene, or script. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean and the switch template maintain the on / off state.
 
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 
@@ -114,49 +121,59 @@ matterbridge
 
 There are 2 different source of Matter devices coming from matterbridge-hass plugin:
 
-- Regular devices with their entities that use the main whiteList, blackList, entityBlackList and deviceEntityBlackList.
+- Regular devices with their entities that use the main whiteList, blackList and deviceEntityBlackList.
 
 You find them in Home Assistant at http://localhost:8123/config/devices/dashboard.
 
-- Individual entities with domain scene, script, automation and input_boolean that use individualEntityWhiteList and individualEntityBlackList.
+- Individual entities with domain scene, script, automation and input_boolean, input_button helpers, switch template that use the main whiteList, blackList.
 
 You find these special entities in Home Assistant at http://localhost:8123/config/automation/dashboard, http://localhost:8123/config/scene/dashboard, http://localhost:8123/config/script/dashboard and http://localhost:8123/config/helpers.
 
 You may need to set some config values in the frontend (wait that the plugin has been configured before changing the config):
 
-I suggest to always use the whiteList and individualEntityWhiteList adding each device you want to expose to Matter.
+I suggest to always use the filters by Area and Label or the whiteList adding each individual entity or device you want to expose to Matter.
 
-If any device or individual entity creates issues put it in the blackList or in the individualEntityBlackList.
+If any device or individual entity creates issues put it in the blackList.
 
 ### host
 
-Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). It is better to use the IP if it is stable.
+Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). You can also use the IP if it is stable. It is also possible to use ssl websocket (i.e. wss://). If you use selefsigned certificate you need to provide either the ca certificate or to unselect rejectUnauthorized. With normal certificate you don't need certificate rejectUnauthorized should be selected.
 
 ### token
 
 Home Assistant long term token used to connect to Home Assistant with WebSocket. Click on your user name in the bottom left corner of the Home Assistand frontend, then Security and create a Long-Lived Access Tokens.
 
-### individualEntityWhiteList
+### certificatePath
 
-White list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations and input_boolean.
-Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switches).
+Fully qualified path to the SSL ca certificate file. This is only needed if you use a self-signed certificate and rejectUnauthorized is enabled.
 
-### individualEntityBlackList
+### rejectUnauthorized
 
-Black list of individual entities without associated device to be exposed. It allows to expose scenes, scripts, automations.
-Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switches).
+Ignore SSL certificate errors. It allows to connect to Home Assistant with self-signed certificates without providing the ca certificate.
+
+### reconnectTimeout
+
+Reconnect timeout in seconds.
+
+### reconnectRetries
+
+Number of times to try to reconnect before giving up.
+
+### filterByArea
+
+Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed.
+
+### filterByLabel
+
+Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed.
 
 ### whiteList
 
-If the whiteList is defined only the devices included are exposed to Matter. Use the device name or the device id.
+If the whiteList is defined only the devices and the individual entities included are exposed to Matter. Use the device/entity name or the device/entity id.
 
 ### blackList
 
-If the blackList is defined the devices included will not be exposed to Matter. Use the device name or the device id.
-
-### entityBlackList
-
-The entities in the list will not be exposed for all devices. Use the entity name. This doesn't concern the individual entities.
+If the blackList is defined the devices and the individual entities included will not be exposed to Matter. Use the device/entity name or the device/entity id.
 
 ### deviceEntityBlackList
 
@@ -165,7 +182,3 @@ List of entities not to be exposed for a single device. Enter in the first field
 ### debug
 
 Should be enabled only if you want to debug some issue using the log.
-
-### unregisterOnShutdown
-
-Should be enabled only if you want to remove the devices from the controllers on shutdown.
