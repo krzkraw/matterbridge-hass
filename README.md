@@ -49,16 +49,16 @@ Features:
 
 ## Supported individual entities:
 
-| Domain        | Category      |
-| ------------- | ------------- |
-| automation    | Automationson |
-| scene         | Scenes        |
-| script        | Scripts       |
-| input_boolean | Helpers       |
-| input_button  | Helpers       |
-| switch        | Template      |
+| Domain        | Category    |
+| ------------- | ----------- |
+| automation    | Automations |
+| scene         | Scenes      |
+| script        | Scripts     |
+| input_boolean | Helpers     |
+| input_button  | Helpers     |
+| switch        | Template    |
 
-These individual entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated automation, scene, or script. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean and the switch template maintain the on / off state.
+These individual entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated entity. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean and the switch template maintain the on/off state.
 
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 

@@ -14,6 +14,10 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Changed
 
+- [readme]: Updated readme for clarity.
+- [package]: Update package.
+- [package]: Update dependencies.
+
 ### Fixed
 
 <a href="https://www.buymeacoffee.com/luligugithub">
