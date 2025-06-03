@@ -145,7 +145,7 @@ describe('HassPlatform', () => {
     return Promise.resolve();
   });
 
-  const fetchData = jest.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(() => {
+  const fetchDataSpy = jest.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(() => {
     console.log(`Mocked fetchData`);
     return Promise.resolve();
   });
@@ -534,7 +534,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    await wait(1000);
+    await wait(100);
     expect(mockLog.debug).toHaveBeenCalledWith(`Payload successfully written to homeassistant.json`);
   });
 
@@ -542,26 +542,43 @@ describe('HassPlatform', () => {
   /*
   it('should call onStart with reason and fail save payload', async () => {
     expect(haPlatform).toBeDefined();
-    jest.spyOn(fs, 'writeFile').mockImplementationOnce(() => {
-      throw new Error('Failed to write file');
+    jest.spyOn(path, 'join').mockImplementationOnce(() => {
+      return 'mock';
     });
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    await wait(1000);
+    await wait(100);
     expect(mockLog.error).toHaveBeenCalledWith(`Error writing payload to file: Error: Failed to write file`);
   });
   */
 
-  it('should receive events from ha', () => {
+  it('should receive events from ha', async () => {
     haPlatform.ha.emit('connected', '2024.09.1');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
     expect(mockLog.notice).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Fetched data from Home Assistant successfully`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Subscribed to Home Assistant events successfully`);
+
+    jest.clearAllMocks();
+    fetchDataSpy.mockImplementationOnce(() => {
+      return Promise.reject(new Error('FetchData failed'));
+    });
+    subscribeSpy.mockImplementationOnce(() => {
+      return Promise.reject(new Error('Subscribe failed'));
+    });
+    haPlatform.ha.emit('connected', '2024.09.1');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    expect(mockLog.notice).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Error fetching data from Home Assistant: Error: FetchData failed`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Error subscribing to Home Assistant events: Error: Subscribe failed`);
+
     haPlatform.ha.emit('disconnected', 'Jest test');
     expect(mockLog.warn).toHaveBeenCalledWith(`Disconnected from Home Assistant`);
     haPlatform.ha.emit('subscribed');
     expect(mockLog.info).toHaveBeenCalledWith(`Subscribed to Home Assistant events`);
     haPlatform.ha.emit('config', {} as unknown as HassConfig);
     expect(mockLog.info).toHaveBeenCalledWith(`Configuration received from Home Assistant`);
-    haPlatform.ha.emit('services', {});
+    haPlatform.ha.emit('services', {} as unknown as HassServices);
     expect(mockLog.info).toHaveBeenCalledWith(`Services received from Home Assistant`);
     haPlatform.ha.emit('states', []);
     expect(mockLog.info).toHaveBeenCalledWith(`States received from Home Assistant`);
@@ -614,6 +631,56 @@ describe('HassPlatform', () => {
     mockConfig.whiteList = [];
   });
 
+  it('should not register an individual entity with device_id', async () => {
+    expect(haPlatform).toBeDefined();
+
+    const entity = {
+      id: '0123456789abcdef',
+      entity_id: 'scene.turn_off_all_lights',
+      original_name: 'Turn off all lights',
+      // domain: 'scene',
+      name: 'turn_off_all_lights',
+      device_id: 'device1',
+    } as unknown as HassEntity;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.entity_id}${db} is a device entity. Skipping...`);
+  });
+
+  it('should not register an individual entity with no name', async () => {
+    expect(haPlatform).toBeDefined();
+
+    const entity = {
+      id: '0123456789abcdef',
+      entity_id: 'scene.turn_off_all_lights',
+      device_id: null,
+    } as unknown as HassEntity;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
+  });
+
+  it('should not register an individual entity with the same name', async () => {
+    expect(haPlatform).toBeDefined();
+
+    const entity = {
+      id: '0123456789abcdef',
+      entity_id: 'scene.turn_off_all_lights',
+      device_id: null,
+      name: 'Turn off all lights',
+    } as unknown as HassEntity;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+    (haPlatform as any)._registeredEndpointsByName.set(entity.name, entity);
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.warn).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.name}${wr} already exists as a registered device. Please change the name in Home Assistant`);
+    (haPlatform as any)._registeredEndpointsByName.delete(entity.name);
+  });
+
   it('should register a Scene entity', async () => {
     expect(haPlatform).toBeDefined();
 
@@ -623,9 +690,9 @@ describe('HassPlatform', () => {
     });
     expect(entity).toBeDefined();
     if (!entity) return;
-    haPlatform.ha.hassEntities.set(entity.id, entity);
     haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+    haPlatform.ha.hassStates.set(entity.entity_id, { state: 'off' } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -650,6 +717,12 @@ describe('HassPlatform', () => {
     if (!child) return;
     await child.executeCommandHandler('on', {});
     await child.executeCommandHandler('off', {});
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`on individual entity`));
+    expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
   });
 
   it('should register a Script entity', async () => {
@@ -840,6 +913,105 @@ describe('HassPlatform', () => {
     if (!child) return;
     await child.executeCommandHandler('on', {});
     await child.executeCommandHandler('off', {});
+  });
+
+  it('should not register a Switch device if entry_type is service', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let device: HassDevice | undefined;
+    (mockData.devices as HassDevice[]).forEach((d) => {
+      if (d.name === 'Switch') device = d;
+    });
+    expect(device).toBeDefined();
+    if (!device) return;
+    device.entry_type = 'service'; // Simulate a service entry type
+    haPlatform.ha.hassDevices.set(device.id, device);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`Device ${CYAN}${device.name}${db} is a service. Skipping...`);
+    device.entry_type = null;
+  });
+
+  it('should not register a Switch device if has no name', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let device: HassDevice | undefined;
+    (mockData.devices as HassDevice[]).forEach((d) => {
+      if (d.name === 'Switch') device = d;
+    });
+    expect(device).toBeDefined();
+    if (!device) return;
+    device.name = null; // Simulate no name
+    device.name_by_user = null; // Simulate no user-defined name
+    haPlatform.ha.hassDevices.set(device.id, device);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`Device ${CYAN}${device.name}${db} has not valid name. Skipping...`);
+    device.name = 'Switch';
+  });
+
+  it('should not register a Switch device if has no entities', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let device: HassDevice | undefined;
+    (mockData.devices as HassDevice[]).forEach((d) => {
+      if (d.name === 'Switch') device = d;
+    });
+    expect(device).toBeDefined();
+    if (!device) return;
+    haPlatform.ha.hassDevices.set(device.id, device);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`Device ${CYAN}${device.name}${db} has no entities. Skipping...`);
+  });
+
+  it('should not register a Switch device if has the same name', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let device: HassDevice | undefined;
+    (mockData.devices as HassDevice[]).forEach((d) => {
+      if (d.name === 'Switch') device = d;
+    });
+    expect(device).toBeDefined();
+    if (!device) return;
+    haPlatform.ha.hassDevices.set(device.id, device);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    (haPlatform as any)._registeredEndpointsByName.set(device.name, device);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+
+    expect(mockLog.warn).toHaveBeenCalledWith(`Device ${CYAN}${device.name}${wr} already exists as a registered device. Please change the name in Home Assistant`);
+
+    (haPlatform as any)._registeredEndpointsByName.delete(device.name);
+  });
+
+  it('should not register a Switch device if has no state', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let device: HassDevice | undefined;
+    (mockData.devices as HassDevice[]).forEach((d) => {
+      if (d.name === 'Switch') device = d;
+    });
+    expect(device).toBeDefined();
+    if (!device) return;
+    haPlatform.ha.hassDevices.set(device.id, device);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    // for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`state not found. Skipping...`));
   });
 
   it('should register a Switch device from ha', async () => {
@@ -1509,7 +1681,7 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassStates.set(motionSensorOccupancyEntityState.entity_id, motionSensorOccupancyEntityState as unknown as HassState);
 
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for async operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
     expect(mockLog.info).toHaveBeenCalledWith(`Configured platform ${idn}${mockConfig.name}${rs}${nf}`);
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
@@ -1529,7 +1701,7 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassStates.set(contactSensorEntityState.entity_id, contactSensorEntityState as unknown as HassState);
     haPlatform.ha.hassStates.set(motionSensorOccupancyEntityState.entity_id, motionSensorOccupancyEntityState as unknown as HassState);
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for async operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
     expect(mockLog.error).toHaveBeenCalledWith(`Error configuring platform ${idn}${mockConfig.name}${rs}${er}: Error: Test error`);
   });
@@ -1542,8 +1714,21 @@ describe('HassPlatform', () => {
   it('should call onShutdown with reason', async () => {
     await haPlatform.onShutdown('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Home Assistant connection closed`);
     expect(mockMatterbridge.removeAllBridgedEndpoints).not.toHaveBeenCalled();
-    await wait(1000);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+  }, 20000);
+
+  it('should call onShutdown with reason and log error', async () => {
+    closeSpy.mockImplementationOnce(() => {
+      throw new Error('Test reason');
+    });
+
+    await haPlatform.onShutdown('Test reason');
+    expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Error closing Home Assistant connection: Error: Test reason`);
+    expect(mockMatterbridge.removeAllBridgedEndpoints).not.toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
   }, 20000);
 
   it('should call onShutdown and unregister', async () => {
@@ -1551,7 +1736,7 @@ describe('HassPlatform', () => {
     await haPlatform.onShutdown('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.removeAllBridgedEndpoints).toHaveBeenCalled();
-    await wait(1000);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
   }, 20000);
 });
 

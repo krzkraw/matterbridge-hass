@@ -106,8 +106,24 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       config.rejectUnauthorized as boolean | undefined,
     );
 
-    this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
+    this.ha.on('connected', async (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
+
+      this.log.info(`Fetching data from Home Assistant...`);
+      try {
+        await this.ha.fetchData();
+        this.log.info(`Fetched data from Home Assistant successfully`);
+      } catch (error) {
+        this.log.error(`Error fetching data from Home Assistant: ${error}`);
+      }
+
+      this.log.info(`Subscribing to Home Assistant events...`);
+      try {
+        await this.ha.subscribe();
+        this.log.info(`Subscribed to Home Assistant events successfully`);
+      } catch (error) {
+        this.log.error(`Error subscribing to Home Assistant events: ${error}`);
+      }
     });
 
     this.ha.on('disconnected', () => {
@@ -166,10 +182,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await fs.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
+    this.log.info(`Connecting to Home Assistant at ${CYAN}${this.config.host}${nf}...`);
     try {
       await this.ha.connect();
-      await this.ha.fetchData();
-      await this.ha.subscribe();
+      this.log.info(`Connected to Home Assistant at ${CYAN}${this.config.host}${nf}`);
     } catch (error) {
       this.log.error(`Error connecting to Home Assistant: ${error}`);
     }
@@ -220,7 +236,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
       if (this.hasDeviceName(entityName)) {
-        this.log.warn(`Individual entity ${CYAN}${entityName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
+        this.log.warn(`Individual entity ${CYAN}${entityName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
       if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
@@ -308,7 +324,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectDevice(device.id, deviceName, undefined, 'hub');
       if (!this.validateDevice([deviceName, device.id], true)) continue;
       if (this.hasDeviceName(deviceName)) {
-        this.log.warn(`Device ${CYAN}${deviceName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
+        this.log.warn(`Device ${CYAN}${deviceName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
       if (!this.isValidAreaLabel(device.area_id, device.labels)) {
@@ -339,10 +355,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
         const domain = entity.entity_id.split('.')[0];
 
-        // Get the device state
+        // Get the device state. If the entity is disabled, it doesn't have a state, we skip it.
         const hassState = this.ha.hassStates.get(entity.entity_id);
         if (!hassState) {
-          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}: state not found`);
+          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
           continue;
         }
 
@@ -351,10 +367,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         if (hassDomains.length > 0) {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}`);
           const entityName = entity.name ?? entity.original_name ?? deviceName;
-          if (!isValidString(entityName, 1)) {
-            this.log.debug(`Entity ${CYAN}${entity.entity_id}${db} has not valid name. Skipping...`);
-            continue;
-          }
           this.setSelectDeviceEntity(device.id, entity.entity_id, entityName, 'component');
           this.setSelectEntity(entityName, entity.entity_id, 'component');
           if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
@@ -634,7 +646,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.log.debug(`Configuring state ${CYAN}${state.entity_id}${db} for device ${CYAN}${deviceId}${db}`);
           this.updateHandler(deviceId, state.entity_id, state, state);
         } else {
-          this.log.debug(`Configuring state on individual entities ${CYAN}${state.entity_id}${db}`);
+          this.log.debug(`Configuring state on individual entity ${CYAN}${state.entity_id}${db}`);
           this.updateHandler(null, state.entity_id, state, state);
         }
       }
