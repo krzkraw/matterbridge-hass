@@ -27,7 +27,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
 // @matter imports
-import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation, SmokeCoAlarm } from 'matterbridge/matter/clusters';
+import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation, SmokeCoAlarm, BooleanState } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 
 // Matterbridge imports
@@ -44,6 +44,9 @@ import {
   onOffOutlet,
   smokeCoAlarm,
   MatterbridgeSmokeCoAlarmServer,
+  waterLeakDetector,
+  waterFreezeDetector,
+  contactSensor,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
@@ -62,6 +65,7 @@ import {
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
 } from './converters.js';
+import { BooleanStateServer } from 'matterbridge/matter/behaviors';
 
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   // NodeStorageManager
@@ -423,9 +427,44 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.info(`Creating endpoint ${CYAN}${entity.entity_id}${nf} for device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
         const child = await mutableDevice.createChildEndpoint(entity.entity_id);
 
+        // Special case for binary_sensor domain: configure the contactSensor cluster default values.
+        if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === contactSensor.code) {
+          mutableDevice.addClusterServerObjs(
+            entity.entity_id,
+            getClusterServerObj(
+              BooleanState.Cluster.id,
+              BooleanStateServer.enable({
+                events: { stateChange: true },
+              }),
+              {
+                stateValue: hassState.state === 'on' ? false : true,
+              },
+            ),
+          );
+        }
+
+        // Special case for binary_sensor domain: configure the waterLeakDetector and waterFreezeDetector cluster default values.
+        if (
+          domain === 'binary_sensor' &&
+          (mutableDevice.get(entity.entity_id).deviceTypes[0].code === waterLeakDetector.code ||
+            mutableDevice.get(entity.entity_id).deviceTypes[0].code === waterFreezeDetector.code)
+        ) {
+          mutableDevice.addClusterServerObjs(
+            entity.entity_id,
+            getClusterServerObj(
+              BooleanState.Cluster.id,
+              BooleanStateServer.enable({
+                events: { stateChange: true },
+              }),
+              {
+                stateValue: hassState.state === 'on' ? true : false,
+              },
+            ),
+          );
+        }
+
         // Special case for binary_sensor domain: configure the smokeCoAlarm cluster default values. Here we need the fixed attributes to be set.
         if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code) {
-          this.log.debug(`= smokeCoAlarm expressedState: ${CYAN}${hassState.state}${db}`);
           mutableDevice.addClusterServerObjs(
             entity.entity_id,
             getClusterServerObj(
