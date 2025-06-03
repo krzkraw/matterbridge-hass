@@ -19,7 +19,6 @@
     "url": "https://www.buymeacoffee.com/luligugithub"
   },
   "keywords": [
-    "shelly",
     "matterbridge",
     "homebridge",
     "bridge",
@@ -39,6 +38,7 @@
     "google-home",
     "alexa",
     "homeassistant",
+    "hass",
     "smartthings",
     "ewelink"
   ],
@@ -58,6 +58,7 @@
     "test:coverage": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --coverage",
     "test:index": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js index.test.ts --verbose --coverage",
     "test:platform": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js platform.test.ts --verbose --coverage",
+    "test:matterplatform": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js platform.matter.test.ts --verbose --coverage",
     "test:converters": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js converters.test.ts --verbose --coverage",
     "test:mutableDevice": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js mutableDevice.test.ts --verbose --coverage",
     "test:homeAssistant": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js homeAssistant.test.ts --verbose --coverage",
