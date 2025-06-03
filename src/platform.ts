@@ -27,7 +27,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
 // @matter imports
-import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation } from 'matterbridge/matter/clusters';
+import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation, SmokeCoAlarm } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 
 // Matterbridge imports
@@ -42,6 +42,8 @@ import {
   colorTemperatureLight,
   extendedColorLight,
   onOffOutlet,
+  smokeCoAlarm,
+  MatterbridgeSmokeCoAlarmServer,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
@@ -420,6 +422,41 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         if (!mutableDevice.has(entity.entity_id)) continue;
         this.log.info(`Creating endpoint ${CYAN}${entity.entity_id}${nf} for device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
         const child = await mutableDevice.createChildEndpoint(entity.entity_id);
+
+        // Special case for binary_sensor domain: configure the smokeCoAlarm cluster default values. Here we need the fixed attributes to be set.
+        if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code) {
+          this.log.debug(`= smokeCoAlarm expressedState: ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerObjs(
+            entity.entity_id,
+            getClusterServerObj(
+              SmokeCoAlarm.Cluster.id,
+              MatterbridgeSmokeCoAlarmServer.with(SmokeCoAlarm.Feature.SmokeAlarm).enable({
+                events: {
+                  smokeAlarm: true,
+                  interconnectSmokeAlarm: false,
+                  coAlarm: false,
+                  interconnectCoAlarm: false,
+                  lowBattery: true,
+                  hardwareFault: true,
+                  endOfService: true,
+                  selfTestComplete: true,
+                  alarmMuted: true,
+                  muteEnded: true,
+                  allClear: true,
+                },
+              }),
+              {
+                smokeState: hassState.state === 'on' ? SmokeCoAlarm.ExpressedState.SmokeAlarm : SmokeCoAlarm.ExpressedState.Normal,
+                expressedState: SmokeCoAlarm.ExpressedState.Normal,
+                batteryAlert: SmokeCoAlarm.AlarmState.Normal,
+                deviceMuted: SmokeCoAlarm.MuteState.NotMuted,
+                testInProgress: false,
+                hardwareFaultAlert: false,
+                endOfServiceAlert: SmokeCoAlarm.EndOfService.Normal,
+              },
+            ),
+          );
+        }
 
         // Special case for light domain: configure the color control cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
         if (
