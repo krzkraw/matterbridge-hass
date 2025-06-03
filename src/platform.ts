@@ -44,7 +44,7 @@ import {
   onOffOutlet,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
-import { deepEqual, isValidArray, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
+import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
 // Plugin imports
@@ -94,6 +94,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
     this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 0) ? config.reconnectTimeout : undefined;
     this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
+    this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : undefined;
+    this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : undefined;
     if (config.individualEntityWhiteList) delete config.individualEntityWhiteList;
     if (config.individualEntityBlackList) delete config.individualEntityBlackList;
 
@@ -163,6 +165,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     });
 
     this.ha.on('event', this.updateHandler.bind(this));
+
+    this.log.info(`Initialized platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
   }
 
   override async onStart(reason?: string) {
@@ -194,22 +198,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     };
     await waiter('Home Assistant connected', check, true, 30000, 1000); // Wait for 30 seconds with 1 second interval and throw error if not connected
 
-    // Save devices, entities, states, config and services to a local file
-    const payload = {
-      devices: Array.from(this.ha.hassDevices.values()),
-      entities: Array.from(this.ha.hassEntities.values()),
-      areas: Array.from(this.ha.hassAreas.values()),
-      states: Array.from(this.ha.hassStates.values()),
-      config: this.ha.hassConfig,
-      services: this.ha.hassServices,
-    };
-    fs.writeFile(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'), JSON.stringify(payload, null, 2))
-      .then(() => {
-        this.log.debug('Payload successfully written to homeassistant.json');
-      })
-      .catch((error) => {
-        this.log.error(`Error writing payload to file: ${error}`);
-      });
+    // Save devices, entities, states, config and services to a local file without awaiting
+    this.savePayload(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'));
 
     // Clean the selectDevice and selectEntity maps
     await this.ready;
@@ -590,7 +580,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               hassSubscribe.clusterId,
               hassSubscribe.attribute,
               (newValue: any, oldValue: any, context) => {
-                if (context.offline === true) {
+                if (context && context.offline === true) {
                   matterbridgeDevice?.log.debug(
                     `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
                       `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} changed for an offline update`,
@@ -701,6 +691,24 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     } else {
       mbDevice.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
     }
+  }
+
+  private savePayload(filename: string) {
+    const payload = {
+      devices: Array.from(this.ha.hassDevices.values()),
+      entities: Array.from(this.ha.hassEntities.values()),
+      areas: Array.from(this.ha.hassAreas.values()),
+      states: Array.from(this.ha.hassStates.values()),
+      config: this.ha.hassConfig,
+      services: this.ha.hassServices,
+    };
+    fs.writeFile(filename, JSON.stringify(payload, null, 2))
+      .then(() => {
+        this.log.debug(`Payload successfully written to ${filename}`);
+      })
+      .catch((error) => {
+        this.log.error(`Error writing payload to file ${filename}: ${error}`);
+      });
   }
 
   /*

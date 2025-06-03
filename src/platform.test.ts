@@ -58,7 +58,7 @@ describe('HassPlatform', () => {
       // console.log('mockLog.info', message, parameters);
     }),
     debug: jest.fn((message: string, ...parameters: any[]) => {
-      // console.error('mockLog.debug', message, parameters);
+      // console.log('mockLog.debug', message, parameters);
     }),
   } as unknown as AnsiLogger;
 
@@ -88,24 +88,26 @@ describe('HassPlatform', () => {
   } as unknown as Matterbridge;
 
   const mockConfig = {
-    'name': 'matterbridge-hass',
-    'type': 'DynamicPlatform',
-    'host': 'http://homeassistant.local:8123',
-    'token': 'long-lived token',
-    'reconnectTimeout': 60,
-    'reconnectRetries': 10,
-    'filterByArea': '',
-    'filterByLabel': '',
-    'blackList': [],
-    'whiteList': [],
-    'debug': false,
-    'unregisterOnShutdown': false,
+    name: 'matterbridge-hass',
+    type: 'DynamicPlatform',
+    host: 'http://homeassistant.local:8123',
+    token: 'long-lived token',
+    certificatePath: undefined,
+    rejectUnauthorized: true,
+    reconnectTimeout: 60,
+    reconnectRetries: 10,
+    filterByArea: '',
+    filterByLabel: '',
+    whiteList: [],
+    blackList: [],
+    entityBlackList: [],
+    deviceEntityBlackList: {},
+    debug: false,
+    unregisterOnShutdown: false,
   } as PlatformConfig;
 
   // let mockHomeAssistant: HomeAssistant;
   let haPlatform: HomeAssistantPlatform;
-  let mockMatterbridgeDevice: MatterbridgeEndpoint;
-  let mockEndpoint: Endpoint;
 
   const mockData = readMockHomeAssistantFile();
   if (!mockData) {
@@ -170,15 +172,6 @@ describe('HassPlatform', () => {
     });
 
   beforeAll(() => {
-    mockMatterbridgeDevice = {
-      deviceName: 'Switch',
-    } as unknown as MatterbridgeEndpoint;
-
-    mockEndpoint = {
-      name: 'MA-onoffswitch',
-      number: undefined,
-    } as unknown as Endpoint;
-
     // Spy on and mock the AnsiLogger.log method
     loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
       // console.log(`Mocked log: ${level} - ${message}`, ...parameters);
@@ -535,22 +528,15 @@ describe('HassPlatform', () => {
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     await wait(100);
-    expect(mockLog.debug).toHaveBeenCalledWith(`Payload successfully written to homeassistant.json`);
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Payload successfully written to`));
   });
 
-  // eslint-disable-next-line jest/no-commented-out-tests
-  /*
   it('should call onStart with reason and fail save payload', async () => {
     expect(haPlatform).toBeDefined();
-    jest.spyOn(path, 'join').mockImplementationOnce(() => {
-      return 'mock';
-    });
-    await haPlatform.onStart('Test reason');
-    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    (haPlatform as any).savePayload(mockMatterbridge.matterbridgePluginDirectory);
     await wait(100);
-    expect(mockLog.error).toHaveBeenCalledWith(`Error writing payload to file: Error: Failed to write file`);
+    expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining(`Error writing payload to`));
   });
-  */
 
   it('should receive events from ha', async () => {
     haPlatform.ha.emit('connected', '2024.09.1');
