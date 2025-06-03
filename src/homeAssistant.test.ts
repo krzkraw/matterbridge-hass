@@ -1119,7 +1119,7 @@ describe('HomeAssistant parser', () => {
       .forEach((property) => {
         output += `\n- ${property}`;
       });
-    consoleLogSpy.mockRestore();
+    // consoleLogSpy.mockRestore();
     console.log(output);
   });
 
@@ -1150,7 +1150,7 @@ describe('HomeAssistant parser', () => {
       .forEach((property) => {
         output += `\n- ${property}`;
       });
-    consoleLogSpy.mockRestore();
+    // consoleLogSpy.mockRestore();
     console.log(output);
   });
 
@@ -1173,9 +1173,10 @@ describe('HomeAssistant parser', () => {
       .forEach((property) => {
         output += `\n- ${property}`;
       });
-    consoleLogSpy.mockRestore();
+    // consoleLogSpy.mockRestore();
     console.log(output);
   });
+
   it('should test HassState properties', () => {
     if (!data) return;
     const properties = new Set<string>();
@@ -1212,7 +1213,7 @@ describe('HomeAssistant parser', () => {
       .forEach((property) => {
         output += `\n- ${property}`;
       });
-    consoleLogSpy.mockRestore();
+    // consoleLogSpy.mockRestore();
     console.log(output);
     output = 'HassState attributes properties:';
     Array.from(attributeProperties)

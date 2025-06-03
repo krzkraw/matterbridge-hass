@@ -258,6 +258,7 @@ interface HassWebSocketResponse {
   id: number;
   type: string;
   success: boolean;
+  ha_version?: string; // Home Assistant version, present in auth_required and auth_ok response
   error?: { code: string; message: string };
   event?: HassEvent;
   result?: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[];
@@ -267,7 +268,7 @@ interface HassWebSocketResponse {
 export type HomeAssistantPrimitive = string | number | bigint | boolean | object | null | undefined;
 
 interface HomeAssistantEventEmitter {
-  connected: [ha_version: HomeAssistantPrimitive];
+  connected: [ha_version: string];
   disconnected: [error: string];
   socket_closed: [code: number, reason: Buffer];
   socket_opened: [];
@@ -377,15 +378,21 @@ export class HomeAssistant extends EventEmitter {
 
   private onPing(data: Buffer) {
     this.log.debug('WebSocket ping received');
-    if (this.pingTimeout) clearTimeout(this.pingTimeout);
-    this.pingTimeout = null;
+    if (this.pingTimeout) {
+      clearTimeout(this.pingTimeout);
+      this.pingTimeout = null;
+      this.log.debug('Stopped ping timeout');
+    }
     this.emit('ping', data);
   }
 
   private onPong(data: Buffer) {
     this.log.debug('WebSocket pong received');
-    if (this.pingTimeout) clearTimeout(this.pingTimeout);
-    this.pingTimeout = null;
+    if (this.pingTimeout) {
+      clearTimeout(this.pingTimeout);
+      this.pingTimeout = null;
+      this.log.debug('Stopped ping timeout');
+    }
     this.emit('pong', data);
   }
 
@@ -405,8 +412,11 @@ export class HomeAssistant extends EventEmitter {
     }
     if (response.type === 'pong') {
       this.log.debug(`Home Assistant pong received with id ${response.id}`);
-      if (this.pingTimeout) clearTimeout(this.pingTimeout);
-      this.pingTimeout = null;
+      if (this.pingTimeout) {
+        clearTimeout(this.pingTimeout);
+        this.pingTimeout = null;
+        this.log.debug('Stopped ping timeout');
+      }
       this.emit('pong', Buffer.from('Home Assistant pong received'));
     } else if (response.type === 'event') {
       if (!response.event) {
@@ -473,6 +483,7 @@ export class HomeAssistant extends EventEmitter {
     this.connected = false;
     this.stopPing();
     this.emit('socket_closed', code, reason);
+    this.emit('disconnected', `Code: ${code} Reason: ${reason.toString()}`);
     this.startReconnect();
   }
 
@@ -523,6 +534,7 @@ export class HomeAssistant extends EventEmitter {
             return reject(new Error(`Error parsing WebSocket message: ${error}`));
           }
           if (response.type === 'auth_required') {
+            this.log.debug(`Authentication required: ${debugStringify(response)}`);
             this.log.debug('Authentication required. Sending auth message...');
             this.ws?.send(
               JSON.stringify({
@@ -532,6 +544,7 @@ export class HomeAssistant extends EventEmitter {
             );
           } else if (response.type === 'auth_ok') {
             // Handle successful authentication
+            this.log.debug(`Authenticated successfully: ${debugStringify(response)}`);
             this.log.debug(`Authenticated successfully with Home Assistant v. ${response.ha_version}`);
             this.connected = true;
             this.reconnectRetry = 1; // Reset the reconnect retry count
@@ -542,7 +555,7 @@ export class HomeAssistant extends EventEmitter {
 
             // Start ping interval
             this.startPing();
-            this.emit('connected', response.ha_version);
+            this.emit('connected', response.ha_version || 'unknown');
             return resolve();
           }
         };
@@ -579,12 +592,15 @@ export class HomeAssistant extends EventEmitter {
           type: 'ping',
         }),
       );
+      this.log.debug('Starting ping timeout...');
       this.pingTimeout = setTimeout(() => {
         this.log.error('Ping timeout. Closing connection...');
         this.close();
         this.startReconnect();
-      }, this.pingTimeoutTime);
-    }, this.pingIntervalTime);
+      }, this.pingTimeoutTime).unref();
+      this.log.debug('Started ping timeout');
+    }, this.pingIntervalTime).unref();
+    this.log.debug('Started ping interval');
   }
 
   /**
@@ -596,10 +612,13 @@ export class HomeAssistant extends EventEmitter {
       clearInterval(this.pingInterval);
       this.pingInterval = null;
     }
+    this.log.debug('Stopped ping interval');
+    this.log.debug('Stopping ping timeout...');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
       this.pingTimeout = null;
     }
+    this.log.debug('Stopped ping timeout');
   }
 
   /**
