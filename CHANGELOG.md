@@ -20,6 +20,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Fixed
 
+- [reconnect]: Added missed call to fetchData and subscribe on reconnect.
+
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
