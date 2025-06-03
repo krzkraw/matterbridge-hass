@@ -29,7 +29,7 @@ let consoleDebugSpy: jest.SpiedFunction<typeof console.log>;
 let consoleInfoSpy: jest.SpiedFunction<typeof console.log>;
 let consoleWarnSpy: jest.SpiedFunction<typeof console.log>;
 let consoleErrorSpy: jest.SpiedFunction<typeof console.log>;
-const debug = true; // Set to true to enable debug logging
+const debug = false; // Set to true to enable debug logging
 
 if (!debug) {
   loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
@@ -289,7 +289,6 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
   });
 
-  /*
   it('should call onStart and register a Switch device', async () => {
     const switchDevice = {
       area_id: null,
@@ -443,7 +442,6 @@ describe('Matterbridge ' + NAME, () => {
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
-  */
 
   it('should call onStart and register a Contact device', async () => {
     const contactDevice = {
