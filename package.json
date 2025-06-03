@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -75,6 +75,10 @@
     "buildProduction": "tsc --project tsconfig.production.json",
     "cleanBuildProduction": "npm run clean && npm run buildProduction",
     "runMeBeforePublish": "npm run lint && npm run format && npm run build && npm run test",
+    "git:status": "git status && git branch -vv && git diff dev origin/dev",
+    "git:hardreset:main": "git fetch origin && git checkout main && git reset --hard origin/main",
+    "git:hardreset:dev": "git fetch origin && git checkout dev && git reset --hard origin/dev",
+    "git:hardreset:edge": "git fetch origin && git checkout edge && git reset --hard origin/edge",
     "npmPack": "copy package.json package.log && npm run prepublishOnly && npm pack && copy package.log package.json && npm run deepCleanBuild",
     "npmPublishTagDev": "copy package.json package.log && npm run prepublishOnly && npm publish --tag dev && copy package.log package.json && npm run deepCleanBuild",
     "npmPublishTagLatest": "copy package.json package.log && npm run prepublishOnly && npm publish --tag latest && copy package.log package.json && npm run deepCleanBuild",
