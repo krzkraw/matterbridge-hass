@@ -344,7 +344,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.addDeviceTypes('', bridgedNode);
       mutableDevice.composedType = 'Hass Device';
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
-      matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/devices/device/${device.id}`;
+      matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/devices/device/${device.id}`;
 
       // Scan entities that belong to this device for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
@@ -443,7 +443,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           );
         }
 
-        // Special case for binary_sensor domain: configure the waterLeakDetector and waterFreezeDetector cluster default values.
+        // Special case for binary_sensor domain: configure the BooleanState cluster default value.
         if (
           domain === 'binary_sensor' &&
           (mutableDevice.get(entity.entity_id).deviceTypes[0].code === waterLeakDetector.code ||
@@ -463,7 +463,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           );
         }
 
-        // Special case for binary_sensor domain: configure the smokeCoAlarm cluster default values. Here we need the fixed attributes to be set.
+        // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature SmokeAlarm.
         if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code) {
           mutableDevice.addClusterServerObjs(
             entity.entity_id,
@@ -497,7 +497,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           );
         }
 
-        // Special case for light domain: configure the color control cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
+        // Special case for light domain: configure the ColorControl cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
         if (
           domain === 'light' &&
           (mutableDevice.get(entity.entity_id).deviceTypes[0].code === colorTemperatureLight.code ||
@@ -563,7 +563,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
         }
 
-        // Special case for climate domain: configure the thermostat cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
+        // Special case for climate domain: configure the Thermostat cluster default values and features. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
         if (domain === 'climate') {
           if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat_cool')) {
             mutableDevice.addClusterServerObjs(

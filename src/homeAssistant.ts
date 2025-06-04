@@ -106,8 +106,8 @@ export interface HassArea {
  */
 export interface HassContext {
   id: string;
-  user_id: string | null;
   parent_id: string | null;
+  user_id: string | null;
 }
 
 /**
@@ -187,18 +187,18 @@ export interface HassStateClimateAttributes {
  */
 export interface HassDataEvent {
   entity_id: string;
-  old_state: HassState | null;
   new_state: HassState | null;
+  old_state: HassState | null;
 }
 
 /**
  * Interface representing a Home Assistant event.
  */
 export interface HassEvent {
-  event_type: string;
   data: HassDataEvent;
-  origin: string;
+  event_type: string;
   time_fired: string;
+  origin: string; // Origin of the event (e.g., "LOCAL")
   context: HassContext;
 }
 
@@ -258,11 +258,84 @@ interface HassWebSocketResponse {
   id: number;
   type: string;
   success: boolean;
-  ha_version?: string; // Home Assistant version, present in auth_required and auth_ok response
-  error?: { code: string; message: string };
+  ha_version?: string; // Home Assistant version, present in type "auth_required" and "auth_ok" responses
+  message?: string; // Message for the response, present in type "auth_invalid" error responses
+  error?: { code: string; message: string }; // Error object for the response, present in type "result" error responses with success false
   event?: HassEvent;
   result?: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[];
-  [key: string]: HomeAssistantPrimitive;
+}
+interface _HassWebSocketResponseAuthRequired {
+  type: 'auth_required';
+  ha_version: string; // i.e. "2021.12.0"
+}
+
+interface _HassWebSocketResponseAuthOk {
+  type: 'auth_ok';
+  ha_version: string; // i.e. "2021.12.0"
+}
+interface _HassWebSocketResponseAuthInvalid {
+  type: 'auth_invalid';
+  message: string; // i.e. "Invalid access token"
+}
+interface _HassWebSocketResponseCommand {
+  id: number;
+  type: 'result';
+  success: boolean;
+  result: { context: HassContext; response?: unknown | null }; // The result of the command, can be null if the command does not return a result
+}
+interface HassWebSocketResponseFetch {
+  id: number;
+  type: 'result';
+  success: boolean;
+  result: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[] | null; // The result of the fetch command, can be null if the fetch fails or does not return a result
+  error?: { code: string; message: string }; // Error object for the response with success false
+}
+interface HassWebSocketResponseCallService {
+  id: number;
+  type: 'result';
+  success: boolean;
+  result: { context: HassContext; response: unknown | null };
+  error?: { code: string; message: string }; // Error object for the response with success false
+}
+interface _HassWebSocketResponseSubscribeEvents {
+  id: number;
+  type: 'result';
+  success: true;
+  result: null; // The result is null for subscribe_events responses
+}
+interface _HassWebSocketResponseEvent {
+  id: number;
+  type: 'event';
+  event: HassEvent;
+}
+interface HassWebSocketMessageAuth {
+  type: 'auth';
+  access_token: string;
+}
+interface HassWebSocketMessageFetch {
+  id: number;
+  type: string; // The data to fetch: get_config, get_services, get_states...
+}
+interface _HassWebSocketMessageSubscribeEvents {
+  id: number;
+  type: 'subscribe_events';
+  event_type?: string; // Optional event type to subscribe to specific events (i.e. state_changed), if not provided all events are subscribed
+}
+interface HassWebSocketMessageCallService {
+  id: number;
+  type: 'call_service';
+  domain: string;
+  service: string;
+  service_data?: { entity_id: string } & Record<string, HomeAssistantPrimitive>; // Optional service data to send with the service call
+  target?: {
+    entity_id: string;
+  };
+  return_response?: boolean; // Optional flag to return a response from the service call, defaults to false
+}
+interface _HassWebSocketMessageUnsubscribeEvents {
+  id: number;
+  type: 'unsubscribe_events';
+  subscription: number; // ID of the subscription to unsubscribe from
 }
 
 export type HomeAssistantPrimitive = string | number | bigint | boolean | object | null | undefined;
@@ -540,7 +613,7 @@ export class HomeAssistant extends EventEmitter {
               JSON.stringify({
                 type: 'auth',
                 access_token: this.wsAccessToken,
-              }),
+              } as HassWebSocketMessageAuth),
             );
           } else if (response.type === 'auth_ok') {
             // Handle successful authentication
@@ -795,7 +868,7 @@ export class HomeAssistant extends EventEmitter {
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
-          const response = JSON.parse(event.data.toString()) as HassWebSocketResponse;
+          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseFetch;
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -815,7 +888,7 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(`Fetching async ${CYAN}${api}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type: api }));
+      this.ws.send(JSON.stringify({ id: requestId, type: api } as HassWebSocketMessageFetch));
     });
   }
 
@@ -852,7 +925,7 @@ export class HomeAssistant extends EventEmitter {
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
-          const response = JSON.parse(event.data.toString()) as HassWebSocketResponse;
+          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseCallService;
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -884,7 +957,7 @@ export class HomeAssistant extends EventEmitter {
             entity_id: entityId, // The entity_id of the device (e.g., light.living_room)
             ...serviceData, // Additional data to send with the command
           },
-        }),
+        } as HassWebSocketMessageCallService),
       );
     });
   }
