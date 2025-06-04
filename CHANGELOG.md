@@ -8,6 +8,27 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
+## [0.1.1] - 2025-06-04
+
+### Added
+
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'smoke'. It creates a smokeCoAlarm with SmokeCoAlarm cluster and feature SmokeAlarm.
+
+### Changed
+
+- [readme]: Updated readme for clarity.
+- [package]: Update package.
+- [package]: Update dependencies.
+
+### Fixed
+
+- [reconnect]: Added missed call to fetchData and subscribe on reconnect.
+- [startup]: Added correct value for BooleanState cluster to avoid controller alarms.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.1.0] - 2025-06-02
 
 ### Added

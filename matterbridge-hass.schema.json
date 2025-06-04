@@ -21,8 +21,7 @@
     },
     "certificatePath": {
       "description": "Fully qualified path to the SSL ca certificate file. This is only needed if you use a self-signed certificate and rejectUnauthorized is enabled.",
-      "type": "string",
-      "default": "homeassistant.crt"
+      "type": "string"
     },
     "rejectUnauthorized": {
       "description": "Ignore SSL certificate errors. It allows to connect to Home Assistant with self-signed certificates.",

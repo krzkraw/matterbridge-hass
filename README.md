@@ -5,7 +5,7 @@
 [![Docker Version](https://img.shields.io/docker/v/luligu/matterbridge?label=docker%20version&sort=semver)](https://hub.docker.com/r/luligu/matterbridge)
 [![Docker Pulls](https://img.shields.io/docker/pulls/luligu/matterbridge.svg)](https://hub.docker.com/r/luligu/matterbridge)
 ![Node.js CI](https://github.com/Luligu/matterbridge-hass/actions/workflows/build-matterbridge-plugin.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/Jest%20coverage-97%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Jest%20coverage-100%25-brightgreen)
 
 [![power by](https://img.shields.io/badge/powered%20by-matterbridge-blue)](https://www.npmjs.com/package/matterbridge)
 [![power by](https://img.shields.io/badge/powered%20by-node--ansi--logger-blue)](https://www.npmjs.com/package/node-ansi-logger)
@@ -29,37 +29,36 @@ Features:
 - It is possible to select from a list the entities to include in the device entity black list.
 - It is possible to postfix the Matter device serialNumber or the Matter device name to avoid collision with other instances.
 
-Supported devices:
+## Supported devices:
 
-- switch (with state on/off)
+| Domain  | Supported states                     | Supported attributes                                                |
+| ------- | ------------------------------------ | ------------------------------------------------------------------- |
+| switch  | on, off                              |                                                                     |
+| light   | on, off                              | brightness, color_mode, color_temp, hs_color, xy_color              |
+| lock    | locked, locking, unlocking, unlocked |                                                                     |
+| fan     | on, off                              | percentage, preset_mode                                             |
+| cover   | open, closed, opening, closing       | current_position                                                    |
+| climate | off, heat, cool, heat_cool           | temperature, current_temperature, target_temp_low, target_temp_high |
 
-- light (with state on/off and attributes brightness/color_mode/color_temp/hs_color/xy_color)
+## Supported sensors:
 
-- lock (with state locked/locking/unlocking/unlocked)
+| Domain        | Supported state class | Supported device class                                    |
+| ------------- | --------------------- | --------------------------------------------------------- |
+| sensor        | measurement           | temperature, humidity, pressure, illuminance              |
+| binary_sensor |                       | door, vibration, motion, occupancy, cold, moisture, smoke |
 
-- fan (with state on/off and attributes percentage/preset_mode)
+## Supported individual entities:
 
-- cover (with state open/closed/opening/closing and attribute current_position)
+| Domain        | Category    |
+| ------------- | ----------- |
+| automation    | Automations |
+| scene         | Scenes      |
+| script        | Scripts     |
+| input_boolean | Helpers     |
+| input_button  | Helpers     |
+| switch        | Template    |
 
-- climate (with state off/heat/cool/heat_cool and attribute temperature/current_temperature/target_temp_low/target_temp_high)
-
-- sensor (with deviceClass temperature/humidity/pressure/illuminance)
-
-- binary_sensor (with deviceClass door/vibration/motion/occupancy/cold/moisture)
-
-Supported individual entities:
-
-- automation
-
-- scene
-
-- script
-
-- helpers of domain input_boolean and input_button
-
-- templates of domain switch
-
-These entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated automation, scene, or script. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean and the switch template maintain the on / off state.
+These individual entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated entity. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean and the switch template maintain the on/off state.
 
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 

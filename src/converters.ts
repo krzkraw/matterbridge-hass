@@ -37,6 +37,7 @@ import {
   occupancySensor,
   onOffLight,
   onOffOutlet,
+  smokeCoAlarm,
   temperatureSensor,
   thermostatDevice,
   waterFreezeDetector,
@@ -58,6 +59,7 @@ import {
   ColorControl,
   BooleanState,
   OccupancySensing,
+  SmokeCoAlarm,
 } from 'matterbridge/matter/clusters';
 
 import { HassState } from './homeAssistant.js';
@@ -177,12 +179,13 @@ export const hassDomainSensorsConverter: { domain: string; withStateClass: strin
 // prettier-ignore
 export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: any }[] = [
     // { domain: 'binary_sensor',    withDeviceClass: 'battery',     deviceType: powerSource,          clusterId: PowerSource.Cluster.id,        attribute: 'batChargeLevel',  converter: (value: string) => (value === 'off' ? 0 : 2) },
-    { domain: 'binary_sensor',    withDeviceClass: 'door',        deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? false : true) },
-    { domain: 'binary_sensor',    withDeviceClass: 'vibration',   deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? true : false) },
-    { domain: 'binary_sensor',    withDeviceClass: 'cold',        deviceType: waterFreezeDetector,  clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? true : false) },
-    { domain: 'binary_sensor',    withDeviceClass: 'moisture',    deviceType: waterLeakDetector,    clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',  converter: (value: string) => (value === 'on' ? true : false) },
-    { domain: 'binary_sensor',    withDeviceClass: 'occupancy',   deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',   converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
-    { domain: 'binary_sensor',    withDeviceClass: 'motion',      deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',   converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
+    { domain: 'binary_sensor',    withDeviceClass: 'door',        deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? false : true) },
+    { domain: 'binary_sensor',    withDeviceClass: 'vibration',   deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? false : true) },
+    { domain: 'binary_sensor',    withDeviceClass: 'cold',        deviceType: waterFreezeDetector,  clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? true : false) },
+    { domain: 'binary_sensor',    withDeviceClass: 'moisture',    deviceType: waterLeakDetector,    clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? true : false) },
+    { domain: 'binary_sensor',    withDeviceClass: 'occupancy',   deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',       converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
+    { domain: 'binary_sensor',    withDeviceClass: 'motion',      deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',       converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
+    { domain: 'binary_sensor',    withDeviceClass: 'smoke',       deviceType: smokeCoAlarm,         clusterId: SmokeCoAlarm.Cluster.id,       attribute: 'expressedState',  converter: (value: string) => (value === 'on' ?  SmokeCoAlarm.ExpressedState.SmokeAlarm :  SmokeCoAlarm.ExpressedState.Normal) },
   ];
 
 // Convert Home Assistant domains services to Matterbridge commands for device types

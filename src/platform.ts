@@ -27,7 +27,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
 // @matter imports
-import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation } from 'matterbridge/matter/clusters';
+import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation, SmokeCoAlarm, BooleanState } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 
 // Matterbridge imports
@@ -42,9 +42,14 @@ import {
   colorTemperatureLight,
   extendedColorLight,
   onOffOutlet,
+  smokeCoAlarm,
+  MatterbridgeSmokeCoAlarmServer,
+  waterLeakDetector,
+  waterFreezeDetector,
+  contactSensor,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
-import { deepEqual, isValidArray, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
+import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
 // Plugin imports
@@ -60,6 +65,7 @@ import {
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
 } from './converters.js';
+import { BooleanStateServer } from 'matterbridge/matter/behaviors';
 
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   // NodeStorageManager
@@ -94,6 +100,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
     this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 0) ? config.reconnectTimeout : undefined;
     this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
+    this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : undefined;
+    this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : undefined;
     if (config.individualEntityWhiteList) delete config.individualEntityWhiteList;
     if (config.individualEntityBlackList) delete config.individualEntityBlackList;
 
@@ -106,8 +114,24 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       config.rejectUnauthorized as boolean | undefined,
     );
 
-    this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
+    this.ha.on('connected', async (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
+
+      this.log.info(`Fetching data from Home Assistant...`);
+      try {
+        await this.ha.fetchData();
+        this.log.info(`Fetched data from Home Assistant successfully`);
+      } catch (error) {
+        this.log.error(`Error fetching data from Home Assistant: ${error}`);
+      }
+
+      this.log.info(`Subscribing to Home Assistant events...`);
+      try {
+        await this.ha.subscribe();
+        this.log.info(`Subscribed to Home Assistant events successfully`);
+      } catch (error) {
+        this.log.error(`Error subscribing to Home Assistant events: ${error}`);
+      }
     });
 
     this.ha.on('disconnected', () => {
@@ -147,6 +171,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     });
 
     this.ha.on('event', this.updateHandler.bind(this));
+
+    this.log.info(`Initialized platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
   }
 
   override async onStart(reason?: string) {
@@ -166,10 +192,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await fs.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
+    this.log.info(`Connecting to Home Assistant at ${CYAN}${this.config.host}${nf}...`);
     try {
       await this.ha.connect();
-      await this.ha.fetchData();
-      await this.ha.subscribe();
+      this.log.info(`Connected to Home Assistant at ${CYAN}${this.config.host}${nf}`);
     } catch (error) {
       this.log.error(`Error connecting to Home Assistant: ${error}`);
     }
@@ -178,22 +204,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     };
     await waiter('Home Assistant connected', check, true, 30000, 1000); // Wait for 30 seconds with 1 second interval and throw error if not connected
 
-    // Save devices, entities, states, config and services to a local file
-    const payload = {
-      devices: Array.from(this.ha.hassDevices.values()),
-      entities: Array.from(this.ha.hassEntities.values()),
-      areas: Array.from(this.ha.hassAreas.values()),
-      states: Array.from(this.ha.hassStates.values()),
-      config: this.ha.hassConfig,
-      services: this.ha.hassServices,
-    };
-    fs.writeFile(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'), JSON.stringify(payload, null, 2))
-      .then(() => {
-        this.log.debug('Payload successfully written to homeassistant.json');
-      })
-      .catch((error) => {
-        this.log.error(`Error writing payload to file: ${error}`);
-      });
+    // Save devices, entities, states, config and services to a local file without awaiting
+    this.savePayload(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'));
 
     // Clean the selectDevice and selectEntity maps
     await this.ready;
@@ -220,7 +232,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
       if (this.hasDeviceName(entityName)) {
-        this.log.warn(`Individual entity ${CYAN}${entityName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
+        this.log.warn(`Individual entity ${CYAN}${entityName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
       if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
@@ -308,7 +320,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectDevice(device.id, deviceName, undefined, 'hub');
       if (!this.validateDevice([deviceName, device.id], true)) continue;
       if (this.hasDeviceName(deviceName)) {
-        this.log.warn(`Device ${CYAN}${deviceName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
+        this.log.warn(`Device ${CYAN}${deviceName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
       if (!this.isValidAreaLabel(device.area_id, device.labels)) {
@@ -332,17 +344,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.addDeviceTypes('', bridgedNode);
       mutableDevice.composedType = 'Hass Device';
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
-      matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/devices/device/${device.id}`;
+      matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/devices/device/${device.id}`;
 
       // Scan entities that belong to this device for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
         const domain = entity.entity_id.split('.')[0];
 
-        // Get the device state
+        // Get the device state. If the entity is disabled, it doesn't have a state, we skip it.
         const hassState = this.ha.hassStates.get(entity.entity_id);
         if (!hassState) {
-          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}: state not found`);
+          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
           continue;
         }
 
@@ -351,10 +363,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         if (hassDomains.length > 0) {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}`);
           const entityName = entity.name ?? entity.original_name ?? deviceName;
-          if (!isValidString(entityName, 1)) {
-            this.log.debug(`Entity ${CYAN}${entity.entity_id}${db} has not valid name. Skipping...`);
-            continue;
-          }
           this.setSelectDeviceEntity(device.id, entity.entity_id, entityName, 'component');
           this.setSelectEntity(entityName, entity.entity_id, 'component');
           if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
@@ -419,7 +427,77 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.info(`Creating endpoint ${CYAN}${entity.entity_id}${nf} for device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
         const child = await mutableDevice.createChildEndpoint(entity.entity_id);
 
-        // Special case for light domain: configure the color control cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
+        // Special case for binary_sensor domain: configure the contactSensor cluster default values.
+        if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === contactSensor.code) {
+          mutableDevice.addClusterServerObjs(
+            entity.entity_id,
+            getClusterServerObj(
+              BooleanState.Cluster.id,
+              BooleanStateServer.enable({
+                events: { stateChange: true },
+              }),
+              {
+                stateValue: hassState.state === 'on' ? false : true,
+              },
+            ),
+          );
+        }
+
+        // Special case for binary_sensor domain: configure the BooleanState cluster default value.
+        if (
+          domain === 'binary_sensor' &&
+          (mutableDevice.get(entity.entity_id).deviceTypes[0].code === waterLeakDetector.code ||
+            mutableDevice.get(entity.entity_id).deviceTypes[0].code === waterFreezeDetector.code)
+        ) {
+          mutableDevice.addClusterServerObjs(
+            entity.entity_id,
+            getClusterServerObj(
+              BooleanState.Cluster.id,
+              BooleanStateServer.enable({
+                events: { stateChange: true },
+              }),
+              {
+                stateValue: hassState.state === 'on' ? true : false,
+              },
+            ),
+          );
+        }
+
+        // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature SmokeAlarm.
+        if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code) {
+          mutableDevice.addClusterServerObjs(
+            entity.entity_id,
+            getClusterServerObj(
+              SmokeCoAlarm.Cluster.id,
+              MatterbridgeSmokeCoAlarmServer.with(SmokeCoAlarm.Feature.SmokeAlarm).enable({
+                events: {
+                  smokeAlarm: true,
+                  interconnectSmokeAlarm: false,
+                  coAlarm: false,
+                  interconnectCoAlarm: false,
+                  lowBattery: true,
+                  hardwareFault: true,
+                  endOfService: true,
+                  selfTestComplete: true,
+                  alarmMuted: true,
+                  muteEnded: true,
+                  allClear: true,
+                },
+              }),
+              {
+                smokeState: hassState.state === 'on' ? SmokeCoAlarm.ExpressedState.SmokeAlarm : SmokeCoAlarm.ExpressedState.Normal,
+                expressedState: SmokeCoAlarm.ExpressedState.Normal,
+                batteryAlert: SmokeCoAlarm.AlarmState.Normal,
+                deviceMuted: SmokeCoAlarm.MuteState.NotMuted,
+                testInProgress: false,
+                hardwareFaultAlert: false,
+                endOfServiceAlert: SmokeCoAlarm.EndOfService.Normal,
+              },
+            ),
+          );
+        }
+
+        // Special case for light domain: configure the ColorControl cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
         if (
           domain === 'light' &&
           (mutableDevice.get(entity.entity_id).deviceTypes[0].code === colorTemperatureLight.code ||
@@ -485,7 +563,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
         }
 
-        // Special case for climate domain: configure the thermostat cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
+        // Special case for climate domain: configure the Thermostat cluster default values and features. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
         if (domain === 'climate') {
           if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat_cool')) {
             mutableDevice.addClusterServerObjs(
@@ -578,7 +656,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               hassSubscribe.clusterId,
               hassSubscribe.attribute,
               (newValue: any, oldValue: any, context) => {
-                if (context.offline === true) {
+                if (context && context.offline === true) {
                   matterbridgeDevice?.log.debug(
                     `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
                       `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} changed for an offline update`,
@@ -634,7 +712,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.log.debug(`Configuring state ${CYAN}${state.entity_id}${db} for device ${CYAN}${deviceId}${db}`);
           this.updateHandler(deviceId, state.entity_id, state, state);
         } else {
-          this.log.debug(`Configuring state on individual entities ${CYAN}${state.entity_id}${db}`);
+          this.log.debug(`Configuring state on individual entity ${CYAN}${state.entity_id}${db}`);
           this.updateHandler(null, state.entity_id, state, state);
         }
       }
@@ -689,6 +767,24 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     } else {
       mbDevice.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
     }
+  }
+
+  private savePayload(filename: string) {
+    const payload = {
+      devices: Array.from(this.ha.hassDevices.values()),
+      entities: Array.from(this.ha.hassEntities.values()),
+      areas: Array.from(this.ha.hassAreas.values()),
+      states: Array.from(this.ha.hassStates.values()),
+      config: this.ha.hassConfig,
+      services: this.ha.hassServices,
+    };
+    fs.writeFile(filename, JSON.stringify(payload, null, 2))
+      .then(() => {
+        this.log.debug(`Payload successfully written to ${filename}`);
+      })
+      .catch((error) => {
+        this.log.error(`Error writing payload to file ${filename}: ${error}`);
+      });
   }
 
   /*

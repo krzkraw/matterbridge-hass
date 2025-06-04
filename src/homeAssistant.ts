@@ -106,8 +106,8 @@ export interface HassArea {
  */
 export interface HassContext {
   id: string;
-  user_id: string | null;
   parent_id: string | null;
+  user_id: string | null;
 }
 
 /**
@@ -187,18 +187,18 @@ export interface HassStateClimateAttributes {
  */
 export interface HassDataEvent {
   entity_id: string;
-  old_state: HassState | null;
   new_state: HassState | null;
+  old_state: HassState | null;
 }
 
 /**
  * Interface representing a Home Assistant event.
  */
 export interface HassEvent {
-  event_type: string;
   data: HassDataEvent;
-  origin: string;
+  event_type: string;
   time_fired: string;
+  origin: string; // Origin of the event (e.g., "LOCAL")
   context: HassContext;
 }
 
@@ -258,16 +258,90 @@ interface HassWebSocketResponse {
   id: number;
   type: string;
   success: boolean;
-  error?: { code: string; message: string };
+  ha_version?: string; // Home Assistant version, present in type "auth_required" and "auth_ok" responses
+  message?: string; // Message for the response, present in type "auth_invalid" error responses
+  error?: { code: string; message: string }; // Error object for the response, present in type "result" error responses with success false
   event?: HassEvent;
   result?: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[];
-  [key: string]: HomeAssistantPrimitive;
+}
+interface _HassWebSocketResponseAuthRequired {
+  type: 'auth_required';
+  ha_version: string; // i.e. "2021.12.0"
+}
+
+interface _HassWebSocketResponseAuthOk {
+  type: 'auth_ok';
+  ha_version: string; // i.e. "2021.12.0"
+}
+interface _HassWebSocketResponseAuthInvalid {
+  type: 'auth_invalid';
+  message: string; // i.e. "Invalid access token"
+}
+interface _HassWebSocketResponseCommand {
+  id: number;
+  type: 'result';
+  success: boolean;
+  result: { context: HassContext; response?: unknown | null }; // The result of the command, can be null if the command does not return a result
+}
+interface HassWebSocketResponseFetch {
+  id: number;
+  type: 'result';
+  success: boolean;
+  result: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[] | null; // The result of the fetch command, can be null if the fetch fails or does not return a result
+  error?: { code: string; message: string }; // Error object for the response with success false
+}
+interface HassWebSocketResponseCallService {
+  id: number;
+  type: 'result';
+  success: boolean;
+  result: { context: HassContext; response: unknown | null };
+  error?: { code: string; message: string }; // Error object for the response with success false
+}
+interface _HassWebSocketResponseSubscribeEvents {
+  id: number;
+  type: 'result';
+  success: true;
+  result: null; // The result is null for subscribe_events responses
+}
+interface _HassWebSocketResponseEvent {
+  id: number;
+  type: 'event';
+  event: HassEvent;
+}
+interface HassWebSocketMessageAuth {
+  type: 'auth';
+  access_token: string;
+}
+interface HassWebSocketMessageFetch {
+  id: number;
+  type: string; // The data to fetch: get_config, get_services, get_states...
+}
+interface _HassWebSocketMessageSubscribeEvents {
+  id: number;
+  type: 'subscribe_events';
+  event_type?: string; // Optional event type to subscribe to specific events (i.e. state_changed), if not provided all events are subscribed
+}
+interface HassWebSocketMessageCallService {
+  id: number;
+  type: 'call_service';
+  domain: string;
+  service: string;
+  service_data?: { entity_id: string } & Record<string, HomeAssistantPrimitive>; // Optional service data to send with the service call
+  target?: {
+    entity_id: string;
+  };
+  return_response?: boolean; // Optional flag to return a response from the service call, defaults to false
+}
+interface _HassWebSocketMessageUnsubscribeEvents {
+  id: number;
+  type: 'unsubscribe_events';
+  subscription: number; // ID of the subscription to unsubscribe from
 }
 
 export type HomeAssistantPrimitive = string | number | bigint | boolean | object | null | undefined;
 
 interface HomeAssistantEventEmitter {
-  connected: [ha_version: HomeAssistantPrimitive];
+  connected: [ha_version: string];
   disconnected: [error: string];
   socket_closed: [code: number, reason: Buffer];
   socket_opened: [];
@@ -377,15 +451,21 @@ export class HomeAssistant extends EventEmitter {
 
   private onPing(data: Buffer) {
     this.log.debug('WebSocket ping received');
-    if (this.pingTimeout) clearTimeout(this.pingTimeout);
-    this.pingTimeout = null;
+    if (this.pingTimeout) {
+      clearTimeout(this.pingTimeout);
+      this.pingTimeout = null;
+      this.log.debug('Stopped ping timeout');
+    }
     this.emit('ping', data);
   }
 
   private onPong(data: Buffer) {
     this.log.debug('WebSocket pong received');
-    if (this.pingTimeout) clearTimeout(this.pingTimeout);
-    this.pingTimeout = null;
+    if (this.pingTimeout) {
+      clearTimeout(this.pingTimeout);
+      this.pingTimeout = null;
+      this.log.debug('Stopped ping timeout');
+    }
     this.emit('pong', data);
   }
 
@@ -405,8 +485,11 @@ export class HomeAssistant extends EventEmitter {
     }
     if (response.type === 'pong') {
       this.log.debug(`Home Assistant pong received with id ${response.id}`);
-      if (this.pingTimeout) clearTimeout(this.pingTimeout);
-      this.pingTimeout = null;
+      if (this.pingTimeout) {
+        clearTimeout(this.pingTimeout);
+        this.pingTimeout = null;
+        this.log.debug('Stopped ping timeout');
+      }
       this.emit('pong', Buffer.from('Home Assistant pong received'));
     } else if (response.type === 'event') {
       if (!response.event) {
@@ -473,6 +556,7 @@ export class HomeAssistant extends EventEmitter {
     this.connected = false;
     this.stopPing();
     this.emit('socket_closed', code, reason);
+    this.emit('disconnected', `Code: ${code} Reason: ${reason.toString()}`);
     this.startReconnect();
   }
 
@@ -523,15 +607,17 @@ export class HomeAssistant extends EventEmitter {
             return reject(new Error(`Error parsing WebSocket message: ${error}`));
           }
           if (response.type === 'auth_required') {
+            this.log.debug(`Authentication required: ${debugStringify(response)}`);
             this.log.debug('Authentication required. Sending auth message...');
             this.ws?.send(
               JSON.stringify({
                 type: 'auth',
                 access_token: this.wsAccessToken,
-              }),
+              } as HassWebSocketMessageAuth),
             );
           } else if (response.type === 'auth_ok') {
             // Handle successful authentication
+            this.log.debug(`Authenticated successfully: ${debugStringify(response)}`);
             this.log.debug(`Authenticated successfully with Home Assistant v. ${response.ha_version}`);
             this.connected = true;
             this.reconnectRetry = 1; // Reset the reconnect retry count
@@ -542,7 +628,7 @@ export class HomeAssistant extends EventEmitter {
 
             // Start ping interval
             this.startPing();
-            this.emit('connected', response.ha_version);
+            this.emit('connected', response.ha_version || 'unknown');
             return resolve();
           }
         };
@@ -579,12 +665,15 @@ export class HomeAssistant extends EventEmitter {
           type: 'ping',
         }),
       );
+      this.log.debug('Starting ping timeout...');
       this.pingTimeout = setTimeout(() => {
         this.log.error('Ping timeout. Closing connection...');
         this.close();
         this.startReconnect();
-      }, this.pingTimeoutTime);
-    }, this.pingIntervalTime);
+      }, this.pingTimeoutTime).unref();
+      this.log.debug('Started ping timeout');
+    }, this.pingIntervalTime).unref();
+    this.log.debug('Started ping interval');
   }
 
   /**
@@ -596,10 +685,13 @@ export class HomeAssistant extends EventEmitter {
       clearInterval(this.pingInterval);
       this.pingInterval = null;
     }
+    this.log.debug('Stopped ping interval');
+    this.log.debug('Stopping ping timeout...');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
       this.pingTimeout = null;
     }
+    this.log.debug('Stopped ping timeout');
   }
 
   /**
@@ -776,7 +868,7 @@ export class HomeAssistant extends EventEmitter {
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
-          const response = JSON.parse(event.data.toString()) as HassWebSocketResponse;
+          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseFetch;
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -796,7 +888,7 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(`Fetching async ${CYAN}${api}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type: api }));
+      this.ws.send(JSON.stringify({ id: requestId, type: api } as HassWebSocketMessageFetch));
     });
   }
 
@@ -833,7 +925,7 @@ export class HomeAssistant extends EventEmitter {
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
-          const response = JSON.parse(event.data.toString()) as HassWebSocketResponse;
+          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseCallService;
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -865,7 +957,7 @@ export class HomeAssistant extends EventEmitter {
             entity_id: entityId, // The entity_id of the device (e.g., light.living_room)
             ...serviceData, // Additional data to send with the command
           },
-        }),
+        } as HassWebSocketMessageCallService),
       );
     });
   }
