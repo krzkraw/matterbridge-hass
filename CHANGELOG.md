@@ -8,6 +8,34 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
+## Breaking changes
+
+Since release 0.1.0:
+
+- the config parameters individualEntityWhiteList and individualEntityBlackList have been removed. Use the normal white and black lists.
+- the config serialPostfix has been changed to postfix.
+
+## [0.1.2] - 2025-06-07
+
+### Added
+
+- [homeassistant]: Typed HassWebSocketResponses and HassWebSocketRequests.
+- [homeassistant]: Added subscribe() and Jest test.
+- [homeassistant]: Added unsubscribe() and Jest test.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'garage_door'. It creates a contactSensor with BooleanState cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'window'. It creates a contactSensor with BooleanState cluster.
+- [jest]: Added real Jest test to test the HomeAssistant api with a real Home Assistant setup.
+
+### Changed
+
+- [config]: Enhanced reconnect config description and set minimum value to 30 secs for reconnectTimeout.
+
+### Fixed
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.1.1] - 2025-06-04
 
 ### Added
@@ -23,7 +51,7 @@ If you like this project and find it useful, please consider giving it a star on
 ### Fixed
 
 - [reconnect]: Added missed call to fetchData and subscribe on reconnect.
-- [startup]: Added correct value for BooleanState cluster to avoid controller alarms.
+- [startup]: Added the value from state for BooleanState cluster to avoid controller alarms.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

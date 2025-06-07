@@ -5,7 +5,7 @@
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @date 2024-09-14
- * @version 1.0.2
+ * @version 1.1.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -119,12 +119,12 @@ export interface HassState {
   last_changed: string;
   last_reported: string;
   last_updated: string;
-  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes & Record<string, HomeAssistantPrimitive>;
+  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes;
   context: HassContext;
 }
 
 /**
- * Interface representing the attributes of a Home Assistant entity's state.
+ * Interface representing the generic attributes of a Home Assistant entity's state.
  */
 export interface HassStateAttributes {
   friendly_name?: string;
@@ -165,37 +165,39 @@ export interface HassStateLightAttributes {
  * Interface representing the attributes of a Home Assistant fan entity's state.
  */
 export interface HassStateFanAttributes {
-  preset_modes?: string[]; // List of supported fan modes (e.g., "low", "medium", "high", "auto")
-  preset_mode?: string; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity (e.g., "on", "off")
+  preset_modes?: ('auto' | 'low' | 'medium' | 'high')[]; // List of supported fan modes
+  preset_mode?: 'auto' | 'low' | 'medium' | 'high' | null; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity
   percentage?: number; // Current speed setting
-  percentage_step?: number; // Current speed of the fan entity
+  percentage_step?: number; // Current step speed setting of the fan entity
 }
 
 /**
  * Interface representing the attributes of a Home Assistant climate entity's state.
  */
 export interface HassStateClimateAttributes {
-  hvac_modes?: string[]; // List of supported HVAC modes (e.g., "off", "heat", "cool", "heat_cool", "auto", "dry", "fan_only")
-  temperature?: number; // Current temperature setting
-  current_temperature?: number; // Current temperature of the climate entity
-  fan_modes?: string[]; // List of supported fan modes (e.g., "auto", "low", "medium", "high")
-  fan_mode?: string | null; // Fan mode (e.g., "auto")
-}
-
-/**
- * Interface representing the data of a Home Assistant event.
- */
-export interface HassDataEvent {
-  entity_id: string;
-  new_state: HassState | null;
-  old_state: HassState | null;
+  hvac_modes?: ('off' | 'heat' | 'cool' | 'heat_cool' | 'auto' | 'dry' | 'fan_only')[]; // List of supported HVAC modes
+  hvac_mode?: 'off' | 'heat' | 'cool' | 'heat_cool' | 'auto' | 'dry' | 'fan_only' | null; // Current HVAC mode but also the state of the climate entity
+  preset_modes?: ('none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity')[]; // List of supported preset modes
+  preset_mode?: 'none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity' | null; // Current preset mode
+  fan_modes?: ('on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse')[]; // List of supported fan modes
+  fan_mode?: 'on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse' | null; // Fan mode
+  current_temperature?: number | null; // Current temperature of the climate entity
+  temperature?: number | null; // Target temperature setting for the climate entity (not in heat_cool thermostats)
+  target_temp_high?: number | null; // Target high temperature setting (for heat_cool thermostats)
+  target_temp_low?: number | null; // Target low temperature setting (for heat_cool thermostats)
+  min_temp?: number | null; // Minimum temperature setting
+  max_temp?: number | null; // Maximum temperature setting
 }
 
 /**
  * Interface representing a Home Assistant event.
  */
 export interface HassEvent {
-  data: HassDataEvent;
+  data: {
+    entity_id: string;
+    new_state: HassState | null;
+    old_state: HassState | null;
+  };
   event_type: string;
   time_fired: string;
   origin: string; // Origin of the event (e.g., "LOCAL")
@@ -254,74 +256,94 @@ export interface HassServices {
   [key: string]: HassService;
 }
 
-interface HassWebSocketResponse {
-  id: number;
-  type: string;
-  success: boolean;
-  ha_version?: string; // Home Assistant version, present in type "auth_required" and "auth_ok" responses
-  message?: string; // Message for the response, present in type "auth_invalid" error responses
-  error?: { code: string; message: string }; // Error object for the response, present in type "result" error responses with success false
-  event?: HassEvent;
-  result?: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[];
-}
-interface _HassWebSocketResponseAuthRequired {
+export type HassWebSocketResponse =
+  | HassWebSocketResponseAuthRequired
+  | HassWebSocketResponseAuthOk
+  | HassWebSocketResponseAuthInvalid
+  | HassWebSocketResponsePong
+  | HassWebSocketResponseEvent
+  | HassWebSocketResponseResult;
+
+export interface HassWebSocketResponseAuthRequired {
   type: 'auth_required';
   ha_version: string; // i.e. "2021.12.0"
 }
 
-interface _HassWebSocketResponseAuthOk {
+export interface HassWebSocketResponseAuthOk {
   type: 'auth_ok';
   ha_version: string; // i.e. "2021.12.0"
 }
-interface _HassWebSocketResponseAuthInvalid {
+
+export interface HassWebSocketResponseAuthInvalid {
   type: 'auth_invalid';
   message: string; // i.e. "Invalid access token"
 }
-interface _HassWebSocketResponseCommand {
-  id: number;
+
+export interface HassWebSocketResponsePong {
+  type: 'pong';
+  id: number; // The id of the ping request that this pong is responding to
+}
+
+export interface HassWebSocketResponseEvent {
+  id: number; // The id of the subscribe request that this event is responding to
+  type: 'event';
+  event: HassEvent;
+}
+
+export interface HassWebSocketResponseResult {
+  id: number; // The id of the subscribe_events request that this response is responding to
   type: 'result';
   success: boolean;
-  result: { context: HassContext; response?: unknown | null }; // The result of the command, can be null if the command does not return a result
+  result: null; // The result is null for subscribe_events responses
+  error?: { code: string; message: string }; // Error object for the response with success false
 }
-interface HassWebSocketResponseFetch {
-  id: number;
+
+export interface HassWebSocketResponseSuccess {
+  id: number; // The id of the fetch request that this response is responding to
+  type: 'result';
+  success: true;
+  result: unknown;
+}
+
+export interface HassWebSocketResponseError {
+  id: number; // The id of the fetch request that this response is responding to
+  type: 'result';
+  success: false;
+  error: { code: string; message: string }; // Error object for the response with success false
+}
+
+export interface HassWebSocketResponseFetch {
+  id: number; // The id of the fetch request that this response is responding to
   type: 'result';
   success: boolean;
   result: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[] | null; // The result of the fetch command, can be null if the fetch fails or does not return a result
   error?: { code: string; message: string }; // Error object for the response with success false
 }
-interface HassWebSocketResponseCallService {
-  id: number;
+
+export interface HassWebSocketResponseCallService {
+  id: number; // The id of the call_service request that this response is responding to
   type: 'result';
   success: boolean;
-  result: { context: HassContext; response: unknown | null };
+  result: { context: HassContext; response?: unknown | null };
   error?: { code: string; message: string }; // Error object for the response with success false
 }
-interface _HassWebSocketResponseSubscribeEvents {
-  id: number;
-  type: 'result';
-  success: true;
-  result: null; // The result is null for subscribe_events responses
-}
-interface _HassWebSocketResponseEvent {
-  id: number;
-  type: 'event';
-  event: HassEvent;
-}
-interface HassWebSocketMessageAuth {
+
+export interface HassWebSocketRequestAuth {
   type: 'auth';
   access_token: string;
 }
-interface HassWebSocketMessageFetch {
+
+export interface HassWebSocketRequestPing {
+  type: 'ping';
+  id: number;
+}
+
+export interface HassWebSocketRequestFetch {
   id: number;
   type: string; // The data to fetch: get_config, get_services, get_states...
 }
-interface _HassWebSocketMessageSubscribeEvents {
-  id: number;
-  type: 'subscribe_events';
-  event_type?: string; // Optional event type to subscribe to specific events (i.e. state_changed), if not provided all events are subscribed
-}
-interface HassWebSocketMessageCallService {
+
+export interface HassWebSocketRequestCallService {
   id: number;
   type: 'call_service';
   domain: string;
@@ -330,9 +352,16 @@ interface HassWebSocketMessageCallService {
   target?: {
     entity_id: string;
   };
-  return_response?: boolean; // Optional flag to return a response from the service call, defaults to false
+  return_response?: boolean; // Optional flag to return a response from the service call, defaults to false. Must be included for service actions that return response data. Fails for service actions that return response data.
 }
-interface _HassWebSocketMessageUnsubscribeEvents {
+
+export interface HassWebSocketRequestSubscribeEvents {
+  id: number;
+  type: 'subscribe_events';
+  event_type?: string; // Optional event type to subscribe to specific events (i.e. state_changed), if not provided all events are subscribed
+}
+
+export interface HassWebSocketRequestUnsubscribeEvents {
   id: number;
   type: 'unsubscribe_events';
   subscription: number; // ID of the subscription to unsubscribe from
@@ -483,6 +512,7 @@ export class HomeAssistant extends EventEmitter {
       this.log.error(`Error parsing WebSocket message: ${error}`);
       return;
     }
+    // console.log(`Received WebSocket message:`, response);
     if (response.type === 'pong') {
       this.log.debug(`Home Assistant pong received with id ${response.id}`);
       if (this.pingTimeout) {
@@ -561,11 +591,11 @@ export class HomeAssistant extends EventEmitter {
   }
 
   /**
-   * Connects to Home Assistant WebSocket API. It establishes a WebSocket connection, authenticates, fetches initial data, and subscribes to events.
+   * Connects to Home Assistant WebSocket API. It establishes a WebSocket connection and authenticates.
    *
-   * @returns {Promise<void>}
+   * @returns {Promise<string>} - A Promise that resolves to the HA version when the connection is established and authenticated, or rejects with an error if the connection fails.
    */
-  connect(): Promise<void> {
+  connect(): Promise<string> {
     return new Promise((resolve, reject) => {
       if (this.connected) {
         return reject(new Error('Already connected to Home Assistant'));
@@ -606,6 +636,7 @@ export class HomeAssistant extends EventEmitter {
           } catch (error) {
             return reject(new Error(`Error parsing WebSocket message: ${error}`));
           }
+          // console.log(`Received WebSocket message:`, response);
           if (response.type === 'auth_required') {
             this.log.debug(`Authentication required: ${debugStringify(response)}`);
             this.log.debug('Authentication required. Sending auth message...');
@@ -613,7 +644,7 @@ export class HomeAssistant extends EventEmitter {
               JSON.stringify({
                 type: 'auth',
                 access_token: this.wsAccessToken,
-              } as HassWebSocketMessageAuth),
+              } as HassWebSocketRequestAuth),
             );
           } else if (response.type === 'auth_ok') {
             // Handle successful authentication
@@ -624,12 +655,12 @@ export class HomeAssistant extends EventEmitter {
 
             // Add the message event listeners
             if (this.ws) this.ws.onmessage = null; // Clear the current onmessage handler to avoid duplicate processing
-            this.ws?.on('message', this.onMessage.bind(this));
+            this.ws?.on('message', this.onMessage.bind(this)); // Set the new onmessage handler
 
             // Start ping interval
             this.startPing();
-            this.emit('connected', response.ha_version || 'unknown');
-            return resolve();
+            this.emit('connected', response.ha_version);
+            return resolve(response.ha_version);
           }
         };
       } catch (error) {
@@ -663,7 +694,7 @@ export class HomeAssistant extends EventEmitter {
         JSON.stringify({
           id: this.requestId++,
           type: 'ping',
-        }),
+        } as HassWebSocketRequestPing),
       );
       this.log.debug('Starting ping timeout...');
       this.pingTimeout = setTimeout(() => {
@@ -718,10 +749,10 @@ export class HomeAssistant extends EventEmitter {
   /**
    * Stops the ping interval, closes the WebSocket connection to Home Assistant and emits a 'disconnected' event.
    * @param {number} [code=1000] - The WebSocket close code. Default is 1000 (Normal closure).
-   * @param {string | Buffer} [reason='Normal closure'] - The reason for closing the connection. Default is 'Normal closure'.
+   * @param {string} [reason='Normal closure'] - The reason for closing the connection. Default is 'Normal closure'.
    * @returns {Promise<void>} - A Promise that resolves when the connection is closed or rejects with an error if the connection could not be closed.
    */
-  close(code = 1000, reason: string | Buffer = 'Normal closure'): Promise<void> {
+  close(code = 1000, reason = 'Normal closure'): Promise<void> {
     return new Promise((resolve, reject) => {
       this.log.info('Closing Home Assistant connection...');
       this.stopPing();
@@ -748,6 +779,7 @@ export class HomeAssistant extends EventEmitter {
 
       const onClose = () => {
         this.log.debug('Close received closed event from Home Assistant');
+        this.emit('socket_closed', code, Buffer.from(reason));
         cleanup();
         return resolve();
       };
@@ -778,7 +810,7 @@ export class HomeAssistant extends EventEmitter {
 
   /**
    * Fetches the initial data from Home Assistant.
-   * This method retrieves the configuration, services, devices, entities, states, and areas from Home Assistant.
+   * This method retrieves the config, services, devices, entities, states, and areas from Home Assistant.
    */
   async fetchData() {
     try {
@@ -819,29 +851,13 @@ export class HomeAssistant extends EventEmitter {
   }
 
   /**
-   * It subscribes to events to receive updates on state changes and other events.
-   */
-  async subscribe() {
-    try {
-      this.log.debug('Subscribing to events...');
-      await this.fetch('subscribe_events');
-      this.log.debug('Subscribed to events.');
-      this.emit('subscribed');
-    } catch (error) {
-      this.log.error(`Error subscribing to events: ${error}`);
-    }
-  }
-
-  /**
    * Sends a request to Home Assistant and waits for a response.
    *
-   * @param {string} api - The type of request to send.
+   * @param {string} type - The type of request to send.
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
-   * @throws {Error} - Throws an error if not connected to Home Assistant or if the WebSocket is not open.
    *
    * @example
-   * // Example usage:
-   * fetchAsync('get_states')
+   * fetch('get_states')
    *   .then(response => {
    *     console.log('Received response:', response);
    *   })
@@ -850,7 +866,7 @@ export class HomeAssistant extends EventEmitter {
    *   });
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fetch(api: string): Promise<any> {
+  fetch(type: string): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
         return reject(new Error('Fetch error: not connected to Home Assistant'));
@@ -863,7 +879,7 @@ export class HomeAssistant extends EventEmitter {
 
       const timer = setTimeout(() => {
         this.ws?.removeEventListener('message', handleMessage);
-        return reject(new Error(`Fetch api ${api} id ${requestId} did not complete before the timeout`));
+        return reject(new Error(`Fetch type ${type} id ${requestId} did not complete before the timeout`));
       }, this._responseTimeout).unref();
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
@@ -874,6 +890,63 @@ export class HomeAssistant extends EventEmitter {
             this.ws?.removeEventListener('message', handleMessage);
             if (response.success) {
               return resolve(response.result);
+            } else {
+              // console.error(`Fetch error:`, response);
+              return reject(new Error(response.error?.message));
+            }
+          }
+        } catch (error) {
+          clearTimeout(timer);
+          this.ws?.removeEventListener('message', handleMessage);
+          reject(error);
+        }
+      };
+
+      this.ws.addEventListener('message', handleMessage);
+
+      this.log.debug(`Fetching ${CYAN}${type}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
+      this.ws.send(JSON.stringify({ id: requestId, type } as HassWebSocketRequestFetch));
+    });
+  }
+
+  /**
+   * Sends a "subscribe_events" request to Home Assistant and waits for a response.
+   * @param {string | undefined} event - The event to subscribe to or all events if not specified.
+   * @returns {Promise<number>} - A Promise that resolves with the subscribe id from Home Assistant or rejects with an error.
+   *
+   * @example subscribe('state_changed')
+   *   .then(response => {
+   *     console.log('Received response subscription id:', response);
+   *   })
+   *   .catch(error => {
+   *     console.error('Error subscribing:', error);
+   *   });
+   */
+  subscribe(event?: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      if (!this.connected) {
+        return reject(new Error('Subscribe error: not connected to Home Assistant'));
+      }
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return reject(new Error('Subscribe error: WebSocket not open'));
+      }
+
+      const requestId = this.requestId++;
+
+      const timer = setTimeout(() => {
+        this.ws?.removeEventListener('message', handleMessage);
+        return reject(new Error(`Subscribe event ${event} id ${requestId} did not complete before the timeout`));
+      }, this._responseTimeout).unref();
+
+      const handleMessage = (event: WebSocket.MessageEvent) => {
+        try {
+          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
+          if (response.type === 'result' && response.id === requestId) {
+            clearTimeout(timer);
+            this.ws?.removeEventListener('message', handleMessage);
+            if (response.success) {
+              this.log.debug(`Subscribed successfully with id ${CYAN}${requestId}${db}`);
+              return resolve(response.id);
             } else {
               return reject(new Error(response.error?.message));
             }
@@ -887,8 +960,63 @@ export class HomeAssistant extends EventEmitter {
 
       this.ws.addEventListener('message', handleMessage);
 
-      this.log.debug(`Fetching async ${CYAN}${api}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type: api } as HassWebSocketMessageFetch));
+      this.log.debug(`Subscribing to ${CYAN}${event ?? 'all events'}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
+      this.ws.send(JSON.stringify({ id: requestId, type: 'subscribe_events', event_type: event } as HassWebSocketRequestSubscribeEvents));
+    });
+  }
+
+  /**
+   * Sends a "subscribe_events" request to Home Assistant and waits for a response.
+   * @param {number} subscriptionId - The subscription id to unsubscribe from.
+   * @returns {Promise<void>} - A Promise that resolves or rejects with an error.
+   * @example unsubscribe('state_changed')
+   *    .then(() => {
+   *      console.log('Unsubscribed successfully');
+   *    })
+   *    .catch(error => {
+   *      console.error('Error unsubscribing:', error);
+   *    });
+   */
+  unsubscribe(subscriptionId: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.connected) {
+        return reject(new Error('Unsubscribe error: not connected to Home Assistant'));
+      }
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return reject(new Error('Unsubscribe error: WebSocket not open'));
+      }
+
+      const requestId = this.requestId++;
+
+      const timer = setTimeout(() => {
+        this.ws?.removeEventListener('message', handleMessage);
+        return reject(new Error(`Unsubscribe subscription ${subscriptionId} id ${requestId} did not complete before the timeout`));
+      }, this._responseTimeout).unref();
+
+      const handleMessage = (event: WebSocket.MessageEvent) => {
+        try {
+          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
+          if (response.type === 'result' && response.id === requestId) {
+            clearTimeout(timer);
+            this.ws?.removeEventListener('message', handleMessage);
+            if (response.success) {
+              this.log.debug(`Unsubscribed successfully with id ${CYAN}${requestId}${db}`);
+              return resolve();
+            } else {
+              return reject(new Error(response.error?.message));
+            }
+          }
+        } catch (error) {
+          clearTimeout(timer);
+          this.ws?.removeEventListener('message', handleMessage);
+          reject(error);
+        }
+      };
+
+      this.ws.addEventListener('message', handleMessage);
+
+      this.log.debug(`Unsubscribing from subscription ${CYAN}${subscriptionId}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
+      this.ws.send(JSON.stringify({ id: requestId, type: 'unsubscribe_events', subscription: subscriptionId } as HassWebSocketRequestUnsubscribeEvents));
     });
   }
 
@@ -900,7 +1028,6 @@ export class HomeAssistant extends EventEmitter {
    * @param {string} entityId - The ID of the entity to target with the command.
    * @param {Record<string, any>} [serviceData={}] - Optional additional data to send with the command.
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
-   * @throws {Error} - Throws an error if not connected to Home Assistant or if the WebSocket is not open.
    *
    * @example <caption>Example usage of the callService method.</caption>
    * await this.callService('switch', 'toggle', 'switch.living_room');
@@ -945,7 +1072,7 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(
-        `Calling service async ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`,
+        `Calling service ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`,
       );
       this.ws.send(
         JSON.stringify({
@@ -954,10 +1081,14 @@ export class HomeAssistant extends EventEmitter {
           domain, // Domain of the entity (e.g., light, switch, media_player, etc.)
           service, // The specific service to call (e.g., turn_on, turn_off)
           service_data: {
-            entity_id: entityId, // The entity_id of the device (e.g., light.living_room)
+            // entity_id: entityId, // The entity_id of the device (e.g., light.living_room)
             ...serviceData, // Additional data to send with the command
           },
-        } as HassWebSocketMessageCallService),
+          target: {
+            entity_id: entityId, // Optional target entity_id to send the command to, if not provided it will use the service_data entity_id
+          },
+          // return_response: true, // Must be included for service actions that return response data. Fails for service actions that return response data.
+        } as HassWebSocketRequestCallService),
       );
     });
   }
