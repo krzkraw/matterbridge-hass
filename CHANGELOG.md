@@ -15,6 +15,29 @@ Since release 0.1.0:
 - the config parameters individualEntityWhiteList and individualEntityBlackList have been removed. Use the normal white and black lists.
 - the config serialPostfix has been changed to postfix.
 
+## [0.1.3] - 2025-06-13
+
+### Added
+
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'presence'. It creates an occupancySensor with OccupancySensing cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'carbon_monoxide'. It creates a smokeCoAlarm with SmokeCoAlarm cluster and feature CoAlarm.
+- [sensor]: Added domain sensor with deviceClass 'atmospheric_pressure'. It creates a pressureSensor with PressureMeasurement cluster.
+- [sensor]: Added domain sensor with deviceClass 'battery'. It creates a powerSource with PowerSource cluster.
+- [binary_sensor]: Added domain sensor with deviceClass 'battery'. It creates a powerSource with PowerSource cluster.
+
+### Changed
+
+- [package]: Update package.
+- [package]: Update dependencies.
+
+### Fixed
+
+- [select]: Fixed ghost devices in the Device Home page.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.1.2] - 2025-06-07
 
 ### Added
@@ -29,8 +52,6 @@ Since release 0.1.0:
 ### Changed
 
 - [config]: Enhanced reconnect config description and set minimum value to 30 secs for reconnectTimeout.
-
-### Fixed
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

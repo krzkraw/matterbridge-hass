@@ -27,7 +27,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
 // @matter imports
-import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm } from 'matterbridge/matter/clusters';
+import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 
 // Matterbridge imports
@@ -44,6 +44,7 @@ import {
   waterLeakDetector,
   waterFreezeDetector,
   contactSensor,
+  powerSource,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
@@ -341,6 +342,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.composedType = 'Hass Device';
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
       matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/devices/device/${device.id}`;
+      await mutableDevice.createClusters('');
 
       // Scan entities that belong to this device for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
@@ -426,22 +428,38 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // For some clusters we need to set the features and to set the default values for the fixed attributes
         const deviceTypeCodes = mutableDevice.get(entity.entity_id).deviceTypes.map((d) => d.code);
 
-        // Special case for binary_sensor domain: configure the contactSensor cluster default values.
+        // Special case for powerSource.
+        if (deviceTypeCodes.includes(powerSource.code)) {
+          this.log.debug(`= powerSource battery device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerPowerSource(entity.entity_id, PowerSource.BatChargeLevel.Ok, 200);
+        }
+
+        // Special case for binary_sensor domain: configure the BooleanState cluster default values for contactSensor.
         if (domain === 'binary_sensor' && deviceTypeCodes.includes(contactSensor.code)) {
           this.log.debug(`= contactSensor device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
           mutableDevice.addClusterServerBooleanState(entity.entity_id, hassState.state === 'on' ? false : true);
         }
 
-        // Special case for binary_sensor domain: configure the BooleanState cluster default value.
+        // Special case for binary_sensor domain: configure the BooleanState cluster default value for waterLeakDetector/waterFreezeDetector.
         if (domain === 'binary_sensor' && (deviceTypeCodes.includes(waterLeakDetector.code) || deviceTypeCodes.includes(waterFreezeDetector.code))) {
           this.log.debug(`= waterLeakDetector/waterFreezeDetector device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
           mutableDevice.addClusterServerBooleanState(entity.entity_id, hassState.state === 'on' ? true : false);
         }
 
-        // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature SmokeAlarm.
-        if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code) {
-          this.log.debug(`= smokeCoAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
-          mutableDevice.addClusterServerSmokeCoAlarm(entity.entity_id, hassState.state === 'on' ? SmokeCoAlarm.ExpressedState.SmokeAlarm : SmokeCoAlarm.ExpressedState.Normal);
+        // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature SmokeAlarm for device_class smoke.
+        if (domain === 'binary_sensor' && hassState.attributes.device_class === 'smoke' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code) {
+          this.log.debug(`= smokeCoAlarm SmokeAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerSmokeAlarmSmokeCoAlarm(entity.entity_id, hassState.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
+        }
+
+        // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature CoAlarm for device_class carbon_monoxide.
+        if (
+          domain === 'binary_sensor' &&
+          hassState.attributes.device_class === 'carbon_monoxide' &&
+          mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code
+        ) {
+          this.log.debug(`= smokeCoAlarm CoAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerCoAlarmSmokeCoAlarm(entity.entity_id, hassState.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
         }
 
         // Special case for light domain: configure the ColorControl cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
@@ -571,9 +589,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
       } // hassEntities
 
-      // Add all the clusters to the device
-      await mutableDevice.createClusters('');
-
       // Register the device if we have found supported domains and entities
       if (matterbridgeDevice && matterbridgeDevice.getChildEndpoints().length > 0) {
         this.log.debug(`Registering device ${dn}${device.name}${db}...`);
@@ -581,6 +596,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         await this.registerDevice(mutableDevice.getEndpoint());
         this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
         this.bridgedHassDevices.set(device.id, device);
+      } else {
+        this.log.debug(`Device ${CYAN}${device.name}${db} has no supported entities. Deleting device select...`);
+        this.clearDeviceSelect(device.id);
       }
     } // hassDevices
   }
@@ -632,13 +650,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.bridgedHassEntities.clear();
   }
 
-  async commandHandler(mbDevice: MatterbridgeEndpoint | undefined, endpoint: MatterbridgeEndpoint, request: any, attributes: any, command: string) {
+  async commandHandler(mbDevice: MatterbridgeEndpoint | undefined, endpoint: MatterbridgeEndpoint, request: Record<string, any>, attributes: Record<string, any>, command: string) {
     if (!mbDevice) {
       this.log.error(`Command handler: Matterbridge device not found`);
       return;
     }
     mbDevice.log.info(
-      `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint?.name}:${endpoint?.number}${db}`,
+      `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint?.id}:${endpoint?.number}${db}`,
     );
     const entityId = endpoint?.number ? mbDevice.getChildEndpoint(endpoint.number)?.uniqueStorageKey : undefined;
     if (!entityId) return;

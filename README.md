@@ -47,12 +47,16 @@ Features:
 | sensor        | measurement           | temperature                          | temperatureSensor   |
 | sensor        | measurement           | humidity                             | humiditySensor      |
 | sensor        | measurement           | pressure                             | pressureSensor      |
+| sensor        | measurement           | atmospheric_pressure                 | pressureSensor      |
 | sensor        | measurement           | illuminance                          | lightSensor         |
+| sensor        | measurement           | battery                              | powerSource         |
 | binary_sensor |                       | window, garage_door, door, vibration | contactSensor       |
-| binary_sensor |                       | motion, occupancy                    | occupancySensor     |
+| binary_sensor |                       | motion, occupancy, presence          | occupancySensor     |
 | binary_sensor |                       | cold                                 | waterFreezeDetector |
 | binary_sensor |                       | moisture                             | waterLeakDetector   |
 | binary_sensor |                       | smoke                                | smokeCoAlarm        |
+| binary_sensor |                       | carbon_monoxide                      | smokeCoAlarm        |
+| binary_sensor |                       | battery                              | powerSource         |
 
 ## Supported individual entities:
 
@@ -167,11 +171,11 @@ Number of times to try to reconnect before giving up.
 
 ### filterByArea
 
-Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed.
+Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device.
 
 ### filterByLabel
 
-Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed.
+Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device.
 
 ### whiteList
 
