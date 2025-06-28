@@ -15,6 +15,42 @@ Since release 0.1.0:
 - the config parameters individualEntityWhiteList and individualEntityBlackList have been removed. Use the normal white and black lists.
 - the config serialPostfix has been changed to postfix.
 
+## [0.1.4] - 2025-06-28
+
+### Added
+
+- [homeassistant]: Added HassLabel.
+- [homeassistant]: Added core_config_updated message handler to fetch the new config.
+- [homeassistant]: Add queue for fetching updates.
+- [config]: Added applyFiltersToDeviceEntities option to schema.
+- [config]: Improved filtering logic for label. Now is possible to use the label id or the label name in the label filter.
+- [DevContainer]: Added support for the [**Matterbridge Plugin Dev Container**](https://github.com/Luligu/matterbridge/blob/dev/README-DEV.md#matterbridge-plugin-dev-container) with optimized named volumes for `matterbridge` and `node_modules`.
+- [GitHub]: Added GitHub issue templates for bug reports and feature requests.
+- [ESLint]: Refactored the flat config.
+- [ESLint]: Added the plugins `eslint-plugin-promise`, `eslint-plugin-jsdoc`, and `@vitest/eslint-plugin`.
+- [Jest]: Refactored the flat config.
+- [Vitest]: Added Vitest for TypeScript project testing. It will replace Jest, which does not work correctly with ESM module mocks.
+- [JSDoc]: Added missing JSDoc comments, including `@param` and `@returns` tags.
+- [CodeQL]: Added CodeQL badge in the readme.
+- [Codecov]: Added Codecov badge in the readme.
+
+### Changed
+
+- [package]: Updated package to Automator v. 2.0.1.
+- [package]: Update dependencies.
+- [storage]: Bumped `node-storage-manager` to 2.0.0.
+- [logger]: Bumped `node-ansi-logger` to 3.1.1.
+- [package]: Requires matterbridge 3.1.0.
+- [worflows]: Removed workflows running on node 18 since it reached the end-of-life in April 2025.
+
+### Fixed
+
+- [state]: Fix state update when both old and new state are unavailable.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.1.3] - 2025-06-13
 
 ### Added

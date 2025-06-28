@@ -1,15 +1,12 @@
 // Home Assistant Real WebSocket Client Tests
 
-/* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { jest } from '@jest/globals';
 import fs from 'node:fs';
 import path from 'node:path';
+
+import { jest } from '@jest/globals';
 import { AnsiLogger, LogLevel } from 'matterbridge/logger';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant';
+import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -44,31 +41,24 @@ try {
 
 describe('HomeAssistant real test on ubuntu', () => {
   let homeAssistant: HomeAssistant;
-  const wsUrl = 'ws://ubuntu:8123';
+  const wsUrl = 'ws://192.168.69.1:8123';
   let subscriptionId = 0;
   const testEntityId = 'light.virtual_light';
 
   let device_registry_response: HassDevice[] = [];
   let entity_registry_response: HassEntity[] = [];
   let area_registry_response: HassArea[] = [];
+  let label_registry_response: HassArea[] = [];
   let states_response: HassState[] = [];
   let services_response: HassServices = {} as HassServices;
   let config_response: HassConfig = {} as HassConfig;
-
-  beforeAll(async () => {
-    //
-  });
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    //
-  });
-
   afterAll(async () => {
-    //
+    jest.restoreAllMocks();
   });
 
   it('should have at least one test', () => {
@@ -125,6 +115,11 @@ describe('HomeAssistant real test on ubuntu', () => {
     expect(area_registry_response.length).toBeGreaterThan(0);
   });
 
+  it('should get the labels from Home Assistant', async () => {
+    label_registry_response = await homeAssistant.fetch('config/label_registry/list');
+    expect(label_registry_response.length).toBeGreaterThan(0);
+  });
+
   it('should get the states from Home Assistant', async () => {
     states_response = await homeAssistant.fetch('get_states');
     expect(states_response.length).toBeGreaterThan(0);
@@ -146,7 +141,7 @@ describe('HomeAssistant real test on ubuntu', () => {
 
   it('should subscribe to Home Assistant', async () => {
     subscriptionId = await homeAssistant.subscribe();
-    expect(subscriptionId).toBe(13);
+    expect(subscriptionId).toBe(15);
   });
 
   it('should fail to fetch from Home Assistant', async () => {

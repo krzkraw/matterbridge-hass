@@ -1,28 +1,21 @@
 // src\platform.matter.test.ts
 
 /* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
-// Import necessary modules and types
-import { jest } from '@jest/globals';
 import { rmSync } from 'node:fs';
 import path from 'node:path';
 
-// matter.js
+import { jest } from '@jest/globals';
 import { Endpoint, DeviceTypeId, VendorId, ServerNode, LogFormat as MatterLogFormat, LogLevel as MatterLogLevel, Environment, MdnsService, Lifecycle } from 'matterbridge/matter';
 import { RootEndpoint, AggregatorEndpoint } from 'matterbridge/matter/endpoints';
-
-// Matterbridge
-import { capitalizeFirstLetter, Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
+import { Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk } from 'matterbridge/logger';
+import { PowerSource, BooleanState, FanControl, OnOff, LevelControl, SmokeCoAlarm, ColorControl, Thermostat, OccupancySensing } from 'matterbridge/matter/clusters';
 
 // Home Assistant Plugin
-import { HomeAssistantPlatform } from './platform';
-import { HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant';
-import { PowerSource, BooleanState, FanControl, OnOff, LevelControl, SmokeCoAlarm, ColorControl, Thermostat, OccupancySensing } from 'matterbridge/matter/clusters';
-import { MutableDevice } from './mutableDevice';
+import { HomeAssistantPlatform } from './platform.js';
+import { HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
+import { MutableDevice } from './mutableDevice.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -81,53 +74,46 @@ async function waitForOnline(server: ServerNode<ServerNode.RootEndpoint>, timeou
 const mockLog = {
   fatal: jest.fn((message: string, ...parameters: any[]) => {
     log.fatal(message, ...parameters);
-    // console.log('mockLog.fatal', message, parameters);
   }),
   error: jest.fn((message: string, ...parameters: any[]) => {
     log.error(message, ...parameters);
-    // console.log('mockLog.error', message, parameters);
   }),
   warn: jest.fn((message: string, ...parameters: any[]) => {
     log.warn(message, ...parameters);
-    // console.log('mockLog.warn', message, parameters);
   }),
   notice: jest.fn((message: string, ...parameters: any[]) => {
     log.notice(message, ...parameters);
-    // console.log('mockLog.notice', message, parameters);
   }),
   info: jest.fn((message: string, ...parameters: any[]) => {
     log.info(message, ...parameters);
-    // console.log('mockLog.info', message, parameters);
   }),
   debug: jest.fn((message: string, ...parameters: any[]) => {
     log.debug(message, ...parameters);
-    // console.log('mockLog.debug', message, parameters);
   }),
 } as unknown as AnsiLogger;
 
 const mockMatterbridge = {
   matterbridgeDirectory: './jest/matterbridge',
   matterbridgePluginDirectory: './jest/plugins',
-  systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-  matterbridgeVersion: '3.0.4',
+  systemInformation: {
+    ipv4Address: undefined,
+    ipv6Address: undefined,
+    osRelease: 'xx.xx.xx.xx.xx.xx',
+    nodeVersion: '22.1.10',
+  },
+  matterbridgeVersion: '3.0.6',
   log: mockLog,
   getDevices: jest.fn(() => {
-    // console.log('getDevices called');
     return [];
   }),
   getPlugins: jest.fn(() => {
-    // console.log('getDevices called');
     return [];
   }),
   addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
     await aggregator.add(device);
   }),
-  removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-    // console.log('removeBridgedEndpoint called');
-  }),
-  removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
-    // console.log('removeAllBridgedEndpoints called');
-  }),
+  removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
+  removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
 } as unknown as Matterbridge;
 
 const mockConfig = {
@@ -178,7 +164,7 @@ const callServiceSpy = jest
   .spyOn(HomeAssistant.prototype, 'callService')
   .mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}) => {
     console.log(`Mocked callServiceAsync: domain ${domain} service ${service} entityId ${entityId}`);
-    return Promise.resolve({});
+    return Promise.resolve({ context: {} as HassContext, response: undefined });
   });
 
 const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
@@ -198,7 +184,11 @@ const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype,
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
 let haPlatform: HomeAssistantPlatform;
-const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
+const log = new AnsiLogger({
+  logName: NAME,
+  logTimestampFormat: TimestampFormat.TIME_MILLIS,
+  logLevel: LogLevel.DEBUG,
+});
 
 const environment = Environment.default;
 let server: ServerNode<ServerNode.RootEndpoint>;
@@ -221,8 +211,6 @@ describe('Matterbridge ' + NAME, () => {
     // Clear all mocks
     jest.clearAllMocks();
   });
-
-  afterEach(async () => {});
 
   afterAll(async () => {
     // Restore all mocks
@@ -262,7 +250,9 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   test('create the aggregator node', async () => {
-    aggregator = new Endpoint(AggregatorEndpoint, { id: NAME + 'AggregatorNode' });
+    aggregator = new Endpoint(AggregatorEndpoint, {
+      id: NAME + 'AggregatorNode',
+    });
     expect(aggregator).toBeDefined();
   });
 
@@ -339,13 +329,20 @@ describe('Matterbridge ' + NAME, () => {
     const batteryDeviceEntityState = {
       entity_id: batteryAlertEntity.entity_id,
       state: 'off', // On means low, Off means normal
-      attributes: { device_class: 'battery', friendly_name: 'Battery Alert Sensor' },
+      attributes: {
+        device_class: 'battery',
+        friendly_name: 'Battery Alert Sensor',
+      },
     } as unknown as HassState;
 
     const batteryLevelEntityState = {
       entity_id: batteryLevelEntity.entity_id,
       state: 50,
-      attributes: { state_class: 'measurement', device_class: 'battery', friendly_name: 'Battery Percentage Sensor' },
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'battery',
+        friendly_name: 'Battery Percentage Sensor',
+      },
     } as unknown as HassState;
 
     haPlatform.ha.hassDevices.set(batteryDevice.id, batteryDevice);
@@ -531,7 +528,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(
       expect.stringContaining(`Configuring state ${CYAN}${lightDeviceEntityState.entity_id}${db} for device ${CYAN}${lightDevice.id}${db}`),
     );
@@ -609,7 +606,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(
       expect.stringContaining(`Configuring state ${CYAN}${lightDeviceEntityState.entity_id}${db} for device ${CYAN}${lightDevice.id}${db}`),
     );
@@ -654,7 +651,11 @@ describe('Matterbridge ' + NAME, () => {
     const fanDeviceEntityState = {
       entity_id: fanDeviceEntity.entity_id,
       state: 'on',
-      attributes: { preset_mode: 'high', percentage: 50, friendly_name: 'Fan Fan' },
+      attributes: {
+        preset_mode: 'high',
+        percentage: 50,
+        friendly_name: 'Fan Fan',
+      },
     } as unknown as HassState;
 
     haPlatform.ha.hassDevices.set(fanDevice.id, fanDevice);
@@ -744,7 +745,14 @@ describe('Matterbridge ' + NAME, () => {
     const climateDeviceEntityState = {
       entity_id: climateDeviceEntity.entity_id,
       state: 'heat_cool',
-      attributes: { hvac_modes: ['heat_cool'], hvac_mode: 'heat_cool', current_temperature: 20, target_temp_low: 10, target_temp_high: 30, friendly_name: 'Climate Climate auto' },
+      attributes: {
+        hvac_modes: ['heat_cool'],
+        hvac_mode: 'heat_cool',
+        current_temperature: 20,
+        target_temp_low: 10,
+        target_temp_high: 30,
+        friendly_name: 'Climate Climate auto',
+      },
     } as unknown as HassState;
 
     haPlatform.ha.hassDevices.set(climateDevice.id, climateDevice);
@@ -988,7 +996,10 @@ describe('Matterbridge ' + NAME, () => {
     const presenceDeviceEntityState = {
       entity_id: presenceDeviceEntity.entity_id,
       state: 'off', // 'on' for detected, 'off' for not detected
-      attributes: { device_class: 'presence', friendly_name: 'Presence Sensor' },
+      attributes: {
+        device_class: 'presence',
+        friendly_name: 'Presence Sensor',
+      },
     } as unknown as HassState;
 
     haPlatform.ha.hassDevices.set(presenceDevice.id, presenceDevice);
@@ -1012,7 +1023,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(child.deviceType).toBe(occupancySensor.code);
-    expect(child.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ 'occupied': false }); // Presence Sensor: true = detected, false = not detected
+    expect(child.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false }); // Presence Sensor: true = detected, false = not detected
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1020,15 +1031,15 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockLog.debug).toHaveBeenCalledWith(
       expect.stringContaining(`Configuring state ${CYAN}${presenceDeviceEntityState.entity_id}${db} for device ${CYAN}${presenceDevice.id}${db}`),
     );
-    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { 'occupied': false }, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
 
     jest.clearAllMocks();
     haPlatform.updateHandler(presenceDevice.id, presenceDeviceEntityState.entity_id, presenceDeviceEntityState, { ...presenceDeviceEntityState, state: 'on' }); // 'on' for detected, 'off' for not detected
-    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { 'occupied': true }, expect.anything()); // Presence Sensor: { occupied: boolean }
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: true }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
     jest.clearAllMocks();
     haPlatform.updateHandler(presenceDevice.id, presenceDeviceEntityState.entity_id, presenceDeviceEntityState, { ...presenceDeviceEntityState, state: 'off' }); // 'on' for detected, 'off' for not detected
-    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { 'occupied': false }, expect.anything()); // Presence Sensor: { occupied: boolean }
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
     haPlatform.matterbridgeDevices.delete(presenceDevice.id);
     haPlatform.ha.hassDevices.delete(presenceDevice.id);
@@ -1143,7 +1154,10 @@ describe('Matterbridge ' + NAME, () => {
     const coDeviceEntityState = {
       entity_id: coDeviceEntity.entity_id,
       state: 'off', // 'on' for co, 'off' for no co
-      attributes: { device_class: 'carbon_monoxide', friendly_name: 'Carbon Monoxide Sensor' },
+      attributes: {
+        device_class: 'carbon_monoxide',
+        friendly_name: 'Carbon Monoxide Sensor',
+      },
     } as unknown as HassState;
 
     haPlatform.ha.hassDevices.set(coDevice.id, coDevice);
@@ -1207,7 +1221,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   test('close the server node', async () => {
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(server).toBeDefined();
     expect(server.lifecycle.isReady).toBeTruthy();
     expect(server.lifecycle.isOnline).toBeTruthy();
@@ -1219,6 +1233,6 @@ describe('Matterbridge ' + NAME, () => {
   test('stop the mDNS service', async () => {
     expect(server).toBeDefined();
     await server.env.get(MdnsService)[Symbol.asyncDispose]();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for async operations in matter.js to complete
   });
 });

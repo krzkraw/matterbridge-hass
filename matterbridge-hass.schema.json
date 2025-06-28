@@ -43,14 +43,19 @@
       "default": 10
     },
     "filterByArea": {
-      "description": "Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed.",
+      "description": "Filter devices and individual entities by area (use area name). If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed.",
       "type": "string",
       "default": ""
     },
     "filterByLabel": {
-      "description": "Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed.",
+      "description": "Filter devices and individual entities by label (use label name or label_id). If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed.",
       "type": "string",
       "default": ""
+    },
+    "applyFiltersToDeviceEntities": {
+      "description": "Apply the filters to device entities too. If enabled, the filters will be applied to device entities as well. If disabled, the filters will only be applied to devices and individual entities.",
+      "type": "boolean",
+      "default": false
     },
     "whiteList": {
       "description": "Only the devices and individual entities in the list will be exposed. Use the name or the id. If the list is empty, all the devices and individual entities will be exposed.",

@@ -1,5 +1,6 @@
 /* eslint-disable jest/no-conditional-expect */
 import { FanControl, Thermostat } from 'matterbridge/matter/clusters';
+
 import {
   hassCommandConverter,
   hassDomainAttributeConverter,
@@ -9,27 +10,16 @@ import {
   hassSubscribeConverter,
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
-} from './converters';
-import { HassState } from './homeAssistant';
+} from './converters.js';
+import { HassState } from './homeAssistant.js';
 
 describe('HassPlatform', () => {
-  beforeAll(() => {
-    //
-  });
-
-  beforeEach(() => {
-    //
-  });
-
-  afterAll(() => {
-    //
-  });
-
   it('should verify the hassUpdateStateConverter converter', () => {
     hassUpdateStateConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
     });
   });
+
   it('should verify the hassUpdateAttributeConverter converter', () => {
     hassUpdateAttributeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
@@ -47,16 +37,24 @@ describe('HassPlatform', () => {
         converter.converter('color_temp', {} as HassState);
       }
       if (converter.domain === 'light' && converter.with === 'color_temp') {
-        converter.converter(2, { attributes: { color_mode: 'color_temp' } } as HassState);
+        converter.converter(2, {
+          attributes: { color_mode: 'color_temp' },
+        } as HassState);
         converter.converter(undefined, {} as HassState);
       }
       if (converter.domain === 'light' && converter.with === 'hs_color') {
-        converter.converter([0, 0], { attributes: { color_mode: 'hs' } } as HassState);
-        converter.converter([0, 0], { attributes: { color_mode: 'rgb' } } as HassState);
+        converter.converter([0, 0], {
+          attributes: { color_mode: 'hs' },
+        } as HassState);
+        converter.converter([0, 0], {
+          attributes: { color_mode: 'rgb' },
+        } as HassState);
         converter.converter(undefined, {} as HassState);
       }
       if (converter.domain === 'light' && converter.with === 'xy_color') {
-        converter.converter([0, 0], { attributes: { color_mode: 'xy' } } as HassState);
+        converter.converter([0, 0], {
+          attributes: { color_mode: 'xy' },
+        } as HassState);
         converter.converter(undefined, {} as HassState);
       }
       if (converter.domain === 'fan' && converter.with === 'percentage') {
@@ -100,16 +98,19 @@ describe('HassPlatform', () => {
       }
     });
   });
+
   it('should verify the hassDomainConverter converter', () => {
     hassDomainConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
     });
   });
+
   it('should verify the hassDomainAttributeConverter converter', () => {
     hassDomainAttributeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
     });
   });
+
   it('should verify the hassDomainSensorsConverter convertes', () => {
     hassDomainSensorsConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
@@ -119,6 +120,7 @@ describe('HassPlatform', () => {
       }
     });
   });
+
   it('should verify the hassDomainBinarySensorsConverter convertes', () => {
     hassDomainBinarySensorsConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
@@ -128,6 +130,7 @@ describe('HassPlatform', () => {
       }
     });
   });
+
   it('should verify the hassCommandConverter convertes', () => {
     hassCommandConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
@@ -135,21 +138,32 @@ describe('HassPlatform', () => {
         converter.converter({ liftPercent100thsValue: 10000 }, {});
       }
       if (converter.converter && converter.command.startsWith('moveTo') && converter.domain === 'light' && converter.service === 'turn_on') {
-        converter.converter({ level: 1, colorTemperatureMireds: 200, colorX: 0, colorY: 0, hue: 0, saturation: 0 }, { currentHue: 0, currentSaturation: 0 });
+        converter.converter(
+          {
+            level: 1,
+            colorTemperatureMireds: 200,
+            colorX: 0,
+            colorY: 0,
+            hue: 0,
+            saturation: 0,
+          },
+          { currentHue: 0, currentSaturation: 0 },
+        );
       }
     });
   });
+
   it('should verify the hassSubscribeConverter convertes', () => {
     hassSubscribeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.domain === 'fan' && converter.service === 'turn_on' && converter.converter) {
-        converter.converter(FanControl.FanMode.Low);
-        converter.converter(FanControl.FanMode.Medium);
-        converter.converter(FanControl.FanMode.High);
-        converter.converter(FanControl.FanMode.Auto);
-        converter.converter(FanControl.FanMode.Smart);
-        converter.converter(FanControl.FanMode.On);
-        converter.converter(10);
+        expect(converter.converter(FanControl.FanMode.Low)).toBe('low');
+        expect(converter.converter(FanControl.FanMode.Medium)).toBe('medium');
+        expect(converter.converter(FanControl.FanMode.High)).toBe('high');
+        expect(converter.converter(FanControl.FanMode.Auto)).toBe('auto');
+        expect(converter.converter(FanControl.FanMode.Smart)).toBe('auto');
+        expect(converter.converter(FanControl.FanMode.On)).toBe('auto');
+        expect(converter.converter(10)).toBe(null);
       }
       if (converter.domain === 'climate' && converter.service === 'set_hvac_mode' && converter.converter) {
         converter.converter(Thermostat.SystemMode.Auto);

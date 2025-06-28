@@ -1,13 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * This file contains the class HomeAssistantPlatform.
- *
+ * @description This file contains the class HomeAssistantPlatform.
  * @file src\platform.ts
  * @author Luca Liguori
- * @date 2024-09-13
- * @version 0.0.3
- *
- * Copyright 2024, 2025, 2026 Luca Liguori.
+ * @created 2024-09-13
+ * @version 1.0.0
+ * @license Apache-2.0
+ * @copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +20,13 @@
  * limitations under the License. *
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 // Node.js imports
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
-// @matter imports
-import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource } from 'matterbridge/matter/clusters';
-import { ClusterRegistry } from 'matterbridge/matter/types';
-
-// Matterbridge imports
+// matterbridge imports
 import {
   Matterbridge,
   PlatformConfig,
@@ -48,10 +44,11 @@ import {
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
-import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
+import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource } from 'matterbridge/matter/clusters';
+import { ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea } from './homeAssistant.js';
+import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
   hassCommandConverter,
@@ -64,26 +61,37 @@ import {
   hassUpdateStateConverter,
 } from './converters.js';
 
+/**
+ * HomeAssistantPlatform class extends the MatterbridgeDynamicPlatform class.
+ * It initializes the Home Assistant connection, fetches data, subscribes to events,
+ * and creates Matterbridge devices based on Home Assistant entities and devices.
+ * It also handles updates from Home Assistant and converts them to Matterbridge commands.
+ */
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
-  // NodeStorageManager
-  nodeStorageManager?: NodeStorageManager;
-  nodeStorage?: NodeStorage;
-
-  // Home Assistant
+  /** Home Assistant instance */
   ha: HomeAssistant;
 
-  // Matterbridge devices
-  matterbridgeDevices = new Map<string, MatterbridgeEndpoint>(); // Without the postfix
-  bridgedHassDevices = new Map<string, HassDevice>(); // Only the bridged devices from Home Assistant
-  bridgedHassEntities = new Map<string, HassEntity>(); // Only the bridged individual entities from Home Assistant
+  /** Convert the label filter in the config from name to label_id */
+  labelIdFilter: string = '';
 
+  /** Bridged devices map with key (without the postfix) device.id for devices and entity.entity_id for individual entities */
+  matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
+
+  /**
+   * Constructor for the HomeAssistantPlatform class.
+   * It initializes the platform, verifies the Matterbridge version, and sets up the Home Assistant connection.
+   *
+   * @param {Matterbridge} matterbridge - The Matterbridge instance.
+   * @param {AnsiLogger} log - The logger instance.
+   * @param {PlatformConfig} config - The platform configuration.
+   */
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.0.4')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.0.6')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "3.0.4". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "3.0.6". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -163,6 +171,26 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info('Areas received from Home Assistant');
     });
 
+    this.ha.on('labels', (labels: HassLabel[]) => {
+      this.log.info('Labels received from Home Assistant');
+      // Convert the label filter from the name in the config to the corresponding label_id
+      if (isValidString(this.config.filterByLabel, 1)) {
+        // If the label_id is already set, use it
+        if (labels.find((label) => label.label_id === this.config.filterByLabel)) {
+          this.labelIdFilter = this.config.filterByLabel;
+          this.log.info(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
+          return;
+        }
+        // Look for the label_id by name
+        this.labelIdFilter = labels.find((label) => label.name === this.config.filterByLabel)?.label_id ?? '';
+        if (this.labelIdFilter) {
+          this.log.info(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
+          return;
+        }
+        this.log.warn(`Label "${this.config.filterByLabel}" not found in Home Assistant. Filter by label is disabled.`);
+      }
+    });
+
     this.ha.on('states', (_states: HassState[]) => {
       this.log.info('States received from Home Assistant');
     });
@@ -174,16 +202,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   override async onStart(reason?: string) {
     this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
-
-    // create NodeStorageManager
-    this.nodeStorageManager = new NodeStorageManager({
-      dir: path.join(this.matterbridge.matterbridgeDirectory, 'matterbridge-hass'),
-      writeQueue: false,
-      expiredInterval: undefined,
-      logging: false,
-      forgiveParseErrors: true,
-    });
-    this.nodeStorage = await this.nodeStorageManager.createStorage('devices');
 
     // Create the plugin directory inside the Matterbridge plugin directory
     await fs.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
@@ -295,7 +313,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.logMutableDevice();
       await this.registerDevice(mutableDevice.getEndpoint());
       this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
-      this.bridgedHassEntities.set(entity.entity_id, entity);
     } // End of individual entities scan
 
     // Scan devices and entities and create Matterbridge devices
@@ -353,6 +370,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const hassState = this.ha.hassStates.get(entity.entity_id);
         if (!hassState) {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
+          continue;
+        }
+
+        // Check if the entity is in the area and has the label if applyFiltersToDeviceEntities is enabled
+        if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
+          this.log.debug(
+            `Device ${CYAN}${deviceName}${db} entity ${CYAN}${entity.entity_id}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
+          );
           continue;
         }
 
@@ -595,7 +620,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         mutableDevice.logMutableDevice();
         await this.registerDevice(mutableDevice.getEndpoint());
         this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
-        this.bridgedHassDevices.set(device.id, device);
       } else {
         this.log.debug(`Device ${CYAN}${device.name}${db} has no supported entities. Deleting device select...`);
         this.clearDeviceSelect(device.id);
@@ -610,7 +634,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       for (const state of Array.from(this.ha.hassStates.values())) {
         const entity = this.ha.hassEntities.get(state.entity_id);
         const deviceId = entity?.device_id;
-        if (deviceId && this.bridgedHassDevices.has(deviceId)) {
+        if (deviceId) {
           this.log.debug(`Configuring state ${CYAN}${state.entity_id}${db} for device ${CYAN}${deviceId}${db}`);
           this.updateHandler(deviceId, state.entity_id, state, state);
         } else {
@@ -646,8 +670,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
 
     this.matterbridgeDevices.clear();
-    this.bridgedHassDevices.clear();
-    this.bridgedHassEntities.clear();
   }
 
   async commandHandler(mbDevice: MatterbridgeEndpoint | undefined, endpoint: MatterbridgeEndpoint, request: Record<string, any>, attributes: Record<string, any>, command: string) {
@@ -669,24 +691,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     } else {
       mbDevice.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
     }
-  }
-
-  private savePayload(filename: string) {
-    const payload = {
-      devices: Array.from(this.ha.hassDevices.values()),
-      entities: Array.from(this.ha.hassEntities.values()),
-      areas: Array.from(this.ha.hassAreas.values()),
-      states: Array.from(this.ha.hassStates.values()),
-      config: this.ha.hassConfig,
-      services: this.ha.hassServices,
-    };
-    fs.writeFile(filename, JSON.stringify(payload, null, 2))
-      .then(() => {
-        this.log.debug(`Payload successfully written to ${filename}`);
-      })
-      .catch((error) => {
-        this.log.error(`Error writing payload to file ${filename}: ${error}`);
-      });
   }
 
   /*
@@ -732,7 +736,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       return;
     }
     // Set the device reachable attribute to false if the new state is unavailable
-    if (new_state.state === 'unavailable' && old_state.state !== 'unavailable') {
+    if ((new_state.state === 'unavailable' && old_state.state !== 'unavailable') || (new_state.state === 'unavailable' && old_state.state === 'unavailable')) {
       matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster.id, 'reachable', false, matterbridgeDevice.log);
       return; // Skip the update if the device is unavailable
     }
@@ -809,25 +813,55 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   /**
-   * Validate the area and label of a device or an entity against the configured filters.
-   * @param {string | null} areaId The area ID of the device / entity.
-   * @param {string[]} labels The labels of the device / entity.
-   * @returns True if the area and label are valid according to the filters, false otherwise.
+   * Save the Home Assistant payload to a file.
+   * The payload contains devices, entities, areas, labels, states, config and services.
+   *
+   * @param {string} filename The name of the file to save the payload to.
+   */
+  private savePayload(filename: string) {
+    const payload = {
+      devices: Array.from(this.ha.hassDevices.values()),
+      entities: Array.from(this.ha.hassEntities.values()),
+      areas: Array.from(this.ha.hassAreas.values()),
+      labels: Array.from(this.ha.hassLabels.values()),
+      states: Array.from(this.ha.hassStates.values()),
+      config: this.ha.hassConfig,
+      services: this.ha.hassServices,
+    };
+    fs.writeFile(filename, JSON.stringify(payload, null, 2))
+      .then(() => {
+        this.log.debug(`Payload successfully written to ${filename}`);
+        return;
+      })
+      .catch((error) => {
+        this.log.error(`Error writing payload to file ${filename}: ${error}`);
+      });
+  }
+
+  /**
+   * Validate the areaId and labels of a device or an entity against the configured filters.
+   *
+   * @param {string | null} areaId The area ID of the device / entity. It is null if the device / entity is not in any area.
+   * @param {string[]} labels The labels ids of the device / entity. It is an empty array if the device / entity has no labels.
+   *
+   * @returns {boolean} True if the area and label are valid according to the filters, false otherwise.
    */
   isValidAreaLabel(areaId: string | null, labels: string[]): boolean {
     let areaMatch = true;
     let labelMatch = true;
+    // Filter by area if configured
     if (isValidString(this.config.filterByArea, 1)) {
-      if (!areaId) return false;
+      if (!areaId) return false; // If the areaId is null, the device / entity is not in any area, so we skip it.
       areaMatch = false;
       const area = this.ha.hassAreas.get(areaId);
-      if (!area) return false;
+      if (!area) return false; // If the area is not found, we skip it.
       if (area.name === this.config.filterByArea) areaMatch = true;
     }
-    if (isValidString(this.config.filterByLabel, 1)) {
-      if (labels.length === 0) return false;
+    // Filter by label if configured. The labelIdFilter is the label ID to filter by and it is set from the config to the label ID.
+    if (isValidString(this.labelIdFilter, 1)) {
+      if (labels.length === 0) return false; // If the labels array is empty, the device / entity has no labels, so we skip it.
       labelMatch = false;
-      if (labels.includes(this.config.filterByLabel)) labelMatch = true;
+      if (labels.includes(this.labelIdFilter)) labelMatch = true;
     }
     return areaMatch && labelMatch;
   }

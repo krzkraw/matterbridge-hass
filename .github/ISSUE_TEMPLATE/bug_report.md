@@ -1,10 +1,9 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
-
+title: ""
+labels: ""
+assignees: ""
 ---
 
 **Describe the bug**
@@ -36,7 +35,7 @@ Please always add the debug file to help explain your problem.
 
 - Mode [e.g. as a service or docker container]
 - Version [e.g. 1.6.6]
-- OS: [e.g. where you raun Matterbridge
+- OS: [e.g. where you run Matterbridge]
 
 **Additional context**
 Add any other context about the problem here.
