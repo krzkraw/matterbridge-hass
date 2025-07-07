@@ -8,12 +8,23 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
-## Breaking changes
+## [0.1.5] - 2025-07-07
 
-Since release 0.1.0:
+### Added
 
-- the config parameters individualEntityWhiteList and individualEntityBlackList have been removed. Use the normal white and black lists.
-- the config serialPostfix has been changed to postfix.
+- [converters]: Added endpoint to sensor and binary_sensor converters to merge HA entities.
+- [platform]: Add subscribeHandler.
+- [platform]: Refactor commandHandler with new Matterbridge API.
+- [temperature]: Added conversion from Fahrenheit to Celsius on single entity state for domain sensor and device class temperature.
+
+### Changed
+
+- [PowerSource]: Moved PowerSource cluster to the main endpoint.
+- [package]: Updated dependencies.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
 
 ## [0.1.4] - 2025-06-28
 
