@@ -1,7 +1,12 @@
 /* eslint-disable no-console */
 
+const MATTER_PORT = 0;
+const NAME = 'Platform';
+const HOMEDIR = path.join('jest', NAME);
+
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { rmSync } from 'node:fs';
 
 import { jest } from '@jest/globals';
 import { bridgedNode, colorTemperatureLight, dimmableOutlet, Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
@@ -56,6 +61,9 @@ const readMockHomeAssistantFile = () => {
   }
 };
 
+// Cleanup the test environment
+rmSync(HOMEDIR, { recursive: true, force: true });
+
 describe('HassPlatform', () => {
   const mockLog = {
     fatal: jest.fn((message: string, ...parameters: any[]) => {}),
@@ -67,22 +75,18 @@ describe('HassPlatform', () => {
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
-    matterbridgeDirectory: './jest/matterbridge',
-    matterbridgePluginDirectory: './jest/plugins',
+    matterbridgeDirectory: HOMEDIR + '/.matterbridge',
+    matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
     systemInformation: {
       ipv4Address: undefined,
       ipv6Address: undefined,
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.1.0',
     log: mockLog,
-    getDevices: jest.fn(() => {
-      return [];
-    }),
-    getPlugins: jest.fn(() => {
-      return [];
-    }),
+    matterbridgeVersion: '3.1.0',
+    getDevices: jest.fn(() => []),
+    getPlugins: jest.fn(() => []),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
@@ -434,21 +438,21 @@ describe('HassPlatform', () => {
     expect(child3).toBeDefined();
     child3.number = EndpointNumber(3);
 
-    await haPlatform.commandHandler({ endpoint: child1, request: {}, cluster: 'onOff', attributes: {} }, 'on');
+    await haPlatform.commandHandler({ endpoint: child1, request: {}, cluster: 'onOff', attributes: {} }, '', 'on');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}on${rs}${db} for endpoint ${or}${child1.uniqueStorageKey}${db}:${or}${child1.number}${db}`),
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_on', 'switch.switch_switch_1', undefined);
 
-    await haPlatform.commandHandler({ endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, 'off');
+    await haPlatform.commandHandler({ endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, '', 'off');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}off${rs}${db} for endpoint ${or}${child2.uniqueStorageKey}${db}:${or}${child2.number}${db}`),
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_off', 'switch.switch_switch_2', undefined);
 
-    await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, 'moveToLevel');
+    await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, '', 'moveToLevel');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}moveToLevel${rs}${db} for endpoint ${or}${child3.uniqueStorageKey}${db}:${or}${child3.number}${db}`),
@@ -456,7 +460,7 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevel${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
-    await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, 'moveToLevelWithOnOff');
+    await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, '', 'moveToLevelWithOnOff');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}moveToLevelWithOnOff${rs}${db} for endpoint ${or}${child3.uniqueStorageKey}${db}:${or}${child3.number}${db}`),
@@ -464,29 +468,46 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevelWithOnOff${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
-    await haPlatform.commandHandler({ endpoint: child3, request: { colorTemperatureMireds: 300 }, cluster: 'colorControl', attributes: {} }, 'moveToColorTemperature');
+    await haPlatform.commandHandler({ endpoint: child3, request: { colorTemperatureMireds: 300 }, cluster: 'colorControl', attributes: {} }, '', 'moveToColorTemperature');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp: 300 }));
 
-    await haPlatform.commandHandler({ endpoint: child3, request: { colorX: 0.5, colorY: 0.5 }, cluster: 'colorControl', attributes: {} }, 'moveToColor');
+    await haPlatform.commandHandler({ endpoint: child3, request: { colorX: 0.5, colorY: 0.5 }, cluster: 'colorControl', attributes: {} }, '', 'moveToColor');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ xy_color: [0.5, 0.5] }));
 
-    await haPlatform.commandHandler({ endpoint: child3, request: { hue: 50 }, cluster: 'colorControl', attributes: { currentSaturation: { value: 50 } } }, 'moveToHue');
+    await haPlatform.commandHandler({ endpoint: child3, request: { hue: 50 }, cluster: 'colorControl', attributes: { currentSaturation: { value: 50 } } }, '', 'moveToHue');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
-    await haPlatform.commandHandler({ endpoint: child3, request: { saturation: 50 }, cluster: 'colorControl', attributes: { currentHue: { value: 50 } } }, 'moveToSaturation');
+    await haPlatform.commandHandler({ endpoint: child3, request: { saturation: 50 }, cluster: 'colorControl', attributes: { currentHue: { value: 50 } } }, '', 'moveToSaturation');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
-    await haPlatform.commandHandler({ endpoint: child3, request: { hue: 50, saturation: 50 }, cluster: 'colorControl', attributes: {} }, 'moveToHueAndSaturation');
+    await haPlatform.commandHandler({ endpoint: child3, request: { hue: 50, saturation: 50 }, cluster: 'colorControl', attributes: {} }, '', 'moveToHueAndSaturation');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
     callServiceSpy.mockClear();
-    await haPlatform.commandHandler({ endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, 'unknown');
+    await haPlatform.commandHandler({ endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, '', 'unknown');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}unknown${rs}${db} for endpoint ${or}${child2.uniqueStorageKey}${db}:${or}${child2.number}${db}`),
     );
     expect(callServiceSpy).not.toHaveBeenCalled();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}unknown${rs}${wr} not supported`));
+  });
+
+  it('should call subscribeHandler', async () => {
+    expect(haPlatform).toBeDefined();
+    const device = new MatterbridgeEndpoint(bridgedNode, { uniqueStorageKey: 'test' }, true);
+    expect(device).toBeDefined();
+    if (!device) return;
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    haPlatform.matterbridgeDevices.set('123456789', device);
+
+    haPlatform.subscribeHandler({} as any, {} as any, undefined, undefined, {} as any);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Subscribe handler: Matterbridge device undefined for undefined not found`);
+
+    haPlatform.subscribeHandler({ device_id: '123456789', entity_id: 'notvalid' } as any, {} as any, undefined, undefined, {} as any);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Subscribe handler: Endpoint notvalid for device 123456789 not found`);
+
+    haPlatform.matterbridgeDevices.clear();
   });
 
   it('should call updateHandler', async () => {
@@ -537,13 +558,14 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(mockLog.error).toHaveBeenCalledWith(`Error connecting to Home Assistant: Error: Connection failed`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Error connecting to Home Assistant at ${CYAN}http://homeassistant.local:8123${nf}: Error: Connection failed`);
   });
 
   it('should call onStart with reason', async () => {
     expect(haPlatform).toBeDefined();
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     await wait(100);
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Payload successfully written to`));
   });
@@ -769,18 +791,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
-    expect(haPlatform.matterbridgeDevices.get('scene.turn_off_all_lights')).toBeDefined();
-    await haPlatform.updateHandler('scene.turn_off_all_lights', 'scene.turn_off_all_lights', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('scene.turn_off_all_lights');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('sceneturn_off_all_lights');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -813,18 +833,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(2);
-    expect(haPlatform.matterbridgeDevices.get('script.increase_brightness')).toBeDefined();
-    await haPlatform.updateHandler('script.increase_brightness', 'script.increase_brightness', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('script.increase_brightness');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('scriptincrease_brightness');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should register an Automation entity', async () => {
@@ -851,18 +869,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(3);
-    expect(haPlatform.matterbridgeDevices.get('automation.turn_off_all_switches')).toBeDefined();
-    await haPlatform.updateHandler('automation.turn_off_all_switches', 'automation.turn_off_all_switches', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('automation.turn_off_all_switches');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('automationturn_off_all_switches');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should register an Boolean helper entity', async () => {
@@ -889,18 +905,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(4);
-    expect(haPlatform.matterbridgeDevices.get('input_boolean.boolean_helper')).toBeDefined();
-    await haPlatform.updateHandler('input_boolean.boolean_helper', 'input_boolean.boolean_helper', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('input_boolean.boolean_helper');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('input_booleanboolean_helper');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should register an Button helper entity', async () => {
@@ -927,18 +941,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(5);
-    expect(haPlatform.matterbridgeDevices.get('input_button.button_helper')).toBeDefined();
-    await haPlatform.updateHandler('input_button.button_helper', 'input_button.button_helper', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('input_button.button_helper');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('input_buttonbutton_helper');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should register an Switch template entity', async () => {
@@ -965,18 +977,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(6);
-    expect(haPlatform.matterbridgeDevices.get('switch.my_template_switch')).toBeDefined();
-    await haPlatform.updateHandler('switch.my_template_switch', 'switch.my_template_switch', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('switch.my_template_switch');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('switchmy_template_switch');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should not register a Switch device if entry_type is service', async () => {
@@ -1385,7 +1395,7 @@ describe('HassPlatform', () => {
     expect(mbDevice).toBeDefined();
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
-    expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}FanControl${db}:${CYAN}fanMode${db} check ${CYAN}true${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}FanControl${db}:${CYAN}fanMode${db}`);
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
@@ -1439,7 +1449,7 @@ describe('HassPlatform', () => {
     expect(mbDevice).toBeDefined();
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
-    expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}Thermostat${db}:${CYAN}systemMode${db} check ${CYAN}true${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`- subscribe: ${CYAN}Thermostat${db}:${CYAN}systemMode${db}`);
     // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Subscribed endpoint`));
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();

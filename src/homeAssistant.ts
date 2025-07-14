@@ -17,14 +17,14 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. *
+ * limitations under the License.
  */
 
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 
 import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er } from 'matterbridge/logger';
-import WebSocket from 'ws';
+import WebSocket, { ErrorEvent } from 'ws';
 
 /**
  * Interface representing a Home Assistant device.
@@ -413,6 +413,7 @@ export class HomeAssistant extends EventEmitter {
   hassLabels = new Map<string, HassLabel>();
   hassServices: HassServices | null = null;
   hassConfig: HassConfig | null = null;
+  static hassConfig: HassConfig | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
   private pingTimeout: NodeJS.Timeout | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -614,6 +615,7 @@ export class HomeAssistant extends EventEmitter {
           const config = data as HassConfig;
           this.log.debug(`Received config.`);
           this.hassConfig = config;
+          HomeAssistant.hassConfig = this.hassConfig;
           this.emit('config', config);
         } else if (fetchId === 'config/device_registry/list') {
           const devices = data as HassDevice[];
@@ -679,8 +681,13 @@ export class HomeAssistant extends EventEmitter {
         this.ws.on('open', this.onOpen.bind(this));
         this.ws.on('ping', this.onPing.bind(this));
         this.ws.on('pong', this.onPong.bind(this));
-        this.ws.on('error', this.onError.bind(this));
         this.ws.on('close', this.onClose.bind(this));
+
+        this.ws.onerror = (event: ErrorEvent) => {
+          this.log.error(`WebSocket error: ${event.message}`);
+          this.emit('error', `WebSocket error: ${event.message}`);
+          return reject(new Error(`WebSocket error: ${event.message}`));
+        };
 
         this.ws.onmessage = async (event: WebSocket.MessageEvent) => {
           let response;
@@ -709,6 +716,8 @@ export class HomeAssistant extends EventEmitter {
             // Add the message event listeners
             if (this.ws) this.ws.onmessage = null; // Clear the current onmessage handler to avoid duplicate processing
             this.ws?.on('message', this.onMessage.bind(this)); // Set the new onmessage handler
+            if (this.ws) this.ws.onerror = null; // Clear the current onerror handler to avoid duplicate processing
+            this.ws?.on('error', this.onError.bind(this));
 
             // Start ping interval
             this.startPing();
@@ -871,6 +880,7 @@ export class HomeAssistant extends EventEmitter {
       this.log.debug('Fetching initial data from Home Assistant...');
 
       this.hassConfig = (await this.fetch('get_config')) as HassConfig;
+      HomeAssistant.hassConfig = this.hassConfig;
       this.log.debug('Received config.');
       this.emit('config', this.hassConfig);
 

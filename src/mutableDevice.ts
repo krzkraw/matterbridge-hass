@@ -1,12 +1,11 @@
 /**
- * This file contains the class MutableDevice.
- *
+ * @description This file contains the class MutableDevice.
  * @file src\mutableDevice.ts
  * @author Luca Liguori
- * created 2024-12-08
- * version 1.0.1
- *
- * Copyright 2024, 2025, 2026 Luca Liguori.
+ * @created 2024-12-08
+ * @version 1.2.3
+ * @license Apache-2.0
+ * @copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +17,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. *
+ * limitations under the License.
  */
 
 // Node.js imports
@@ -41,9 +40,11 @@ import {
   onOffSwitch,
   MatterbridgeColorControlServer,
   MatterbridgeThermostatServer,
+  MatterbridgeEndpointCommands,
+  CommandHandlerData,
 } from 'matterbridge';
 import { db, debugStringify, idn, ign, rs, CYAN } from 'matterbridge/logger';
-import { AtLeastOne, Behavior } from 'matterbridge/matter';
+import { ActionContext, AtLeastOne, Behavior } from 'matterbridge/matter';
 import { VendorId, ClusterId, Semtag, ClusterRegistry } from 'matterbridge/matter/types';
 import { BooleanState, BridgedDeviceBasicInformation, ColorControl, PowerSource, SmokeCoAlarm, Thermostat } from 'matterbridge/matter/clusters';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
@@ -52,6 +53,19 @@ interface ClusterServerObj {
   id: ClusterId;
   type: Behavior.Type;
   options: Behavior.Options;
+}
+
+interface CommandHandler {
+  endpointName: string;
+  command: keyof MatterbridgeEndpointCommands;
+  handler: (data: CommandHandlerData, endpointName: string, command: keyof MatterbridgeEndpointCommands) => void | Promise<void>;
+}
+
+interface SubscribeHandler {
+  endpointName: string;
+  clusterId: ClusterId;
+  attribute: string;
+  listener: (newValue: unknown, oldValue: unknown, context: ActionContext, endpointName: string, clusterId: ClusterId, attribute: string) => void;
 }
 
 interface MutableDeviceInterface {
@@ -63,6 +77,8 @@ interface MutableDeviceInterface {
   clusterServersObjs: ClusterServerObj[];
   clusterClientsIds: ClusterId[];
   clusterClientsObjs: ClusterServerObj[];
+  commandHandlers: CommandHandler[];
+  subscribeHandlers: SubscribeHandler[];
 }
 
 /**
@@ -75,7 +91,7 @@ interface MutableDeviceInterface {
  *
  * @returns {{ id: ClusterId, type: T, options: Behavior.Options<T> }} The constructed cluster server object.
  */
-export function getClusterServerObj<T extends Behavior.Type>(clusterId: ClusterId, type: T, options: Behavior.Options<T>) {
+export function getClusterServerObj<T extends Behavior.Type>(clusterId: ClusterId, type: T, options: Behavior.Options<T>): ClusterServerObj {
   return { id: clusterId, type, options };
 }
 
@@ -94,6 +110,7 @@ export class MutableDevice {
   hardwareVersionString: string;
 
   composedType: string | undefined = undefined;
+  configUrl: string | undefined = undefined;
 
   constructor(
     matterbridge: Matterbridge,
@@ -120,6 +137,10 @@ export class MutableDevice {
     this.initializeEndpoint('');
   }
 
+  size(): number {
+    return this.mutableDevice.size;
+  }
+
   has(endpoint: string): boolean {
     return this.mutableDevice.has(endpoint);
   }
@@ -144,6 +165,8 @@ export class MutableDevice {
         clusterServersObjs: [],
         clusterClientsIds: [],
         clusterClientsObjs: [],
+        commandHandlers: [],
+        subscribeHandlers: [],
       });
     }
     return this.mutableDevice.get(endpoint) as MutableDeviceInterface;
@@ -155,24 +178,59 @@ export class MutableDevice {
     return this;
   }
 
+  setComposedType(composedType: string) {
+    this.composedType = composedType;
+    return this;
+  }
+
+  setConfigUrl(configUrl: string) {
+    this.configUrl = configUrl;
+    return this;
+  }
+
   addTagLists(endpoint: string, ...tagList: Semtag[]) {
     const device = this.initializeEndpoint(endpoint);
     device.tagList.push(...tagList);
+    return this;
   }
 
   addDeviceTypes(endpoint: string, ...deviceTypes: DeviceTypeDefinition[]) {
     const device = this.initializeEndpoint(endpoint);
     device.deviceTypes.push(...deviceTypes);
+    return this;
   }
 
   addClusterServerIds(endpoint: string, ...clusterServerIds: ClusterId[]) {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersIds.push(...clusterServerIds);
+    return this;
   }
 
   addClusterServerObjs(endpoint: string, ...clusterServerObj: ClusterServerObj[]) {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(...clusterServerObj);
+    return this;
+  }
+
+  addCommandHandler(
+    endpoint: string,
+    command: keyof MatterbridgeEndpointCommands,
+    handler: (data: CommandHandlerData, endpointName: string, command: keyof MatterbridgeEndpointCommands) => void | Promise<void>,
+  ) {
+    const device = this.initializeEndpoint(endpoint);
+    device.commandHandlers.push({ endpointName: endpoint, command, handler });
+    return this;
+  }
+
+  addSubscribeHandler(
+    endpoint: string,
+    clusterId: ClusterId,
+    attribute: string,
+    listener: (newValue: unknown, oldValue: unknown, context: ActionContext, endpointName: string, clusterId: ClusterId, attribute: string) => void,
+  ) {
+    const device = this.initializeEndpoint(endpoint);
+    device.subscribeHandlers.push({ endpointName: endpoint, clusterId, attribute, listener });
+    return this;
   }
 
   addClusterServerPowerSource(endpoint: string, batChargeLevel: PowerSource.BatChargeLevel, batPercentRemaining: number | null) {
@@ -189,6 +247,7 @@ export class MutableDevice {
         batChargeLevel,
       }),
     );
+    return this;
   }
 
   addClusterServerBooleanState(endpoint: string, stateValue: boolean) {
@@ -204,6 +263,7 @@ export class MutableDevice {
         },
       ),
     );
+    return this;
   }
 
   addClusterServerSmokeAlarmSmokeCoAlarm(endpoint: string, smokeState: SmokeCoAlarm.AlarmState) {
@@ -237,6 +297,7 @@ export class MutableDevice {
         },
       ),
     );
+    return this;
   }
 
   addClusterServerCoAlarmSmokeCoAlarm(endpoint: string, coState: SmokeCoAlarm.AlarmState) {
@@ -270,6 +331,7 @@ export class MutableDevice {
         },
       ),
     );
+    return this;
   }
 
   addClusterServerColorTemperatureColorControl(endpoint: string, colorTemperatureMireds: number, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number) {
@@ -297,6 +359,7 @@ export class MutableDevice {
         startUpColorTemperatureMireds: null,
       }),
     );
+    return this;
   }
 
   addClusterServerColorControl(endpoint: string, colorTemperatureMireds: number, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number) {
@@ -332,6 +395,7 @@ export class MutableDevice {
         },
       ),
     );
+    return this;
   }
 
   addClusterServerAutoModeThermostat(
@@ -365,6 +429,7 @@ export class MutableDevice {
         thermostatRunningMode: Thermostat.ThermostatRunningMode.Off,
       }),
     );
+    return this;
   }
   addClusterServerHeatingThermostat(endpoint: string, localTemperature: number, occupiedHeatingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number) {
     const device = this.initializeEndpoint(endpoint);
@@ -381,6 +446,7 @@ export class MutableDevice {
         absMaxHeatSetpointLimit: maxSetpointLimit * 100,
       }),
     );
+    return this;
   }
   addClusterServerCoolingThermostat(endpoint: string, localTemperature: number, occupiedCoolingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number) {
     const device = this.initializeEndpoint(endpoint);
@@ -397,6 +463,7 @@ export class MutableDevice {
         absMaxCoolSetpointLimit: maxSetpointLimit * 100,
       }),
     );
+    return this;
   }
 
   private createUniqueId(param1: string, param2: string, param3: string, param4: string) {
@@ -437,6 +504,7 @@ export class MutableDevice {
         reachable: true,
       }),
     );
+    return this;
   }
 
   async create() {
@@ -445,8 +513,7 @@ export class MutableDevice {
     for (const [endpoint] of this.mutableDevice) {
       await this.createClusters(endpoint);
     }
-    const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
-    return mainDevice.endpoint as MatterbridgeEndpoint;
+    return this.getEndpoint();
   }
 
   private removeDuplicateAndSupersetDeviceTypes() {
@@ -472,6 +539,7 @@ export class MutableDevice {
       if (deviceTypesMap.has(colorTemperatureLight.code) && deviceTypesMap.has(extendedColorLight.code)) deviceTypesMap.delete(colorTemperatureLight.code);
       device.deviceTypes = Array.from(deviceTypesMap.values());
     }
+    return this;
   }
 
   async createMainEndpoint() {
@@ -523,6 +591,7 @@ export class MutableDevice {
         device.tagList.length ? { tagList: device.tagList } : {},
         true,
       );
+      device.endpoint.log.logName = device.friendlyName;
     }
     return this;
   }
@@ -559,6 +628,7 @@ export class MutableDevice {
       device.clusterClientsObjs = Array.from(deviceClusterClientsObjMap.values());
       */
     }
+    return this;
   }
 
   async createClusters(endpoint: string) {
@@ -567,7 +637,7 @@ export class MutableDevice {
 
     if (endpoint === '') {
       // Get the main endpoint
-      const mainDevice = this.mutableDevice.get(endpoint) as MutableDeviceInterface;
+      const mainDevice = this.get(endpoint);
       if (!mainDevice.endpoint) throw new Error('Main endpoint is not defined');
 
       // Add the cluster objects to the main endpoint
@@ -581,21 +651,57 @@ export class MutableDevice {
       mainDevice.endpoint.addRequiredClusterServers();
       // Add the Fixed Label cluster to the main endpoint
       if (this.composedType) await mainDevice.endpoint.addFixedLabel('composed', this.composedType);
+      // Set the configUrl of the main endpoint
+      if (this.configUrl) mainDevice.endpoint.configUrl = this.configUrl;
+      // Add the command handlers
+      for (const commandHandler of mainDevice.commandHandlers) {
+        mainDevice.endpoint.addCommandHandler(commandHandler.command, async (data) => {
+          await commandHandler.handler(data, commandHandler.endpointName, commandHandler.command);
+        });
+      }
+      // Add the subscribe handlers
+      for (const subscribeHandler of mainDevice.subscribeHandlers) {
+        mainDevice.endpoint.subscribeAttribute(
+          subscribeHandler.clusterId,
+          subscribeHandler.attribute,
+          (newValue: unknown, oldValue: unknown, context: ActionContext) => {
+            subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
+          },
+          mainDevice.endpoint.log,
+        );
+      }
       return this;
     }
 
     // Add clusters to the child endpoints
-    for (const [, device] of Array.from(this.mutableDevice.entries()).filter(([e]) => e === endpoint)) {
-      if (!device.endpoint) throw new Error('Child endpoint is not defined');
-      // Add the cluster objects to the child endpoint
-      for (const clusterServerObj of device.clusterServersObjs) {
-        device.endpoint.behaviors.require(clusterServerObj.type, clusterServerObj.options);
-      }
-      // Add the cluster ids to the child endpoint
-      device.endpoint.addClusterServers(device.clusterServersIds);
-      // Add the required clusters to the child endpoint
-      device.endpoint.addRequiredClusterServers();
+    const device = this.get(endpoint);
+    if (!device.endpoint) throw new Error('Child endpoint is not defined');
+    // Add the cluster objects to the child endpoint
+    for (const clusterServerObj of device.clusterServersObjs) {
+      device.endpoint.behaviors.require(clusterServerObj.type, clusterServerObj.options);
     }
+    // Add the cluster ids to the child endpoint
+    device.endpoint.addClusterServers(device.clusterServersIds);
+    // Add the required clusters to the child endpoint
+    device.endpoint.addRequiredClusterServers();
+    // Add the command handlers
+    for (const commandHandler of device.commandHandlers) {
+      device.endpoint.addCommandHandler(commandHandler.command, async (data) => {
+        commandHandler.handler(data, commandHandler.endpointName, commandHandler.command);
+      });
+    }
+    // Add the subscribe handlers
+    for (const subscribeHandler of device.subscribeHandlers) {
+      device.endpoint.subscribeAttribute(
+        subscribeHandler.clusterId,
+        subscribeHandler.attribute,
+        (newValue: unknown, oldValue: unknown, context: ActionContext) => {
+          subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
+        },
+        device.endpoint.log,
+      );
+    }
+
     return this;
   }
 
@@ -614,7 +720,8 @@ export class MutableDevice {
       this.matterbridge.log.debug(
         `- endpoint: ${ign}${endpoint === '' ? 'main' : endpoint}${rs}${db} => friendlyName ${CYAN}${device.friendlyName}${db} ` +
           `${db}tagList: ${debugStringify(device.tagList)}${db} deviceTypes: ${debugStringify(deviceTypes)}${db} ` +
-          `clusterServersIds: ${debugStringify(clusterServersIds)}${db} clusterServersObjs: ${debugStringify(clusterServersObjsIds)}${db}`,
+          `clusterServersIds: ${debugStringify(clusterServersIds)}${db} clusterServersObjs: ${debugStringify(clusterServersObjsIds)}${db} ` +
+          `commandHandlers: ${debugStringify(device.commandHandlers)}${db} subscribeHandlers: ${debugStringify(device.subscribeHandlers)}${db}`,
       );
     }
     return this;

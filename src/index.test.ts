@@ -1,3 +1,12 @@
+// src\index.test.ts
+
+const MATTER_PORT = 0;
+const NAME = 'Index';
+const HOMEDIR = path.join('jest', NAME);
+
+import path from 'node:path';
+import { rmSync } from 'node:fs';
+
 import { jest } from '@jest/globals';
 import { Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
 import { AnsiLogger } from 'matterbridge/logger';
@@ -30,6 +39,9 @@ if (!debug) {
   consoleErrorSpy = jest.spyOn(console, 'error');
 }
 
+// Cleanup the test environment
+rmSync(HOMEDIR, { recursive: true, force: true });
+
 describe('initializePlugin', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -49,8 +61,8 @@ describe('initializePlugin', () => {
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
-    matterbridgeDirectory: './jest/matterbridge',
-    matterbridgePluginDirectory: './jest/plugins',
+    matterbridgeDirectory: HOMEDIR + '/.matterbridge',
+    matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
     systemInformation: {
       ipv4Address: undefined,
       ipv6Address: undefined,
@@ -59,12 +71,8 @@ describe('initializePlugin', () => {
     },
     matterbridgeVersion: '3.1.0',
     log: mockLog,
-    getDevices: jest.fn(() => {
-      return [];
-    }),
-    getPlugins: jest.fn(() => {
-      return [];
-    }),
+    getDevices: jest.fn(() => []),
+    getPlugins: jest.fn(() => []),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),

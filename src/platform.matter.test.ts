@@ -2,6 +2,10 @@
 
 /* eslint-disable no-console */
 
+const MATTER_PORT = 6001;
+const NAME = 'Matter';
+const HOMEDIR = path.join('jest', NAME);
+
 import { rmSync } from 'node:fs';
 import path from 'node:path';
 
@@ -10,7 +14,20 @@ import { Endpoint, DeviceTypeId, VendorId, ServerNode, LogFormat as MatterLogFor
 import { RootEndpoint, AggregatorEndpoint } from 'matterbridge/matter/endpoints';
 import { Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk } from 'matterbridge/logger';
-import { PowerSource, BooleanState, FanControl, OnOff, LevelControl, SmokeCoAlarm, ColorControl, Thermostat, OccupancySensing } from 'matterbridge/matter/clusters';
+import {
+  PowerSource,
+  BooleanState,
+  FanControl,
+  OnOff,
+  LevelControl,
+  SmokeCoAlarm,
+  ColorControl,
+  Thermostat,
+  OccupancySensing,
+  ElectricalPowerMeasurement,
+  ElectricalEnergyMeasurement,
+  AirQuality,
+} from 'matterbridge/matter/clusters';
 
 // Home Assistant Plugin
 import { HomeAssistantPlatform } from './platform.js';
@@ -41,36 +58,6 @@ if (!debug) {
   consoleErrorSpy = jest.spyOn(console, 'error');
 }
 
-const MATTER_PORT = 6001;
-const NAME = 'Hass';
-
-/**
- * Waits for the `isOnline` property to become `true`.
- * This function checks the `isOnline` property of the provided server node at regular intervals until it becomes `true` or the specified timeout is reached.
- * If the timeout is reached before `isOnline` becomes `true`, the promise is rejected with an error.
- *
- * @param {ServerNode<ServerNode.RootEndpoint>} server - The server node to check for online status.
- * @param {number} timeout - The maximum time to wait in milliseconds.
- * @returns {Promise<void>} A promise that resolves when `isOnline` becomes `true` or rejects if the timeout is reached.
- */
-async function waitForOnline(server: ServerNode<ServerNode.RootEndpoint>, timeout = 10000): Promise<void> {
-  const start = Date.now();
-
-  return new Promise((resolve, reject) => {
-    const checkOnline = () => {
-      if (server.lifecycle.isOnline) {
-        resolve();
-      } else if (Date.now() - start >= timeout) {
-        reject(new Error('Timeout waiting for server.lifecycle.isOnline to become true'));
-      } else {
-        setTimeout(checkOnline, 100); // Check every 100ms
-      }
-    };
-    // Start checking immediately
-    checkOnline();
-  });
-}
-
 const mockLog = {
   fatal: jest.fn((message: string, ...parameters: any[]) => {
     log.fatal(message, ...parameters);
@@ -93,8 +80,8 @@ const mockLog = {
 } as unknown as AnsiLogger;
 
 const mockMatterbridge = {
-  matterbridgeDirectory: './jest/matterbridge',
-  matterbridgePluginDirectory: './jest/plugins',
+  matterbridgeDirectory: HOMEDIR + '/.matterbridge',
+  matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
   systemInformation: {
     ipv4Address: undefined,
     ipv6Address: undefined,
@@ -170,6 +157,7 @@ const callServiceSpy = jest
 const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
 const updateAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'updateAttribute');
 const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
+const addCommandHandlerSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'addCommandHandler');
 
 const addClusterServerPowerSourceSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerPowerSource');
 const addClusterServerBooleanStateSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerBooleanState');
@@ -184,11 +172,7 @@ const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype,
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
 let haPlatform: HomeAssistantPlatform;
-const log = new AnsiLogger({
-  logName: NAME,
-  logTimestampFormat: TimestampFormat.TIME_MILLIS,
-  logLevel: LogLevel.DEBUG,
-});
+const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
 
 const environment = Environment.default;
 let server: ServerNode<ServerNode.RootEndpoint>;
@@ -198,11 +182,12 @@ let device: MatterbridgeEndpoint;
 describe('Matterbridge ' + NAME, () => {
   beforeAll(async () => {
     // Cleanup the matter environment
-    rmSync(path.join('jest', NAME), { recursive: true, force: true });
+    rmSync(HOMEDIR, { recursive: true, force: true });
+
     // Setup the matter environment
     environment.vars.set('log.level', MatterLogLevel.DEBUG);
     environment.vars.set('log.format', MatterLogFormat.ANSI);
-    environment.vars.set('path.root', path.join('jest', NAME));
+    environment.vars.set('path.root', HOMEDIR);
     environment.vars.set('runtime.signals', false);
     environment.vars.set('runtime.exitcode', false);
   }, 30000);
@@ -267,11 +252,20 @@ describe('Matterbridge ' + NAME, () => {
 
   test('start the server node', async () => {
     // Run the server
-    await server.start();
+    expect(server.lifecycle.isReady).toBeTruthy();
+    expect(server.lifecycle.isOnline).toBeFalsy();
+
+    // Wait for the server to be online
+    await new Promise<void>((resolve) => {
+      server.lifecycle.online.on(async () => {
+        resolve();
+      });
+      server.start();
+    });
+
+    // Check if the server is online
     expect(server.lifecycle.isReady).toBeTruthy();
     expect(server.lifecycle.isOnline).toBeTruthy();
-    // Wait for the server to be online
-    await waitForOnline(server);
   });
 
   it('should initialize the HomeAssistantPlatform', async () => {
@@ -289,7 +283,434 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+  });
+
+  it('should call onStart and register an Air Quality Sensor device with numeric state', async () => {
+    const airQualitySensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: 'Air Quality Sensor',
+      name_by_user: null,
+    } as unknown as HassDevice;
+    const airQualitySensorEntity = {
+      area_id: null,
+      device_id: airQualitySensorDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.air_quality_sensor',
+      has_entity_name: true,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: null,
+      original_name: 'Air Quality Sensor',
+    } as unknown as HassEntity;
+    const airQualitySensorEntityState = {
+      entity_id: airQualitySensorEntity.entity_id,
+      state: 200,
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'aqi',
+        unit_of_measurement: 'AQI',
+        friendly_name: 'Air Quality Sensor',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(airQualitySensorDevice.id, airQualitySensorDevice);
+    haPlatform.ha.hassEntities.set(airQualitySensorEntity.entity_id, airQualitySensorEntity);
+    haPlatform.ha.hassStates.set(airQualitySensorEntityState.entity_id, airQualitySensorEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(airQualitySensorDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(airQualitySensorDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName('AirQuality');
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    await haPlatform.onConfigure();
+
+    expect(child.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
+
+    haPlatform.matterbridgeDevices.delete(airQualitySensorDevice.id);
+    haPlatform.ha.hassDevices.delete(airQualitySensorDevice.id);
+    haPlatform.ha.hassEntities.delete(airQualitySensorEntity.entity_id);
+    haPlatform.ha.hassStates.delete(airQualitySensorEntityState.entity_id);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.ha.hassDevices.size).toBe(0);
+    expect(haPlatform.ha.hassEntities.size).toBe(0);
+    expect(haPlatform.ha.hassStates.size).toBe(0);
+
+    await device.delete();
+    expect(aggregator.parts.has(device)).toBeFalsy();
+    expect(aggregator.parts.has(device.id)).toBeFalsy();
+  });
+
+  it('should call onStart and register an Air Quality Sensor device with text state', async () => {
+    const airQualitySensorEnumDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: 'Air Quality Sensor Enum',
+      name_by_user: null,
+    } as unknown as HassDevice;
+    const airQualitySensorEnumEntity = {
+      area_id: null,
+      device_id: airQualitySensorEnumDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.air_quality_sensor_enum',
+      has_entity_name: true,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: null,
+      original_name: 'Air Quality Sensor Enum',
+    } as unknown as HassEntity;
+    const airQualitySensorEnumEntityState = {
+      entity_id: airQualitySensorEnumEntity.entity_id,
+      state: 'moderate', // Text/enum state instead of numeric
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'aqi',
+        friendly_name: 'Air Quality Sensor Enum',
+        // Note: no unit_of_measurement for enum states
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(airQualitySensorEnumDevice.id, airQualitySensorEnumDevice);
+    haPlatform.ha.hassEntities.set(airQualitySensorEnumEntity.entity_id, airQualitySensorEnumEntity);
+    haPlatform.ha.hassStates.set(airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName('AirQuality');
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    await haPlatform.onConfigure();
+
+    expect(child.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
+
+    // Test different enum values
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'good',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Good, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'unhealthy',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.VeryPoor, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'hazardous',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
+
+    haPlatform.matterbridgeDevices.delete(airQualitySensorEnumDevice.id);
+    haPlatform.ha.hassDevices.delete(airQualitySensorEnumDevice.id);
+    haPlatform.ha.hassEntities.delete(airQualitySensorEnumEntity.entity_id);
+    haPlatform.ha.hassStates.delete(airQualitySensorEnumEntityState.entity_id);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.ha.hassDevices.size).toBe(0);
+    expect(haPlatform.ha.hassEntities.size).toBe(0);
+    expect(haPlatform.ha.hassStates.size).toBe(0);
+
+    await device.delete();
+    expect(aggregator.parts.has(device)).toBeFalsy();
+    expect(aggregator.parts.has(device.id)).toBeFalsy();
+  });
+
+  it('should call onStart and register an Air Quality Sensor device with regexp', async () => {
+    const airQualitySensorEnumDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: 'Air Quality Sensor RegExp',
+      name_by_user: null,
+    } as unknown as HassDevice;
+    const airQualitySensorEnumEntity = {
+      area_id: null,
+      device_id: airQualitySensorEnumDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.air_quality_sensor_enum',
+      has_entity_name: true,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: null,
+      original_name: 'Air Quality Sensor Enum',
+    } as unknown as HassEntity;
+    const airQualitySensorEnumEntityState = {
+      entity_id: airQualitySensorEnumEntity.entity_id,
+      state: 'moderate', // Text/enum state instead of numeric
+      attributes: {
+        friendly_name: 'Air Quality Sensor Enum',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(airQualitySensorEnumDevice.id, airQualitySensorEnumDevice);
+    haPlatform.ha.hassEntities.set(airQualitySensorEnumEntity.entity_id, airQualitySensorEnumEntity);
+    haPlatform.ha.hassStates.set(airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState);
+
+    expect((haPlatform as any).createRegexFromConfig(undefined)).toBeUndefined();
+    expect((haPlatform as any).createRegexFromConfig('')).toBeUndefined();
+    expect((haPlatform as any).createRegexFromConfig('sensor.air_quality_sensor_enum')).toEqual(expect.any(RegExp));
+    expect((haPlatform as any).createRegexFromConfig('^sensor\\..*_air_quality$')).toEqual(expect.any(RegExp));
+    expect((haPlatform as any).createRegexFromConfig('[invalid-regex-pattern')).toBeUndefined(); // Invalid regex with unclosed bracket
+
+    haPlatform.config.airQualityRegex = 'sensor.air_quality_sensor_enum';
+    haPlatform.airQualityRegex = new RegExp('sensor.air_quality_sensor_enum');
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName('AirQuality');
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    await haPlatform.onConfigure();
+
+    expect(child.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
+
+    // Test different enum values
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'fair',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Fair, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'poor',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Poor, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'very_poor',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.VeryPoor, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'extremely_poor',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
+
+    haPlatform.matterbridgeDevices.delete(airQualitySensorEnumDevice.id);
+    haPlatform.ha.hassDevices.delete(airQualitySensorEnumDevice.id);
+    haPlatform.ha.hassEntities.delete(airQualitySensorEnumEntity.entity_id);
+    haPlatform.ha.hassStates.delete(airQualitySensorEnumEntityState.entity_id);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.ha.hassDevices.size).toBe(0);
+    expect(haPlatform.ha.hassEntities.size).toBe(0);
+    expect(haPlatform.ha.hassStates.size).toBe(0);
+    haPlatform.config.airQualityRegex = undefined; // Reset the regex configuration
+    haPlatform.airQualityRegex = undefined; // Reset the regex
+
+    await device.delete();
+    expect(aggregator.parts.has(device)).toBeFalsy();
+    expect(aggregator.parts.has(device.id)).toBeFalsy();
+  });
+
+  it('should call onStart and register an Electrical Sensor device', async () => {
+    const electricalSensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: 'Electrical Sensor',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const electricalSensorVoltageEntity = {
+      area_id: null,
+      device_id: electricalSensorDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.electrical_sensor_voltage',
+      has_entity_name: true,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: null,
+      original_name: 'Electrical Sensor',
+    } as unknown as HassEntity;
+
+    const electricalSensorCurrentEntity = {
+      area_id: null,
+      device_id: electricalSensorDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.electrical_sensor_current',
+      has_entity_name: true,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: null,
+      original_name: 'Electrical Sensor Current',
+    } as unknown as HassEntity;
+
+    const electricalSensorPowerEntity = {
+      area_id: null,
+      device_id: electricalSensorDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.electrical_sensor_power',
+      has_entity_name: true,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: null,
+      original_name: 'Electrical Sensor Power',
+    } as unknown as HassEntity;
+
+    const electricalSensorEnergyEntity = {
+      area_id: null,
+      device_id: electricalSensorDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.electrical_sensor_energy',
+      has_entity_name: true,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: null,
+      original_name: 'Electrical Sensor Energy',
+    } as unknown as HassEntity;
+
+    const electricalSensorVoltageEntityState = {
+      entity_id: electricalSensorVoltageEntity.entity_id,
+      state: 230,
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'voltage',
+        unit_of_measurement: 'V',
+        friendly_name: 'Electrical Sensor Voltage',
+      },
+    } as unknown as HassState;
+
+    const electricalSensorCurrentEntityState = {
+      entity_id: electricalSensorCurrentEntity.entity_id,
+      state: 10,
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'current',
+        unit_of_measurement: 'A',
+        friendly_name: 'Electrical Sensor Current',
+      },
+    } as unknown as HassState;
+
+    const electricalSensorPowerEntityState = {
+      entity_id: electricalSensorPowerEntity.entity_id,
+      state: 23,
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'power',
+        unit_of_measurement: 'W',
+        friendly_name: 'Electrical Sensor Power',
+      },
+    } as unknown as HassState;
+
+    const electricalSensorEnergyEntityState = {
+      entity_id: electricalSensorEnergyEntity.entity_id,
+      state: 100,
+      attributes: {
+        state_class: 'total_increasing',
+        device_class: 'energy',
+        unit_of_measurement: 'kWh',
+        friendly_name: 'Electrical Sensor Energy',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(electricalSensorDevice.id, electricalSensorDevice);
+    haPlatform.ha.hassEntities.set(electricalSensorVoltageEntity.entity_id, electricalSensorVoltageEntity);
+    haPlatform.ha.hassEntities.set(electricalSensorCurrentEntity.entity_id, electricalSensorCurrentEntity);
+    haPlatform.ha.hassEntities.set(electricalSensorPowerEntity.entity_id, electricalSensorPowerEntity);
+    haPlatform.ha.hassEntities.set(electricalSensorEnergyEntity.entity_id, electricalSensorEnergyEntity);
+    haPlatform.ha.hassStates.set(electricalSensorVoltageEntityState.entity_id, electricalSensorVoltageEntityState);
+    haPlatform.ha.hassStates.set(electricalSensorCurrentEntityState.entity_id, electricalSensorCurrentEntityState);
+    haPlatform.ha.hassStates.set(electricalSensorPowerEntityState.entity_id, electricalSensorPowerEntityState);
+    haPlatform.ha.hassStates.set(electricalSensorEnergyEntityState.entity_id, electricalSensorEnergyEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(electricalSensorDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(electricalSensorDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName('PowerEnergy');
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    await haPlatform.onConfigure();
+
+    expect(child.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'voltage')).toBe(230000);
+    expect(child.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activeCurrent')).toBe(10000);
+    expect(child.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activePower')).toBe(23000);
+    expect(child.getAttribute(ElectricalEnergyMeasurement.Cluster.id, 'cumulativeEnergyImported').energy).toBe(100000000);
+
+    haPlatform.matterbridgeDevices.delete(electricalSensorDevice.id);
+    haPlatform.ha.hassDevices.delete(electricalSensorDevice.id);
+    haPlatform.ha.hassEntities.delete(electricalSensorVoltageEntity.entity_id);
+    haPlatform.ha.hassEntities.delete(electricalSensorCurrentEntity.entity_id);
+    haPlatform.ha.hassEntities.delete(electricalSensorPowerEntity.entity_id);
+    haPlatform.ha.hassEntities.delete(electricalSensorEnergyEntity.entity_id);
+    haPlatform.ha.hassStates.delete(electricalSensorVoltageEntityState.entity_id);
+    haPlatform.ha.hassStates.delete(electricalSensorCurrentEntityState.entity_id);
+    haPlatform.ha.hassStates.delete(electricalSensorPowerEntityState.entity_id);
+    haPlatform.ha.hassStates.delete(electricalSensorEnergyEntityState.entity_id);
+    await device.delete();
   });
 
   it('should call onStart and register a PowerSource device', async () => {
@@ -351,7 +772,7 @@ describe('Matterbridge ' + NAME, () => {
       original_name: 'Battery Voltage Sensor',
     } as unknown as HassEntity;
 
-    const batteryDeviceEntityState = {
+    const batteryAlertEntityState = {
       entity_id: batteryAlertEntity.entity_id,
       state: 'off', // On means low, Off means normal
       attributes: {
@@ -386,6 +807,7 @@ describe('Matterbridge ' + NAME, () => {
       attributes: {
         state_class: 'measurement',
         device_class: 'voltage',
+        unit_of_measurement: 'mV',
         friendly_name: 'Battery Voltage Sensor',
       },
     } as unknown as HassState;
@@ -396,7 +818,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(batteryLevelEntity.entity_id, batteryLevelEntity);
     haPlatform.ha.hassEntities.set(batteryVoltageEntity.entity_id, batteryVoltageEntity);
     haPlatform.ha.hassStates.set(batteryTemperatureEntityState.entity_id, batteryTemperatureEntityState);
-    haPlatform.ha.hassStates.set(batteryDeviceEntityState.entity_id, batteryDeviceEntityState);
+    haPlatform.ha.hassStates.set(batteryAlertEntityState.entity_id, batteryAlertEntityState);
     haPlatform.ha.hassStates.set(batteryLevelEntityState.entity_id, batteryLevelEntityState);
     haPlatform.ha.hassStates.set(batteryVoltageEntityState.entity_id, batteryVoltageEntityState);
 
@@ -424,27 +846,38 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(
-      expect.stringContaining(`Configuring state ${CYAN}${batteryDeviceEntityState.entity_id}${db} for device ${CYAN}${batteryDevice.id}${db}`),
+      expect.stringContaining(`Configuring state ${CYAN}${batteryAlertEntityState.entity_id}${db} for device ${CYAN}${batteryDevice.id}${db}`),
     );
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 100, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 3050, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(batteryDevice.id, batteryDeviceEntityState.entity_id, batteryDeviceEntityState, { ...batteryDeviceEntityState, state: 'on' }); // On means low, Off means normal
-    haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '100' }); // On means low, Off means normal
+    haPlatform.updateHandler(batteryDevice.id, batteryAlertEntityState.entity_id, batteryAlertEntityState, { ...batteryAlertEntityState, state: 'on' }); // On means low, Off means normal
+    haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '100' });
+    haPlatform.updateHandler(batteryDevice.id, batteryVoltageEntityState.entity_id, batteryVoltageEntityState, { ...batteryVoltageEntityState, state: '2000' });
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Critical, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 200, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 2000, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(batteryDevice.id, batteryDeviceEntityState.entity_id, batteryDeviceEntityState, { ...batteryDeviceEntityState, state: 'off' }); // On means low, Off means normal
-    haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '25' }); // On means low, Off means normal
+    haPlatform.updateHandler(batteryDevice.id, batteryAlertEntityState.entity_id, batteryAlertEntityState, { ...batteryAlertEntityState, state: 'off' }); // On means low, Off means normal
+    haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '25' });
+    haPlatform.updateHandler(batteryDevice.id, batteryVoltageEntityState.entity_id, batteryVoltageEntityState, { ...batteryVoltageEntityState, state: '2900' });
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 50, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 2900, expect.anything());
 
     haPlatform.matterbridgeDevices.delete(batteryDevice.id);
     haPlatform.ha.hassDevices.delete(batteryDevice.id);
     haPlatform.ha.hassEntities.delete(batteryAlertEntity.entity_id);
-    haPlatform.ha.hassStates.delete(batteryDeviceEntityState.entity_id);
+    haPlatform.ha.hassEntities.delete(batteryTemperatureEntity.entity_id);
+    haPlatform.ha.hassEntities.delete(batteryLevelEntity.entity_id);
+    haPlatform.ha.hassEntities.delete(batteryVoltageEntity.entity_id);
+    haPlatform.ha.hassStates.delete(batteryLevelEntityState.entity_id);
+    haPlatform.ha.hassStates.delete(batteryVoltageEntityState.entity_id);
+    haPlatform.ha.hassStates.delete(batteryAlertEntityState.entity_id);
+    haPlatform.ha.hassStates.delete(batteryTemperatureEntityState.entity_id);
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
@@ -737,12 +1170,6 @@ describe('Matterbridge ' + NAME, () => {
       LogLevel.INFO,
       expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
     );
-    /*
-    expect(loggerLogSpy).toHaveBeenCalledWith(
-      LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}speedSetting$Changed${db}`),
-    );
-    */
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();

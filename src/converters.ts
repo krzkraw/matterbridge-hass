@@ -3,7 +3,7 @@
  * @file src\converters.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.0.0
+ * @version 1.1.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -17,18 +17,20 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. *
+ * limitations under the License.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
+  airQualitySensor,
   colorTemperatureLight,
   contactSensor,
   coverDevice,
   DeviceTypeDefinition,
   dimmableLight,
   doorLockDevice,
+  electricalSensor,
   extendedColorLight,
   fanDevice,
   humiditySensor,
@@ -63,19 +65,88 @@ import {
   OccupancySensing,
   SmokeCoAlarm,
   PowerSource,
+  ElectricalPowerMeasurement,
+  ElectricalEnergyMeasurement,
+  AirQuality,
+  TotalVolatileOrganicCompoundsConcentrationMeasurement,
+  Pm1ConcentrationMeasurement,
+  Pm10ConcentrationMeasurement,
+  Pm25ConcentrationMeasurement,
+  CarbonDioxideConcentrationMeasurement,
+  CarbonMonoxideConcentrationMeasurement,
+  NitrogenDioxideConcentrationMeasurement,
+  OzoneConcentrationMeasurement,
+  FormaldehydeConcentrationMeasurement,
+  RadonConcentrationMeasurement,
 } from 'matterbridge/matter/clusters';
 
-import { HassState } from './homeAssistant.js';
+import { HassState, HomeAssistant } from './homeAssistant.js';
 
 /**
  * Convert Fahrenheit to Celsius
  *
- * @param {number} fahrenheit - Temperature in Fahrenheit
+ * @param {number} value - Temperature
+ * @param {string} [unit] - Optional unit of measurement, if provided it should be '°C' or '°F'
  * @returns {number} Temperature in Celsius
  */
-export function fahrenheitToCelsius(fahrenheit: number): number {
-  return ((fahrenheit - 32) * 5) / 9;
+export function temp(value: number, unit?: string): number {
+  if (unit === '°F') return ((value - 32) * 5) / 9;
+  return value; // If no unit is provided or it is not '°F', return the value as is
 }
+
+/**
+ * Convert pressure value to hPa (hectopascal)
+ * If the unit is 'hPa', it returns the value as is.
+ *
+ * @param {number} value - Pressure value to convert
+ * @param {string} unit - Unit of measurement
+ * @returns {number | null} Pressure in hPa, or null if the unit is not recognized
+ */
+export function pressure(value: number, unit?: string): number | null {
+  if (unit === 'hPa') {
+    return value;
+  }
+  if (unit === 'kPa') {
+    return value * 10;
+  }
+  if (unit === 'inHg') {
+    return Math.round(value * 33.8639);
+  }
+  return null;
+}
+
+/**
+ * Convert AQI value to corresponding AirQuality enum
+ * If the value is a string, it will be converted to lowercase and matched against known AQI levels.
+ * If the value is a number, it will be checked against AQI ranges.
+ *
+ * @param {number | string} value - AQI value or string representation of AQI level
+ * @param {string} unit - Unit of measurement, expected to be 'AQI'
+ * @returns {number | null} Corresponding AirQuality enum value or null if invalid
+ */
+export function aqi(value: number | string, unit?: string): number | null {
+  if (typeof value === 'string') {
+    value = value.toLowerCase();
+    if (value === 'healthy') return AirQuality.AirQualityEnum.Good;
+    if (value === 'fine') return AirQuality.AirQualityEnum.Good;
+    if (value === 'good') return AirQuality.AirQualityEnum.Good;
+    if (value === 'fair') return AirQuality.AirQualityEnum.Fair;
+    if (value === 'moderate') return AirQuality.AirQualityEnum.Moderate;
+    if (value === 'poor') return AirQuality.AirQualityEnum.Poor;
+    if (value === 'unhealthy_for_sensitive_groups') return AirQuality.AirQualityEnum.Poor;
+    if (value === 'very_poor') return AirQuality.AirQualityEnum.VeryPoor;
+    if (value === 'unhealthy') return AirQuality.AirQualityEnum.VeryPoor;
+    if (value === 'extremely_poor') return AirQuality.AirQualityEnum.ExtremelyPoor;
+    if (value === 'very_unhealthy') return AirQuality.AirQualityEnum.ExtremelyPoor;
+    if (value === 'hazardous') return AirQuality.AirQualityEnum.ExtremelyPoor;
+    return null;
+  }
+  if (isValidNumber(value, 0, 500) && unit === 'AQI') {
+    return Math.round(((value as number) / 500) * 5 + 1);
+  }
+  return null;
+}
+
 /** Update Home Assistant state to Matterbridge device states */
 // prettier-ignore
 export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
@@ -146,12 +217,12 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     // Matter WindowCovering: 0 = open 10000 = closed
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
-  
-    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat' ? value * 100 : null) },
-    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'cool' ? value * 100 : null) },
-    { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? value * 100 : null) },
-    { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? value * 100 : null) },
-    { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? value * 100 : null) },
+
+    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+    { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+    { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+    { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
   ];
 
 /**
@@ -181,20 +252,38 @@ export const hassDomainAttributeConverter: { domain: string; withAttribute: stri
 
 /** Convert Home Assistant sensor domains attributes to Matterbridge device types and clusterIds */
 // prettier-ignore
-export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; endpoint?: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: number, unit?: string) => any }[] = [
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'battery',               endpoint: '',  deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batPercentRemaining', converter: (value) => (isValidNumber(value, 0, 100) ? Math.round(value * 2) : null) },
-    // { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'voltage',               endpoint: '',  deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batVoltage', converter: (value) => (isValidNumber(value, 0, 100000) ? Math.round(value) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',                                     deviceType: temperatureSensor,  clusterId: TemperatureMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value, unit) => (isValidNumber(value, unit==='°F'?-148:-100, unit==='°F'?212:100) ? Math.round(unit === '°F' ? fahrenheitToCelsius(value) * 100 : value * 100) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',                                        deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurement.Cluster.id,  attribute: 'measuredValue',   converter: (value) => (isValidNumber(value, 0, 100) ? Math.round(value * 100) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',                                        deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(value) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'atmospheric_pressure',                            deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(value) : null) },
+export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; endpoint?: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: number | string, unit?: string) => any }[] = [
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'battery',               endpoint: '',             deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batPercentRemaining', converter: (value) => (isValidNumber(value, 0, 100) ? Math.round((value) * 2) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'voltage',               endpoint: '',             deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batVoltage',      converter: (value, unit) => (isValidNumber(value, 0, 100000) && unit === 'mV'? Math.round(value) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',                                     deviceType: temperatureSensor,  clusterId: TemperatureMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value, unit) => (isValidNumber(value, unit==='°F'?-148:-100, unit==='°F'?212:100) ? Math.round(temp(value, unit) * 100) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',                                        deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurement.Cluster.id,  attribute: 'measuredValue',   converter: (value) => (isValidNumber(value, 0, 100) ? Math.round((value) * 100) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',                                        deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value, unit) => (isValidNumber(value, 1) ? pressure(value, unit) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'atmospheric_pressure',                            deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value, unit) => (isValidNumber(value, 1) ? pressure(value, unit) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'illuminance',                                     deviceType: lightSensor,        clusterId: IlluminanceMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(Math.max(Math.min(10000 * Math.log10(value), 0xfffe), 0)) : null) },
+    { domain: 'sensor',     withStateClass: 'total_increasing', withDeviceClass: 'energy',            endpoint: 'PowerEnergy',  deviceType: electricalSensor,   clusterId: ElectricalEnergyMeasurement.Cluster.id,  attribute: 'cumulativeEnergyImported', converter: (value, unit) => (isValidNumber(value) && unit === 'kWh' ? { energy: value *1000000 }: null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'power',                 endpoint: 'PowerEnergy',  deviceType: electricalSensor,   clusterId: ElectricalPowerMeasurement.Cluster.id,   attribute: 'activePower',     converter: (value, unit) => (isValidNumber(value) && unit === 'W' ? (value) * 1000: null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'current',               endpoint: 'PowerEnergy',  deviceType: electricalSensor,   clusterId: ElectricalPowerMeasurement.Cluster.id,   attribute: 'activeCurrent',   converter: (value, unit) => (isValidNumber(value) && unit === 'A' ? (value) * 1000: null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'voltage',               endpoint: 'PowerEnergy',  deviceType: electricalSensor,   clusterId: ElectricalPowerMeasurement.Cluster.id,   attribute: 'voltage',         converter: (value, unit) => (isValidNumber(value) && unit === 'V' ? (value) * 1000: null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'aqi',                   endpoint: 'AirQuality',   deviceType: airQualitySensor,   clusterId: AirQuality.Cluster.id,                   attribute: 'airQuality',      converter: (value, unit) => aqi(value, unit) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'volatile_organic_compounds', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: TotalVolatileOrganicCompoundsConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'volatile_organic_compounds_parts', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: TotalVolatileOrganicCompoundsConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'carbon_dioxide', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: CarbonDioxideConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'carbon_monoxide', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: CarbonMonoxideConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'nitrogen_dioxide', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: NitrogenDioxideConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'ozone', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: OzoneConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'formaldehyde', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: FormaldehydeConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'radon', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: RadonConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pm1', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: Pm1ConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pm25', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: Pm25ConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pm2_5', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: Pm25ConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pm2.5', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: Pm25ConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pm10', endpoint: 'AirQuality', deviceType: airQualitySensor, clusterId: Pm10ConcentrationMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value, _unit) => (isValidNumber(value, 0) ? value : null) },
   ];
 
 /** Convert Home Assistant binary_sensor domains attributes to Matterbridge device types and clusterIds */
 // prettier-ignore
 export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass: string; endpoint?: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: string) => any }[] = [
-    { domain: 'binary_sensor',    withDeviceClass: 'battery',         endpoint: '',  deviceType: powerSource,          clusterId: PowerSource.Cluster.id,        attribute: 'batChargeLevel',  converter: (value: string) => (value === 'off' ? 0 : 2) },
+    { domain: 'binary_sensor',    withDeviceClass: 'battery',         endpoint: '',             deviceType: powerSource,          clusterId: PowerSource.Cluster.id,        attribute: 'batChargeLevel',  converter: (value: string) => (value === 'off' ? 0 : 2) },
     { domain: 'binary_sensor',    withDeviceClass: 'window',                                    deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
     { domain: 'binary_sensor',    withDeviceClass: 'door',                                      deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
     { domain: 'binary_sensor',    withDeviceClass: 'garage_door',                               deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
@@ -242,7 +331,7 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
 // prettier-ignore
 export const hassSubscribeConverter: { domain: string; service: string; with: string; clusterId: ClusterId; attribute: string; converter?: (value: number) => any }[] = [
     { domain: 'fan',      service: 'turn_on',         with: 'preset_mode',  clusterId: FanControl.Cluster.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode) => {
-      if( isValidNumber(value, FanControl.FanMode.Off, FanControl.FanMode.Smart) ) {
+      if( isValidNumber(value, FanControl.FanMode.Low, FanControl.FanMode.Smart) ) {
         if (value === FanControl.FanMode.Low) return 'low';
         else if (value === FanControl.FanMode.Medium) return 'medium';
         else if (value === FanControl.FanMode.High) return 'high';
