@@ -8,11 +8,29 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
+## [0.2.1] - 2025-07-26
+
+### Breaking changes
+
+- [helpers]: All single entities are no more composed devices. This helps the controllers that have issues with composed devices (i.e. Alexa).
+
+### Added
+
+- [airquality]: Refactor the airQuality converter to allow conversion from numbers in the range 0-500 and strings like 'good', 'fair' etc.
+
+### Changed
+
+- [package]: Updated dependencies.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.2.0] - 2025-07-14
 
 ### Breaking changes
 
-- [helpers]: All single entities are no more composed devices. This helps for the controllers that have issues with composed devices (i.e. Alexa).
+- [helpers]: All single entities are no more composed devices. This helps the controllers that have issues with composed devices (i.e. Alexa).
 
 ### Added
 
