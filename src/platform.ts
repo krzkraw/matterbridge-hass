@@ -345,6 +345,252 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.endpointNames.set(entity.entity_id, ''); // Set the endpoint name for the individual entity to the main endpoint
     } // End of individual entities scan
 
+    // Scan standalone entities (not bound to devices) supported by converters and create Matterbridge devices
+    for (const entity of Array.from(this.ha.hassEntities.values())) {
+      if (entity.device_id !== null) continue; // only standalone entities
+      const [domain, name] = entity.entity_id.split('.');
+      // Exclude domains already handled above
+      if (['automation', 'scene', 'script', 'input_boolean', 'input_button'].includes(domain)) continue;
+      // Exclude template switches already handled above
+      if (entity.platform === 'template' && domain === 'switch') continue;
+      // Only process domains supported by hassDomainConverter/sensor/binary converters
+      const domainSupported =
+        hassDomainConverter.some((d) => d.domain === domain) ||
+        hassDomainSensorsConverter.some((d) => d.domain === domain) ||
+        hassDomainBinarySensorsConverter.some((d) => d.domain === domain);
+      if (!domainSupported) continue;
+
+      const entityName = entity.name ?? entity.original_name;
+      if (!isValidString(entityName, 1)) {
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
+        continue;
+      }
+
+      // Whitelist/blacklist and area/label filters
+      this.setSelectDevice(entity.id, entityName, undefined, 'hub');
+      this.setSelectEntity(entityName, entity.entity_id, 'hub');
+      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
+      if (this.hasDeviceName(entityName)) {
+        this.log.warn(`Individual entity ${CYAN}${entityName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
+        continue;
+      }
+      if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
+        this.log.debug(
+          `Individual entity ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
+        );
+        continue;
+      }
+
+      const hassState = this.ha.hassStates.get(entity.entity_id);
+      if (!hassState) {
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no state. Skipping...`);
+        continue;
+      }
+
+      this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
+      const mutableDevice = new MutableDevice(
+        this.matterbridge,
+        entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
+        isValidString(this.config.postfix, 1, 3) ? entity.id.slice(0, 32 - this.config.postfix.length) + this.config.postfix : entity.id.slice(0, 32),
+        0xfff1,
+        'HomeAssistant',
+        domain,
+      );
+      mutableDevice.addDeviceTypes('', bridgedNode);
+      mutableDevice.setComposedType('Hass Entity');
+      mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/entities`);
+
+      let endpointName = entity.entity_id;
+
+      // Base domain mapping
+      const hassDomains = hassDomainConverter.filter((d) => d.domain === domain);
+      if (hassDomains.length > 0) {
+        hassDomains.forEach((hassDomain) => {
+          if (hassDomain.deviceType) mutableDevice.addDeviceTypes(endpointName, hassDomain.deviceType);
+          if (hassDomain.clusterId) mutableDevice.addClusterServerIds(endpointName, hassDomain.clusterId);
+          if (hassDomain.deviceType && isValidString(hassState.attributes['friendly_name']))
+            mutableDevice.setFriendlyName(endpointName, hassState.attributes['friendly_name']);
+        });
+      }
+
+      // Attribute-based device type enrichment (e.g. light brightness/color)
+      for (const [key, _value] of Object.entries(hassState.attributes)) {
+        hassDomainAttributeConverter
+          .filter((d) => d.domain === domain && d.withAttribute === key)
+          .forEach((hassDomainAttribute) => {
+            mutableDevice.addDeviceTypes(endpointName, hassDomainAttribute.deviceType);
+            mutableDevice.addClusterServerIds(endpointName, hassDomainAttribute.clusterId);
+          });
+      }
+
+      // AirQuality special-case via regex
+      if (this.airQualityRegex && this.airQualityRegex.test(entity.entity_id)) {
+        this.endpointNames.set(entity.entity_id, 'AirQuality');
+        mutableDevice.addDeviceTypes('AirQuality', airQualitySensor);
+        mutableDevice.addClusterServerIds('AirQuality', AirQuality.Cluster.id);
+        if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName('AirQuality', hassState.attributes['friendly_name']);
+      }
+
+      // Sensors domain mapping
+      hassDomainSensorsConverter
+        .filter((d) => d.domain === domain)
+        .forEach((hassDomainSensor) => {
+          if (hassState.attributes['state_class'] === hassDomainSensor.withStateClass && hassState.attributes['device_class'] === hassDomainSensor.withDeviceClass) {
+            if (hassDomainSensor.endpoint !== undefined) {
+              endpointName = hassDomainSensor.endpoint;
+              this.endpointNames.set(entity.entity_id, endpointName);
+              this.log.debug(
+                `***- sensor domain ${hassDomainSensor.domain} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+              );
+            }
+            mutableDevice.addDeviceTypes(endpointName, hassDomainSensor.deviceType);
+            mutableDevice.addClusterServerIds(endpointName, hassDomainSensor.clusterId);
+            if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, hassState.attributes['friendly_name']);
+          }
+        });
+
+      // Binary sensors domain mapping
+      hassDomainBinarySensorsConverter
+        .filter((d) => d.domain === domain)
+        .forEach((hassDomainBinarySensor) => {
+          if (hassState.attributes['device_class'] === hassDomainBinarySensor.withDeviceClass) {
+            if (hassDomainBinarySensor.endpoint !== undefined) {
+              endpointName = hassDomainBinarySensor.endpoint;
+              this.endpointNames.set(entity.entity_id, endpointName);
+              this.log.debug(
+                `***- sensor domain ${hassDomainBinarySensor.domain} deviceClass ${hassDomainBinarySensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+              );
+            }
+            mutableDevice.addDeviceTypes(endpointName, hassDomainBinarySensor.deviceType);
+            mutableDevice.addClusterServerIds(endpointName, hassDomainBinarySensor.clusterId);
+            if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, hassState.attributes['friendly_name']);
+          }
+        });
+
+      // If nothing was added besides bridged node, skip
+      if (!mutableDevice.has(endpointName)) {
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no supported domains. Skipping...`);
+        continue;
+      }
+
+      // Special cases (align with device flow)
+      const deviceTypeCodes = mutableDevice.get(endpointName).deviceTypes.map((d) => d.code);
+
+      if (deviceTypeCodes.includes(powerSource.code)) {
+        this.log.debug(`= powerSource battery device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+        mutableDevice.addClusterServerPowerSource(endpointName, PowerSource.BatChargeLevel.Ok, 200);
+      }
+
+      if (domain === 'binary_sensor' && deviceTypeCodes.includes(contactSensor.code)) {
+        this.log.debug(`= contactSensor device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+        mutableDevice.addClusterServerBooleanState(endpointName, hassState.state === 'on' ? false : true);
+      }
+
+      if (domain === 'binary_sensor' && (deviceTypeCodes.includes(waterLeakDetector.code) || deviceTypeCodes.includes(waterFreezeDetector.code))) {
+        this.log.debug(`= waterLeakDetector/waterFreezeDetector device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+        mutableDevice.addClusterServerBooleanState(endpointName, hassState.state === 'on' ? true : false);
+      }
+
+      if (domain === 'binary_sensor' && hassState.attributes.device_class === 'smoke' && mutableDevice.get(endpointName).deviceTypes[0].code === smokeCoAlarm.code) {
+        this.log.debug(`= smokeCoAlarm SmokeAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+        mutableDevice.addClusterServerSmokeAlarmSmokeCoAlarm(endpointName, hassState.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
+      }
+
+      if (domain === 'binary_sensor' && hassState.attributes.device_class === 'carbon_monoxide' && mutableDevice.get(endpointName).deviceTypes[0].code === smokeCoAlarm.code) {
+        this.log.debug(`= smokeCoAlarm CoAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+        mutableDevice.addClusterServerCoAlarmSmokeCoAlarm(endpointName, hassState.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
+      }
+
+      if (domain === 'light' && (deviceTypeCodes.includes(colorTemperatureLight.code) || deviceTypeCodes.includes(extendedColorLight.code))) {
+        this.log.debug(
+          `= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${hassState.attributes['supported_color_modes']}${db} min_mireds: ${CYAN}${hassState.attributes['min_mireds']}${db} max_mireds: ${CYAN}${hassState.attributes['max_mireds']}${db}`,
+        );
+        if (
+          isValidArray(hassState.attributes['supported_color_modes']) &&
+          !hassState.attributes['supported_color_modes'].includes('xy') &&
+          !hassState.attributes['supported_color_modes'].includes('hs') &&
+          !hassState.attributes['supported_color_modes'].includes('rgb') &&
+          !hassState.attributes['supported_color_modes'].includes('rgbw') &&
+          !hassState.attributes['supported_color_modes'].includes('rgbww') &&
+          hassState.attributes['supported_color_modes'].includes('color_temp')
+        ) {
+          mutableDevice.addClusterServerColorTemperatureColorControl(
+            endpointName,
+            (hassState.attributes['color_temp'] as number) ?? 250,
+            (hassState.attributes['min_mireds'] as number) ?? 147,
+            (hassState.attributes['max_mireds'] as number) ?? 500,
+          );
+        } else {
+          mutableDevice.addClusterServerColorControl(
+            endpointName,
+            (hassState.attributes['color_temp'] as number) ?? 250,
+            (hassState.attributes['min_mireds'] as number) ?? 147,
+            (hassState.attributes['max_mireds'] as number) ?? 500,
+          );
+        }
+      }
+
+      if (domain === 'climate') {
+        if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat_cool')) {
+          this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
+          mutableDevice.addClusterServerAutoModeThermostat(
+            endpointName,
+            hassState.attributes['current_temperature'] ?? 23,
+            hassState.attributes['target_temp_low'] ?? 21,
+            hassState.attributes['target_temp_high'] ?? 25,
+            hassState.attributes['min_temp'] ?? 0,
+            hassState.attributes['max_temp'] ?? 50,
+          );
+        } else if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat') && !hassState.attributes['hvac_modes'].includes('cool')) {
+          this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
+          mutableDevice.addClusterServerHeatingThermostat(
+            endpointName,
+            hassState.attributes['current_temperature'] ?? 23,
+            hassState.attributes['temperature'] ?? 21,
+            hassState.attributes['min_temp'] ?? 0,
+            hassState.attributes['max_temp'] ?? 50,
+          );
+        } else if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('cool') && !hassState.attributes['hvac_modes'].includes('heat')) {
+          this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
+          mutableDevice.addClusterServerCoolingThermostat(
+            endpointName,
+            hassState.attributes['current_temperature'] ?? 23,
+            hassState.attributes['temperature'] ?? 21,
+            hassState.attributes['min_temp'] ?? 0,
+            hassState.attributes['max_temp'] ?? 50,
+          );
+        }
+      }
+
+      // Command handlers
+      for (const hassCommand of hassCommandConverter.filter((c) => c.domain === domain)) {
+        this.log.debug(`- command: ${CYAN}${hassCommand.command}${db}`);
+        mutableDevice.addCommandHandler(endpointName, hassCommand.command, async (data, endpointName2, command) => {
+          this.commandHandler(data, endpointName2, command);
+        });
+      }
+
+      // Subscribe handlers
+      for (const hassSubscribe of hassSubscribeConverter.filter((s) => s.domain === domain)) {
+        this.log.debug(`- subscribe: ${CYAN}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${CYAN}${hassSubscribe.attribute}${db}`);
+        mutableDevice.addSubscribeHandler(
+          endpointName,
+          hassSubscribe.clusterId,
+          hassSubscribe.attribute,
+          (newValue: any, oldValue: any, context: ActionContext, _endpointName: string, _clusterId: ClusterId, _attribute: string) => {
+            this.subscribeHandler(entity, hassSubscribe, newValue, oldValue, context);
+          },
+        );
+      }
+
+      await mutableDevice.create();
+      mutableDevice.logMutableDevice();
+      this.log.debug(`Registering device ${dn}${entityName}${db}...`);
+      await this.registerDevice(mutableDevice.getEndpoint());
+      this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
+      if (!this.endpointNames.has(entity.entity_id)) this.endpointNames.set(entity.entity_id, ''); // main endpoint for this single entity
+    }
+
     // Scan devices and entities and create Matterbridge devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
       // Check if we have a valid device
@@ -414,7 +660,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Get the device state. If the entity is disabled, it doesn't have a state, we skip it.
         const hassState = this.ha.hassStates.get(entity.entity_id);
         if (!hassState) {
-          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
+          const disabledReason = entity.disabled_by ? ` disabled by ${entity.disabled_by}` : '';
+          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}${disabledReason}: state not found. Skipping...`);
           continue;
         }
 
@@ -696,7 +943,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     oldValue: any,
     context: ActionContext,
   ) {
-    const matterbridgeDevice = entity.device_id ? this.matterbridgeDevices.get(entity.device_id) : undefined;
+    const matterbridgeDevice = entity.device_id ? this.matterbridgeDevices.get(entity.device_id) : this.matterbridgeDevices.get(entity.entity_id);
     if (!matterbridgeDevice) {
       this.log.debug(`Subscribe handler: Matterbridge device ${entity.device_id} for ${entity.entity_id} not found`);
       return;
