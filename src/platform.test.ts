@@ -742,6 +742,9 @@ describe('HassPlatform', () => {
       device_id: null,
     } as unknown as HassEntity;
     haPlatform.ha.hassEntities.set(entity.id, entity);
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -758,6 +761,9 @@ describe('HassPlatform', () => {
       name: 'Turn off all lights',
     } as unknown as HassEntity;
     haPlatform.ha.hassEntities.set(entity.id, entity);
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
     (haPlatform as any)._registeredEndpointsByName.set(entity.name, entity);
     await haPlatform.onStart('Test reason');
 
@@ -821,6 +827,9 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(entity.id, entity);
     haPlatform.ha.hassDevices.clear();
     haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -857,6 +866,9 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(entity.id, entity);
     haPlatform.ha.hassDevices.clear();
     haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -893,6 +905,9 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(entity.id, entity);
     haPlatform.ha.hassDevices.clear();
     haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -929,6 +944,9 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(entity.id, entity);
     haPlatform.ha.hassDevices.clear();
     haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -965,6 +983,9 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(entity.id, entity);
     haPlatform.ha.hassDevices.clear();
     haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 

@@ -245,23 +245,46 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await this.ready;
     await this.clearSelect();
 
-    // Scan individual entities (domain automation, scene, script and helpers input_boolean) and create Matterbridge devices
+    // Scan all entities to create individual Matterbridge devices for entities without device_id
     for (const entity of Array.from(this.ha.hassEntities.values())) {
-      const [domain, name] = entity.entity_id.split('.');
-      if (entity.platform === 'template') {
-        if (domain !== 'switch') continue;
-      } else {
-        if (!['automation', 'scene', 'script', 'input_boolean', 'input_button'].includes(domain)) continue;
-      }
+      // Skip entities that belong to a device - they will be processed in the device scan section
       if (entity.device_id !== null) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} is a device entity. Skipping...`);
         continue;
       }
+
+      const [domain, name] = entity.entity_id.split('.');
+      
+      // Get the entity state. If the entity is disabled, it doesn't have a state, we skip it.
+      const hassState = this.ha.hassStates.get(entity.entity_id);
+      if (!hassState) {
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
+        continue;
+      }
+
+      // Check if the domain is supported
+      const hassDomains = hassDomainConverter.filter((d) => d.domain === domain);
+      let isSpecialDomain = false;
+      
+      // Special handling for specific domains that don't need device type/cluster conversion
+      if (entity.platform === 'template') {
+        if (domain === 'switch') isSpecialDomain = true;
+      } else {
+        if (['automation', 'scene', 'script', 'input_boolean', 'input_button'].includes(domain)) isSpecialDomain = true;
+      }
+
+      // Skip entities that are not supported domains and not special domains
+      if (hassDomains.length === 0 && !isSpecialDomain) {
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
+        continue;
+      }
+
       const entityName = entity.name ?? entity.original_name;
       if (!isValidString(entityName, 1)) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
       }
+      
       this.setSelectDevice(entity.id, entityName, undefined, 'hub');
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
@@ -277,6 +300,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
 
       this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
+      
       // Create a Mutable device with bridgedNode and the BridgedDeviceBasicInformationCluster
       const mutableDevice = new MutableDevice(
         this.matterbridge,
@@ -288,54 +312,212 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
 
-      // Set the composed type based on the domain
-      if (domain === 'automation') mutableDevice.setComposedType(`Hass Automation`);
-      else if (domain === 'scene') mutableDevice.setComposedType(`Hass Scene`);
-      else if (domain === 'script') mutableDevice.setComposedType(`Hass Script`);
-      else if (domain === 'input_boolean') mutableDevice.setComposedType(`Hass Boolean`);
-      else if (domain === 'input_button') mutableDevice.setComposedType(`Hass Button`);
-      else if (domain === 'switch') mutableDevice.setComposedType(`Hass Template`);
+      if (isSpecialDomain) {
+        // Handle special domains (automation, scene, script, input_boolean, input_button, template switch)
+        
+        // Set the composed type based on the domain
+        if (domain === 'automation') mutableDevice.setComposedType(`Hass Automation`);
+        else if (domain === 'scene') mutableDevice.setComposedType(`Hass Scene`);
+        else if (domain === 'script') mutableDevice.setComposedType(`Hass Script`);
+        else if (domain === 'input_boolean') mutableDevice.setComposedType(`Hass Boolean`);
+        else if (domain === 'input_button') mutableDevice.setComposedType(`Hass Button`);
+        else if (domain === 'switch') mutableDevice.setComposedType(`Hass Template`);
 
-      // Set the configUrl based on the domain
-      if (domain === 'automation')
-        mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/automation/dashboard`);
-      else if (domain === 'scene')
-        mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/scene/dashboard`);
-      else if (domain === 'script')
-        mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/script/dashboard`);
-      else mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`);
+        // Set the configUrl based on the domain
+        if (domain === 'automation')
+          mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/automation/dashboard`);
+        else if (domain === 'scene')
+          mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/scene/dashboard`);
+        else if (domain === 'script')
+          mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/script/dashboard`);
+        else mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`);
 
-      // Add to the main endpoint onOffOutlet and the OnOffCluster
-      mutableDevice.addDeviceTypes('', onOffOutlet);
-      mutableDevice.addCommandHandler('', 'on', async (data, _endpointName, _command) => {
-        // this.log.debug(`*CommandHandler: ${command} for endpoint '${endpointName}' with request ${debugStringify(data.request)}${db} on endpoint id ${data.endpoint.maybeId} cluster ${data.cluster} attribute ${data.attributes.onOff}`);
-        if (domain === 'automation') {
-          await this.ha.callService(domain, 'trigger', entity.entity_id);
-        } else if (domain === 'input_button') {
-          await this.ha.callService(domain, 'press', entity.entity_id);
-        } else {
-          await this.ha.callService(domain, 'turn_on', entity.entity_id);
+        // Add to the main endpoint onOffOutlet and the OnOffCluster for special domains
+        mutableDevice.addDeviceTypes('', onOffOutlet);
+        mutableDevice.addCommandHandler('', 'on', async (data, _endpointName, _command) => {
+          if (domain === 'automation') {
+            await this.ha.callService(domain, 'trigger', entity.entity_id);
+          } else if (domain === 'input_button') {
+            await this.ha.callService(domain, 'press', entity.entity_id);
+          } else {
+            await this.ha.callService(domain, 'turn_on', entity.entity_id);
+          }
+          // We revert the state after 500ms except for input_boolean and switch template that maintain the state
+          if (domain !== 'input_boolean' && domain !== 'switch') {
+            setTimeout(() => {
+              data.endpoint.setAttribute(OnOff.Cluster.id, 'onOff', false, data.endpoint.log);
+            }, 500).unref();
+          }
+        });
+        mutableDevice.addCommandHandler('', 'off', async (_data, _endpointName, _command) => {
+          // We don't revert only for input_boolean and switch template
+          if (domain === 'input_boolean' || domain === 'switch') await this.ha.callService(domain, 'turn_off', entity.entity_id);
+        });
+        mutableDevice.addSubscribeHandler(
+          '',
+          OnOff.Cluster.id,
+          'onOff',
+          (_newValue: unknown, _oldValue: unknown, _context: ActionContext, _endpointName: string, _clusterId: ClusterId, _attribute: string) => {
+            // this.log.debug(`*SubscribeHandler: local ${context.offline === true} on endpoint '${endpointName}' cluster ${clusterId} attribute ${attribute} with oldValue ${oldValue} and newValue ${newValue}`);
+          },
+        );
+      } else {
+        // Handle regular domains (switch, light, lock, fan, cover, climate, sensor, binary_sensor)
+        
+        // Set the composed type based on the domain
+        mutableDevice.setComposedType(`Hass ${domain.charAt(0).toUpperCase() + domain.slice(1)}`);
+        
+        // Set general config URL
+        mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/entities`);
+
+        // Add device types and cluster IDs for supported domains
+        hassDomains.forEach((hassDomain) => {
+          if (hassDomain.deviceType) mutableDevice.addDeviceTypes('', hassDomain.deviceType);
+          if (hassDomain.clusterId) mutableDevice.addClusterServerIds('', hassDomain.clusterId);
+          if (hassDomain.deviceType && isValidString(hassState.attributes['friendly_name']))
+            mutableDevice.setFriendlyName('', hassState.attributes['friendly_name']);
+        });
+
+        // Look for supported attributes of the current entity state
+        this.log.debug(`- state ${debugStringify(hassState)}`);
+        if (hassState.attributes) {
+          for (const [key, _value] of Object.entries(hassState.attributes)) {
+            hassDomainAttributeConverter
+              .filter((d) => d.domain === domain && d.withAttribute === key)
+              .forEach((hassDomainAttribute) => {
+                this.log.debug(
+                  `+ attribute device ${CYAN}${hassDomainAttribute.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainAttribute.clusterId)?.name}${db}`,
+                );
+                mutableDevice.addDeviceTypes('', hassDomainAttribute.deviceType);
+                mutableDevice.addClusterServerIds('', hassDomainAttribute.clusterId);
+              });
+          }
         }
-        // We revert the state after 500ms except for input_boolean and switch template that mantain the state
-        if (domain !== 'input_boolean' && domain !== 'switch') {
-          setTimeout(() => {
-            data.endpoint.setAttribute(OnOff.Cluster.id, 'onOff', false, data.endpoint.log);
-          }, 500).unref();
+
+        // Look for air_quality entity using airqualityRegex
+        if (this.airQualityRegex && this.airQualityRegex.test(entity.entity_id)) {
+          this.log.debug(`+ air_quality entity ${CYAN}${entity.entity_id}${db} found`);
+          this.endpointNames.set(entity.entity_id, 'AirQuality'); // Set the endpoint name for the entity
+          mutableDevice.addDeviceTypes('AirQuality', airQualitySensor); // Add the air quality sensor device type
+          mutableDevice.addClusterServerIds('AirQuality', AirQuality.Cluster.id); // Add the AirQuality cluster
+          if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName('AirQuality', hassState.attributes['friendly_name']); // Set the friendly name for the air quality sensor
         }
-      });
-      mutableDevice.addCommandHandler('', 'off', async (_data, _endpointName, _command) => {
-        // this.log.debug(`*CommandHandler: ${command} for endpoint '${endpointName}' with request ${debugStringify(data.request)}${db} on endpoint id ${data.endpoint.maybeId} cluster ${data.cluster} attribute ${data.attributes.onOff}`);
-        // We don't revert only for input_boolean and switch template
-        if (domain === 'input_boolean' || domain === 'switch') await this.ha.callService(domain, 'turn_off', entity.entity_id);
-      });
-      mutableDevice.addSubscribeHandler(
-        '',
-        OnOff.Cluster.id,
-        'onOff',
-        (_newValue: unknown, _oldValue: unknown, _context: ActionContext, _endpointName: string, _clusterId: ClusterId, _attribute: string) => {
-          // this.log.debug(`*SubscribeHandler: local ${context.offline === true} on endpoint '${endpointName}' cluster ${clusterId} attribute ${attribute} with oldValue ${oldValue} and newValue ${newValue}`);
-        },
-      );
+
+        // Look for supported sensors of the current entity
+        let endpointName = '';
+        hassDomainSensorsConverter
+          .filter((d) => d.domain === domain)
+          .forEach((hassDomainSensor) => {
+            if (hassState.attributes && hassState.attributes['state_class'] === hassDomainSensor.withStateClass && hassState.attributes['device_class'] === hassDomainSensor.withDeviceClass) {
+              if (hassDomainSensor.endpoint !== undefined) {
+                endpointName = hassDomainSensor.endpoint; // Remap the endpoint name for the entity
+                this.endpointNames.set(entity.entity_id, hassDomainSensor.endpoint); // Set the endpoint name for the entity
+                this.log.debug(
+                  `***- sensor domain ${hassDomainSensor.domain} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+                );
+              }
+              this.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
+              mutableDevice.addDeviceTypes(endpointName, hassDomainSensor.deviceType);
+              mutableDevice.addClusterServerIds(endpointName, hassDomainSensor.clusterId);
+              if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, hassState.attributes['friendly_name']);
+            }
+          });
+
+        // Look for supported binary_sensors of the current entity
+        hassDomainBinarySensorsConverter
+          .filter((d) => d.domain === domain)
+          .forEach((hassDomainBinarySensor) => {
+            if (hassState.attributes && hassState.attributes['device_class'] === hassDomainBinarySensor.withDeviceClass) {
+              if (hassDomainBinarySensor.endpoint !== undefined) {
+                endpointName = hassDomainBinarySensor.endpoint; // Remap the endpoint name for the entity
+                this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
+                this.log.debug(
+                  `***- sensor domain ${hassDomainBinarySensor.domain} deviceClass ${hassDomainBinarySensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+                );
+              }
+              this.log.debug(
+                `+ binary_sensor device ${CYAN}${hassDomainBinarySensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainBinarySensor.clusterId)?.name}${db}`,
+              );
+              mutableDevice.addDeviceTypes(endpointName, hassDomainBinarySensor.deviceType);
+              mutableDevice.addClusterServerIds(endpointName, hassDomainBinarySensor.clusterId);
+              if (hassState.attributes && isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, hassState.attributes['friendly_name']);
+            }
+          });
+
+        // Configure special cluster setups based on device type and domain
+        const deviceTypeCodes = mutableDevice.get('').deviceTypes.map((d) => d.code);
+
+        // Special case for binary_sensor domain: configure the BooleanState cluster default values for contactSensor.
+        if (domain === 'binary_sensor' && deviceTypeCodes.includes(contactSensor.code)) {
+          this.log.debug(`= contactSensor device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerBooleanState('', hassState.state === 'on' ? false : true);
+        }
+
+        // Special case for binary_sensor domain: configure the BooleanState cluster default value for waterLeakDetector/waterFreezeDetector.
+        if (domain === 'binary_sensor' && (deviceTypeCodes.includes(waterLeakDetector.code) || deviceTypeCodes.includes(waterFreezeDetector.code))) {
+          this.log.debug(`= waterLeakDetector/waterFreezeDetector device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerBooleanState('', hassState.state === 'on' ? true : false);
+        }
+
+        // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature SmokeAlarm for device_class smoke.
+        if (domain === 'binary_sensor' && hassState.attributes.device_class === 'smoke' && deviceTypeCodes.includes(smokeCoAlarm.code)) {
+          this.log.debug(`= smokeCoAlarm SmokeAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerSmokeAlarmSmokeCoAlarm('', hassState.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
+        }
+
+        // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature CoAlarm for device_class carbon_monoxide.
+        if (domain === 'binary_sensor' && hassState.attributes.device_class === 'carbon_monoxide' && deviceTypeCodes.includes(smokeCoAlarm.code)) {
+          this.log.debug(`= smokeCoAlarm CoAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerCoAlarmSmokeCoAlarm('', hassState.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
+        }
+
+        // Special case for light domain: configure the ColorControl cluster default values.
+        if (domain === 'light' && (deviceTypeCodes.includes(colorTemperatureLight.code) || deviceTypeCodes.includes(extendedColorLight.code))) {
+          this.log.debug(`= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${hassState.attributes['supported_color_modes']}${db} min_mireds: ${CYAN}${hassState.attributes['min_mireds']}${db} max_mireds: ${CYAN}${hassState.attributes['max_mireds']}${db}`);
+          if (isValidArray(hassState.attributes['supported_color_modes']) && !hassState.attributes['supported_color_modes'].includes('xy') && !hassState.attributes['supported_color_modes'].includes('hs') && !hassState.attributes['supported_color_modes'].includes('rgb') &&
+           !hassState.attributes['supported_color_modes'].includes('rgbw') && !hassState.attributes['supported_color_modes'].includes('rgbww') && hassState.attributes['supported_color_modes'].includes('color_temp')
+          ) {
+            mutableDevice.addClusterServerColorTemperatureColorControl('', hassState.attributes['color_temp'] ?? 250, hassState.attributes['min_mireds'] ?? 147, hassState.attributes['max_mireds'] ?? 500);
+          } else {
+            mutableDevice.addClusterServerColorControl('', hassState.attributes['color_temp'] ?? 250, hassState.attributes['min_mireds'] ?? 147, hassState.attributes['max_mireds'] ?? 500);
+          }
+        }
+
+        // Special case for climate domain: configure the Thermostat cluster default values and features.
+        if (domain === 'climate') {
+          if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat_cool')) {
+            this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
+            mutableDevice.addClusterServerAutoModeThermostat('', hassState.attributes['current_temperature'] ?? 23, hassState.attributes['target_temp_low'] ?? 21, hassState.attributes['target_temp_high'] ?? 25, hassState.attributes['min_temp'] ?? 0, hassState.attributes['max_temp'] ?? 50);
+          } else if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat') && !hassState.attributes['hvac_modes'].includes('cool')) {
+            this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
+            mutableDevice.addClusterServerHeatingThermostat('', hassState.attributes['current_temperature'] ?? 23, hassState.attributes['temperature'] ?? 21, hassState.attributes['min_temp'] ?? 0, hassState.attributes['max_temp'] ?? 50);
+          } else if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('cool') && !hassState.attributes['hvac_modes'].includes('heat')) {
+            this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
+            mutableDevice.addClusterServerCoolingThermostat('', hassState.attributes['current_temperature'] ?? 23, hassState.attributes['temperature'] ?? 21, hassState.attributes['min_temp'] ?? 0, hassState.attributes['max_temp'] ?? 50);
+          }
+        }
+
+        // Add command handlers for regular domains
+        for (const hassCommand of hassCommandConverter.filter((c) => c.domain === domain)) {
+          this.log.debug(`- command: ${CYAN}${hassCommand.command}${db}`);
+          mutableDevice.addCommandHandler('', hassCommand.command, async (data, endpointName, command) => {
+            this.commandHandler(data, endpointName, command);
+          });
+        }
+
+        // Add subscribe handlers for regular domains
+        for (const hassSubscribe of hassSubscribeConverter.filter((s) => s.domain === domain)) {
+          this.log.debug(`- subscribe: ${CYAN}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${CYAN}${hassSubscribe.attribute}${db}`);
+          mutableDevice.addSubscribeHandler(
+            '',
+            hassSubscribe.clusterId,
+            hassSubscribe.attribute,
+            (newValue: any, oldValue: any, context: ActionContext, _endpointName: string, _clusterId: ClusterId, _attribute: string) => {
+              this.subscribeHandler(entity, hassSubscribe, newValue, oldValue, context);
+            },
+          );
+        }
+      }
 
       await mutableDevice.create();
       mutableDevice.logMutableDevice();
@@ -495,7 +677,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         hassDomainBinarySensorsConverter
           .filter((d) => d.domain === domain)
           .forEach((hassDomainBinarySensor) => {
-            if (hassState.attributes['device_class'] === hassDomainBinarySensor.withDeviceClass) {
+            if (hassState.attributes && hassState.attributes['device_class'] === hassDomainBinarySensor.withDeviceClass) {
               if (hassDomainBinarySensor.endpoint !== undefined) {
                 endpointName = hassDomainBinarySensor.endpoint; // Remap the endpoint name for the entity
                 this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
@@ -508,7 +690,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               );
               mutableDevice.addDeviceTypes(endpointName, hassDomainBinarySensor.deviceType);
               mutableDevice.addClusterServerIds(endpointName, hassDomainBinarySensor.clusterId);
-              if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, hassState.attributes['friendly_name']);
+              if (hassState.attributes && isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, hassState.attributes['friendly_name']);
             }
           });
 
@@ -804,11 +986,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
     } else if (domain === 'binary_sensor') {
       // Update binary_sensors of the device
-      const hassBinarySensorConverter = hassDomainBinarySensorsConverter.find((s) => s.domain === domain && s.withDeviceClass === new_state.attributes['device_class']);
+      const hassBinarySensorConverter = hassDomainBinarySensorsConverter.find((s) => s.domain === domain && new_state.attributes && s.withDeviceClass === new_state.attributes['device_class']);
       if (hassBinarySensorConverter) {
         const convertedValue = hassBinarySensorConverter.converter(new_state.state);
         endpoint.log.debug(
-          `Converting binary_sensor ${new_state.attributes['device_class']} value "${new_state.state}" to ${CYAN}${typeof convertedValue === 'object' ? debugStringify(convertedValue) : convertedValue}${db}`,
+          `Converting binary_sensor ${new_state.attributes && new_state.attributes['device_class']} value "${new_state.state}" to ${CYAN}${typeof convertedValue === 'object' ? debugStringify(convertedValue) : convertedValue}${db}`,
         );
         if (convertedValue !== null) await endpoint.setAttribute(hassBinarySensorConverter.clusterId, hassBinarySensorConverter.attribute, convertedValue, endpoint.log);
       } else {
