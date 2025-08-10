@@ -926,7 +926,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       matterbridgeDevice = this.matterbridgeDevices.get(entityId.replaceAll('.', ''));
     }
     if (!matterbridgeDevice) {
-      this.log.debug(`Update handler1: Matterbridge device ${deviceId ?? entityId} for entity ${entityId} not found`);
+      this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for entity ${entityId} not found`);
       return;
     }
     let endpoint = matterbridgeDevice.getChildEndpointByName(entityId) || matterbridgeDevice.getChildEndpointByName(entityId.replaceAll('.', ''));
