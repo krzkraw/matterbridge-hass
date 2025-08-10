@@ -795,7 +795,8 @@ describe('HassPlatform', () => {
     const tempDevice = haPlatform.matterbridgeDevices.get('sensor.temperature_in_living_room');
     const livingChild = livingDevice?.getChildEndpointByName('climate.ac_living_room') || livingDevice?.getChildEndpointByName('climate.ac_living_room'.replaceAll('.', ''));
     const bedroomChild = bedroomDevice?.getChildEndpointByName('climate.ac_bedroom') || bedroomDevice?.getChildEndpointByName('climate.ac_bedroom'.replaceAll('.', ''));
-  const tempChild = tempDevice?.getChildEndpointByName('sensor.temperature_in_living_room') || tempDevice?.getChildEndpointByName('sensor.temperature_in_living_room'.replaceAll('.', ''));
+    const tempChild =
+      tempDevice?.getChildEndpointByName('sensor.temperature_in_living_room') || tempDevice?.getChildEndpointByName('sensor.temperature_in_living_room'.replaceAll('.', ''));
     expect(livingChild).toBeDefined();
     expect(bedroomChild).toBeDefined();
     expect(tempChild).toBeDefined();

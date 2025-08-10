@@ -408,8 +408,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         hassDomains.forEach((hassDomain) => {
           if (hassDomain.deviceType) mutableDevice.addDeviceTypes(endpointName, hassDomain.deviceType);
           if (hassDomain.clusterId) mutableDevice.addClusterServerIds(endpointName, hassDomain.clusterId);
-          if (hassDomain.deviceType && isValidString(hassState.attributes['friendly_name']))
-            mutableDevice.setFriendlyName(endpointName, hassState.attributes['friendly_name']);
+          if (hassDomain.deviceType && isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, hassState.attributes['friendly_name']);
         });
       }
 
@@ -541,7 +540,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             hassState.attributes['min_temp'] ?? 0,
             hassState.attributes['max_temp'] ?? 50,
           );
-        } else if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat') && !hassState.attributes['hvac_modes'].includes('cool')) {
+        } else if (
+          isValidArray(hassState?.attributes['hvac_modes']) &&
+          hassState.attributes['hvac_modes'].includes('heat') &&
+          !hassState.attributes['hvac_modes'].includes('cool')
+        ) {
           this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
           mutableDevice.addClusterServerHeatingThermostat(
             endpointName,
@@ -550,7 +553,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             hassState.attributes['min_temp'] ?? 0,
             hassState.attributes['max_temp'] ?? 50,
           );
-        } else if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('cool') && !hassState.attributes['hvac_modes'].includes('heat')) {
+        } else if (
+          isValidArray(hassState?.attributes['hvac_modes']) &&
+          hassState.attributes['hvac_modes'].includes('cool') &&
+          !hassState.attributes['hvac_modes'].includes('heat')
+        ) {
           this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
           mutableDevice.addClusterServerCoolingThermostat(
             endpointName,
