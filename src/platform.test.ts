@@ -715,6 +715,110 @@ describe('HassPlatform', () => {
     mockConfig.whiteList = [];
   });
 
+  it('should register standalone climate and temperature sensor entities', async () => {
+    expect(haPlatform).toBeDefined();
+
+    // Prepare only the three standalone entities and their states
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+
+    // Set HA config units
+    haPlatform.ha.hassConfig = {
+      unit_system: { temperature: '°C', pressure: 'hPa' },
+    } as unknown as HassConfig;
+
+    // Grab entities from mock payload and insert keyed by entity_id (so onConfigure can resolve them)
+    const livingClimate = (mockData.entities as HassEntity[]).find((e) => e.entity_id === 'climate.ac_living_room');
+    const bedroomClimate = (mockData.entities as HassEntity[]).find((e) => e.entity_id === 'climate.ac_bedroom');
+    const tempSensor = (mockData.entities as HassEntity[]).find((e) => e.entity_id === 'sensor.temperature_in_living_room');
+    expect(livingClimate && bedroomClimate && tempSensor).toBeTruthy();
+    if (!livingClimate || !bedroomClimate || !tempSensor) return;
+
+    haPlatform.ha.hassEntities.set(livingClimate.entity_id, livingClimate);
+    haPlatform.ha.hassEntities.set(bedroomClimate.entity_id, bedroomClimate);
+    haPlatform.ha.hassEntities.set(tempSensor.entity_id, tempSensor);
+
+    // Provide states for these standalone entities so the standalone scan will include them
+    const livingClimateState: HassState = {
+      entity_id: 'climate.ac_living_room',
+      state: 'heat_cool',
+      attributes: {
+        hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+        min_temp: 10,
+        max_temp: 30,
+        current_temperature: 21.5,
+        target_temp_low: 20,
+        target_temp_high: 24,
+        friendly_name: 'Living Room AC',
+      },
+    } as unknown as HassState;
+
+    const bedroomClimateState: HassState = {
+      entity_id: 'climate.ac_bedroom',
+      state: 'cool',
+      attributes: {
+        hvac_modes: ['off', 'cool'],
+        min_temp: 10,
+        max_temp: 30,
+        current_temperature: 25,
+        temperature: 23,
+        friendly_name: 'Bedroom AC',
+      },
+    } as unknown as HassState;
+
+    const tempSensorState: HassState = {
+      entity_id: 'sensor.temperature_in_living_room',
+      state: '22.7',
+      attributes: {
+        state_class: 'measurement',
+        unit_of_measurement: '°C',
+        device_class: 'temperature',
+        friendly_name: 'temperature in living room',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassStates.set(livingClimateState.entity_id, livingClimateState);
+    haPlatform.ha.hassStates.set(bedroomClimateState.entity_id, bedroomClimateState);
+    haPlatform.ha.hassStates.set(tempSensorState.entity_id, tempSensorState);
+
+    await haPlatform.onStart('Test reason');
+
+    // Devices should be registered per-entity (standalone)
+    expect(haPlatform.matterbridgeDevices.get('climate.ac_living_room')).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.get('climate.ac_bedroom')).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.get('sensor.temperature_in_living_room')).toBeDefined();
+
+    // Child endpoints created with entity_id names
+    const livingDevice = haPlatform.matterbridgeDevices.get('climate.ac_living_room');
+    const bedroomDevice = haPlatform.matterbridgeDevices.get('climate.ac_bedroom');
+    const tempDevice = haPlatform.matterbridgeDevices.get('sensor.temperature_in_living_room');
+    const livingChild = livingDevice?.getChildEndpointByName('climate.ac_living_room') || livingDevice?.getChildEndpointByName('climate.ac_living_room'.replaceAll('.', ''));
+    const bedroomChild = bedroomDevice?.getChildEndpointByName('climate.ac_bedroom') || bedroomDevice?.getChildEndpointByName('climate.ac_bedroom'.replaceAll('.', ''));
+  const tempChild = tempDevice?.getChildEndpointByName('sensor.temperature_in_living_room') || tempDevice?.getChildEndpointByName('sensor.temperature_in_living_room'.replaceAll('.', ''));
+    expect(livingChild).toBeDefined();
+    expect(bedroomChild).toBeDefined();
+    expect(tempChild).toBeDefined();
+
+    // onConfigure should push states to updateHandler and set attributes
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+
+    // Climate living room (auto/heat_cool)
+    expect(setAttributeSpy).toHaveBeenCalledWith(expect.anything(), 'systemMode', expect.any(Number), expect.anything());
+    // Expect occupiedHeatingSetpoint and occupiedCoolingSetpoint and localTemperature updates
+    expect(setAttributeSpy).toHaveBeenCalledWith(expect.anything(), 'occupiedHeatingSetpoint', 2000, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(expect.anything(), 'occupiedCoolingSetpoint', 2400, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(expect.anything(), 'localTemperature', 2150, expect.anything());
+
+    // Climate bedroom (cool only) should set systemMode Cool, occupiedCoolingSetpoint and localTemperature
+    expect(setAttributeSpy).toHaveBeenCalledWith(expect.anything(), 'occupiedCoolingSetpoint', 2300, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(expect.anything(), 'localTemperature', 2500, expect.anything());
+
+    // Temperature sensor measured value
+    expect(setAttributeSpy).toHaveBeenCalledWith(expect.anything(), 'measuredValue', 2270, expect.anything());
+  });
+
   it('should not register an individual entity with device_id', async () => {
     expect(haPlatform).toBeDefined();
 
@@ -790,7 +894,7 @@ describe('HassPlatform', () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(4);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
@@ -832,7 +936,7 @@ describe('HassPlatform', () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(2);
+    expect(haPlatform.matterbridgeDevices.size).toBe(5);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
@@ -868,7 +972,7 @@ describe('HassPlatform', () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(6);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
@@ -904,7 +1008,7 @@ describe('HassPlatform', () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(4);
+    expect(haPlatform.matterbridgeDevices.size).toBe(7);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
@@ -940,7 +1044,7 @@ describe('HassPlatform', () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(5);
+    expect(haPlatform.matterbridgeDevices.size).toBe(8);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
@@ -976,7 +1080,7 @@ describe('HassPlatform', () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(6);
+    expect(haPlatform.matterbridgeDevices.size).toBe(9);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));

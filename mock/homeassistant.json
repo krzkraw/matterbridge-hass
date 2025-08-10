@@ -926,6 +926,91 @@
     {
       "area_id": null,
       "categories": {},
+      "config_entry_id": "01JXFQ3R5EPZRY5DWWF153PZEN",
+      "config_subentry_id": null,
+      "created_at": 1749652753.11215,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "climate.ac_bedroom",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": "m3of:ac-unit",
+      "id": "23a475804e8d919383cfc178f686186c",
+      "labels": ["ac"],
+      "modified_at": 1753208297.871264,
+      "name": "Bedroom mini-split",
+      "options": {
+        "conversation": {
+          "should_expose": true
+        }
+      },
+      "original_name": "Bedroom AC",
+      "platform": "gree",
+      "translation_key": "gree",
+      "unique_id": "climate.gree_c03937a87611"
+    },
+    {
+      "area_id": null,
+      "categories": {},
+      "config_entry_id": "01JXFQB6T7MGHPY99YZRE44Z63",
+      "config_subentry_id": null,
+      "created_at": 1749653232.465044,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "climate.ac_living_room",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": "m3of:ac-unit",
+      "id": "0fd9c45c6d1c5645aaee8f39e7d79321",
+      "labels": ["ac"],
+      "modified_at": 1753208310.564766,
+      "name": "Living Room mini-split",
+      "options": {
+        "conversation": {
+          "should_expose": true
+        }
+      },
+      "original_name": "Living room AC",
+      "platform": "gree",
+      "translation_key": "gree",
+      "unique_id": "climate.gree_c03937a50ac3"
+    },
+    {
+      "area_id": null,
+      "categories": {},
+      "config_entry_id": "01JSTV5GTC9HE2EFTESFFS25V8",
+      "config_subentry_id": null,
+      "created_at": 1745731371.85309,
+      "device_id": null,
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "sensor.temperature_in_living_room",
+      "has_entity_name": false,
+      "hidden_by": null,
+      "icon": "mdi:temperature-celsius",
+      "id": "f2f939336e89a4ed9adc4844ade8579e",
+      "labels": [],
+      "modified_at": 1754826859.992127,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": true
+        },
+        "sensor": {
+          "display_precision": 1,
+          "suggested_display_precision": 1
+        }
+      },
+      "original_name": "temperature in living room",
+      "platform": "group",
+      "translation_key": null,
+      "unique_id": "01JSTV5GTC9HE2EFTESFFS25V8"
+    },
+    {
+      "area_id": null,
+      "categories": {},
       "config_entry_id": "01J6J7D7EADB8KNX8XBDYDNB1B",
       "created_at": 1737993627.221181,
       "device_id": "dc0b13b9f9d848b90201f926ab7a5c96",
