@@ -43,7 +43,7 @@ if (!debug) {
 }
 
 const readMockHomeAssistantFile = () => {
-  const filePath = path.join('mock', 'homeassistant.json');
+  const filePath = path.join('mock', 'homeassistant-full.json');
   try {
     const data = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(data) as {
@@ -533,7 +533,7 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     await haPlatform.updateHandler('notadevice', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
-    expect(mockLog.debug).toHaveBeenCalledWith(`Update handler: Matterbridge device notadevice for notanentity not found`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Update handler: Matterbridge device notadevice for entity notanentity not found`);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler('dimmableDoubleOutlet', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);

@@ -1,0 +1,24 @@
+{
+  "name": "matterbridge-krz-hass",
+  "type": "DynamicPlatform",
+  "host": "ws://192.168.1.11:8123",
+  "rejectUnauthorized": false,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2MzAwYTZhYzNlYWM0YzYxYmEwNDNkNTg2NzlmOTI5MiIsImlhdCI6MTc0NTI1ODc0MCwiZXhwIjoyMDYwNjE4NzQwfQ.BZjqpHHnBF241lUTkBJV6tdsF8C0SdwoS0b2Rj-nN7g",
+  "reconnectTimeout": 60,
+  "reconnectRetries": 10,
+  "filterByArea": "",
+  "filterByLabel": "ha_mb_export",
+  "applyFiltersToDeviceEntities": true,
+  "whiteList": [
+    "temperatura w mieszkaniu"
+  ],
+  "blackList": [],
+  "entityBlackList": [],
+  "namePostfix": "",
+  "postfix": "mbh",
+  "airQualityRegex": "^sensor\\..*_air_quality$",
+  "debug": true,
+  "unregisterOnShutdown": false,
+  "deviceEntityBlackList": {},
+  "version": "0.2.3"
+}

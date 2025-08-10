@@ -1,12 +1,14 @@
 // .devcontainer/devcontainer.json
 
 // This file defines the development container configuration for a Matterbridge Plugin.
-// WARNING: since the dev container doesn't have network host and ipv6, you can run matterbridge inside the container and test the plugin but is not possible to pair the Matterbridge instance.
+// Now configured with host networking mode to enable full network access including IPv6 and device pairing.
 {
   // Name of the dev container
   "name": "Matterbridge Plugin Dev Container",
   // Use the pre-built image with Node+TypeScript
   "image": "mcr.microsoft.com/vscode/devcontainers/typescript-node:latest",
+  // Run container with host networking mode for full network access
+  "runArgs": ["--network=host"],
   // Mount the local matterbridge and node_modules workspace folder to the container's workspace volumes to improve performance
   "mounts": [
     "source=${localWorkspaceFolderBasename}-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
